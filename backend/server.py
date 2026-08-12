@@ -25,19 +25,19 @@ api_router = APIRouter(prefix="/api")
 # ---------- Static Philly Dish Catalog ----------
 DISH_CATALOG = [
     {"id": "soft_pretzel", "name": "Soft Pretzel", "emoji": "🥨", "unlock_level": 1,
-     "recipe": {"dough": 3, "salt": 3}, "reward_coins": 40, "moves": 24},
+     "recipe": {"dough": 2, "salt": 2, "cheese_sauce": 2, "mustard": 2, "pizza_sauce": 2}, "reward_coins": 40, "moves": 30},
     {"id": "happy_cakes", "name": "Happy Cakes", "emoji": "🧁", "unlock_level": 2,
-     "recipe": {"pb_cake": 3, "chocolate_cake": 3}, "reward_coins": 55, "moves": 24},
+     "recipe": {"pb_cake": 2, "chocolate_cake": 2, "butterscotch_cake": 2, "mini_pie": 2, "sprinkles": 2}, "reward_coins": 55, "moves": 30},
     {"id": "water_ice", "name": "Water Ice", "emoji": "🍧", "unlock_level": 3,
-     "recipe": {"cup": 3}, "reward_coins": 65, "moves": 24},
+     "recipe": {"cup": 2, "cherry": 2, "rootbeer": 2, "lemon": 2, "blueberry": 2}, "reward_coins": 65, "moves": 30},
     {"id": "american_hoagie", "name": "American Hoagie", "emoji": "🥖", "unlock_level": 4,
-     "recipe": {"roll": 3, "ham": 3}, "reward_coins": 80, "moves": 28},
+     "recipe": {"roll": 2, "ham": 2, "cheese": 2, "lettuce": 2, "onion": 2}, "reward_coins": 80, "moves": 32},
     {"id": "italian_hoagie", "name": "Italian Hoagie", "emoji": "🥖", "unlock_level": 5,
-     "recipe": {"roll": 3, "salami": 3}, "reward_coins": 95, "moves": 28},
+     "recipe": {"roll": 2, "salami": 2, "provolone": 2, "capicola": 2, "pepperoni": 2}, "reward_coins": 95, "moves": 32},
     {"id": "cheesesteak", "name": "Cheesesteak", "emoji": "🥪", "unlock_level": 6,
-     "recipe": {"steak": 4, "roll": 2}, "reward_coins": 110, "moves": 28},
+     "recipe": {"steak": 2, "roll": 2, "onion": 2, "american": 2, "mushroom": 2}, "reward_coins": 110, "moves": 32},
     {"id": "roast_pork", "name": "Roast Pork", "emoji": "🥓", "unlock_level": 7,
-     "recipe": {"pork": 4, "roll": 2}, "reward_coins": 130, "moves": 30},
+     "recipe": {"pork": 2, "roll": 2, "broccoli": 2, "spinach": 2, "provolone": 2}, "reward_coins": 130, "moves": 34},
 ]
 
 SHOP_ITEMS = [

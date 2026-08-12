@@ -23,7 +23,7 @@ import { colors, radius, shadow, spacing } from "@/src/theme";
 
 const BOARD_MARGIN = spacing.lg;
 const BOARD_PADDING = spacing.sm;
-const MAX_TILES = 6;
+const MAX_TILES = 8;
 
 function buildPalette(baseKeys: string[], toppings: string[]): string[] {
   const set: string[] = [...new Set(baseKeys)];
@@ -39,7 +39,9 @@ export default function Game() {
   const insets = useSafeAreaInsets();
   const { width: winW } = useWindowDimensions();
   const BOARD_WIDTH = Math.min(winW, 460) - BOARD_MARGIN * 2;
-  const TILE = Math.floor((BOARD_WIDTH - BOARD_PADDING * 2) / BOARD_SIZE);
+  // Account for each tile's 2px margin on both sides (4px per tile) so the
+  // board background hugs the grid exactly with no leftover white space.
+  const TILE = Math.floor((BOARD_WIDTH - BOARD_PADDING * 2 - BOARD_SIZE * 4) / BOARD_SIZE);
   const { dishId, level } = useLocalSearchParams<{ dishId: string; level: string }>();
   const dish = useMemo(
     () => FALLBACK_DISHES.find((d) => d.id === dishId) || FALLBACK_DISHES[0],
@@ -257,7 +259,7 @@ export default function Game() {
       )}
 
       <View style={styles.boardWrap}>
-        <View style={[styles.board, { width: BOARD_WIDTH }]} testID="board">
+        <View style={styles.board} testID="board">
           {grid.map((row, r) => (
             <View key={r} style={styles.row}>
               {row.map((cell, c) => {

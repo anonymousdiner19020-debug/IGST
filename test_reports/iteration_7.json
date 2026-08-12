@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 7 (5-ingredient base recipes + 7-dish catalog sync). Backend: 51/51 pytest tests green after updating catalog assertions in backend_test.py (TestCatalog::test_dishes now verifies exactly 7 dishes, each with a 5-ingredient recipe, in the expected unlock order starting with soft_pretzel; Soft Pretzel recipe = {dough, salt, cheese_sauce, mustard, pizza_sauce}; TestPlayer/TestCompleteLevel updated to expect soft_pretzel as starter and happy_cakes as the level-2 unlock). All player CRUD, complete-level (coins/score/bells/unlock/weekly), spend-bells, upgrade grill/pantry/plates/holding, coin-packs, bell-packs and revenuecat webhook still pass. Frontend (mobile 390x844): (1) onboarding -> home -> level-map -> level-1 all working; level map lists all 7 dishes in the correct unlock order (soft_pretzel..roast_pork) with Lvl 1 unlocked; (2) /game?dishId=soft_pretzel&level=1 renders a 7x7 board (49 tile-*-* testIDs) with all 5 base recipe goals visible as recipe-dough, recipe-salt, recipe-cheese_sauce, recipe-mustard, recipe-pizza_sauce (0/2 each) — buildPalette caps tile types to 8 (5 base + 3 toppings), no red screen, no page errors; (3) /serve deep-link renders cleanly for soft_pretzel with serve-screen, serve-coins, serve-bells, order-ticket, want-*/no-* rows, tray-* toppings and serve-button — TDZ regression NOT reintroduced (`extraServings` state declaration still precedes the `customers` useMemo at serve.tsx:81 vs 83); (4) Full serve loop across 3 customers completed and auto-navigated to /cooking-result with `completed=1&coins=262&bells=9&score=632&served=3&total=3&nextLevel=2` — WIN screen shows ORDER SERVED, coins-earned +262, bells-earned +9, score-earned 632, unlock-banner 'NEXT UP: Happy Cakes' (correct level-2 unlock chain), continue-button + home-button. No React Native red screen, no PAGE ERRORs, only expected RN-web shadow*/textShadow*/resizeMode deprecation warnings on web. Deprecated packages detected: none. SafeAreaView issues detected: none.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: set REVENUECAT_WEBHOOK_AUTH to a strong secret in backend/.env before publishing — webhook currently accepts unauthenticated calls in the preview.",
+    "Optional cleanup: consider a lightweight ESLint rule (no-use-before-define / react-hooks/exhaustive-deps) around React state in serve.tsx to prevent regressions of the previous TDZ bug."
+  ],
+  "critical_code_review_comments": [
+    "server.py DISH_CATALOG now matches frontend FALLBACK_DISHES exactly — 7 dishes, each with a 5-ingredient recipe (2 each), unlock_level 1..7, first is soft_pretzel. reward_coins/moves scale up per dish and are consistent with the frontend copy.",
+    "server.py complete-level unlock chain (`next((d for d in DISH_CATALOG if d['unlock_level'] == next_level), None)`) correctly walks the new sequence: completing level 1 (soft_pretzel) unlocks happy_cakes, verified end-to-end via the frontend cooking-result screen ('NEXT UP: Happy Cakes').",
+    "frontend/app/serve.tsx: state declaration `const [extraServings, setExtraServings] = useState(0);` (line 81) still precedes the `customers = useMemo(..., [dish, toppings, extraServings])` on line 83 — TDZ fix from iter 6 is intact. No regression.",
+    "frontend/src/constants/dishes.ts base_recipe values are all 5-key objects — matches backend DISH_CATALOG recipe shape. buildPalette (game.tsx MAX_TILES=8) will always include the 5 base keys and up to 3 toppings, keeping the palette within the 8-color cap.",
+    "backend/tests/backend_test.py TestCatalog::test_dishes now asserts (a) len==7, (b) each recipe has 5 keys, (c) the full ordered id list, and (d) soft_pretzel recipe exactly equals the frontend's 5 ingredients — this is a durable regression check for any future catalog drift."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (TestCatalog::test_dishes, TestPlayer::test_create_player_starts_with_100_coins, TestCompleteLevel::test_complete_level_unlocks_next, TestCompleteLevel::test_incomplete_does_not_unlock — resynced to the new soft_pretzel-first 7-dish catalog and added a 5-ingredient recipe count assertion + explicit ordered-id assertion)"
+  ],
+  "success_rate": {
+    "backend": "100% (51/51 pytest)",
+    "frontend": "100% of tested flows (onboarding -> home -> level-map -> game (Soft Pretzel, 7x7 board, 5 base goals) -> serve deep-link (no TDZ) -> serve 3 customers -> cooking-result WIN with correct coins/bells/score/next-unlock)"
+  },
+  "seed_data_creation": "Pytest created disposable TEST_* players; playwright created TEST_UI_I7*, TEST_UI_I7B, TEST_UI_I7C, TEST_UI_I7D, TEST_UI_I7E players. No cleanup endpoint; test-data prefix keeps them identifiable.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend URL: https://cooking-combo-philly.preview.emergentagent.com/api. Iter-7 sync: DISH_CATALOG now has 7 dishes (soft_pretzel, happy_cakes, water_ice, american_hoagie, italian_hoagie, cheesesteak, roast_pork), each with a 5-ingredient recipe (all counts=2). Starter dish is soft_pretzel; completing level 1 unlocks happy_cakes. Frontend palette (game.tsx buildPalette + MAX_TILES=8) uses the 5 base keys + up to 3 toppings on a 7x7 board — verified visually. /serve deep-link is stable (extraServings TDZ regression not reintroduced). All iter-6 currency + revenuecat webhook coverage is intact. Backend tests file: /app/backend/tests/backend_test.py (51 tests, pytest -n auto compatible via xdist)."
+}

@@ -31,10 +31,19 @@ class TestCatalog:
         r = client.get(f"{API}/dishes")
         assert r.status_code == 200
         dishes = r.json()["dishes"]
-        assert len(dishes) == 8
+        # Iteration 7: 7 dishes, each with a 5-ingredient base recipe, soft_pretzel is level 1
+        assert len(dishes) == 7
         for d in dishes:
             assert set(["id", "name", "emoji", "unlock_level", "recipe", "reward_coins", "moves"]).issubset(d)
-        assert dishes[0]["id"] == "cheesesteak"
+            assert len(d["recipe"]) == 5, f"{d['id']} recipe should have 5 base ingredients"
+        assert dishes[0]["id"] == "soft_pretzel"
+        # Verify all 7 dish ids in the expected unlock order
+        expected_ids = ["soft_pretzel", "happy_cakes", "water_ice", "american_hoagie",
+                        "italian_hoagie", "cheesesteak", "roast_pork"]
+        assert [d["id"] for d in dishes] == expected_ids
+        # Soft Pretzel recipe must be exactly the frontend's 5 ingredients
+        pretzel = dishes[0]
+        assert set(pretzel["recipe"].keys()) == {"dough", "salt", "cheese_sauce", "mustard", "pizza_sauce"}
 
     def test_shop(self, client):
         r = client.get(f"{API}/shop")
@@ -48,7 +57,8 @@ class TestPlayer:
     def test_create_player_starts_with_100_coins(self, player):
         assert player["coins"] == 100
         assert player["current_level"] == 1
-        assert "cheesesteak" in player["unlocked_dishes"]
+        # New starting dish is soft_pretzel (iter 7)
+        assert "soft_pretzel" in player["unlocked_dishes"]
         assert player["high_score"] == 0
         assert "id" in player and player["id"]
 
@@ -67,11 +77,12 @@ class TestCompleteLevel:
     def test_complete_level_unlocks_next(self, client, player):
         pid = player["id"]
         r = client.post(f"{API}/players/{pid}/complete-level", json={
-            "level": 1, "dish_id": "cheesesteak", "score": 500, "coins_earned": 50, "completed": True,
+            "level": 1, "dish_id": "soft_pretzel", "score": 500, "coins_earned": 50, "completed": True,
         })
         assert r.status_code == 200
         d = r.json()
-        assert "soft_pretzel" in d["unlocked_dishes"]
+        # Completing level 1 (soft_pretzel) should unlock the level-2 dish: happy_cakes
+        assert "happy_cakes" in d["unlocked_dishes"]
         assert d["current_level"] == 2
         assert d["high_score"] == 500
         assert d["dishes_cooked"] == 1
@@ -81,11 +92,11 @@ class TestCompleteLevel:
         # new player for isolation
         pl = client.post(f"{API}/players", json={"username": "TEST_Fail"}).json()
         r = client.post(f"{API}/players/{pl['id']}/complete-level", json={
-            "level": 1, "dish_id": "cheesesteak", "score": 50, "coins_earned": 2, "completed": False,
+            "level": 1, "dish_id": "soft_pretzel", "score": 50, "coins_earned": 2, "completed": False,
         })
         assert r.status_code == 200
         d = r.json()
-        assert "soft_pretzel" not in d["unlocked_dishes"]
+        assert "happy_cakes" not in d["unlocked_dishes"]
         assert d["current_level"] == 1
         assert d["dishes_cooked"] == 0
 

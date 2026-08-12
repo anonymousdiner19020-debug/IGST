@@ -101,3 +101,48 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+user_problem_statement: "Philly Food Frenzy - Philadelphia match-3 + storefront cooking game. Match ingredients (now 5 base items per level) then serve customers custom orders. Coins + Liberty Bells currency, upgrades, tournament, Rush mode, RevenueCat packs."
+
+backend:
+  - task: "Dish catalog 5-ingredient recipe sync"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Updated DISH_CATALOG recipe field for all 7 dishes to 5 base ingredients each to match frontend FALLBACK_DISHES base_recipe. Verified via /api/dishes curl - all 7 return 5-key recipes."
+
+frontend:
+  - task: "Match phase 5 base ingredients + serve flow"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/game.tsx, frontend/src/constants/dishes.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "All 7 levels now use 5 base match ingredients. Board palette caps at 8 tile types (5 base always + up to 3 toppings) on 7x7 board. Screenshot of Level 1 confirms 5 requirement chips render 0/2 each. New Liberty Bell icon renders across pages."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.1"
+  test_sequence: 7
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Dish catalog 5-ingredient recipe sync"
+    - "Match phase 5 base ingredients + serve flow"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Synced backend catalog to 5-ingredient recipes (was stale 2-item). Please retest: (1) backend /api/dishes returns 5-key recipes for all 7 dishes and level-complete/currency flows still work; (2) frontend match phase collects all 5 base ingredients and transitions to serve counter, serve->result flow works. Anonymous UUID player (no auth). Backend URL from EXPO_PUBLIC_BACKEND_URL."
