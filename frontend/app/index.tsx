@@ -97,7 +97,7 @@ export default function Home() {
           <LibertyBell size={48} />
           <RockyStatue size={48} />
         </View>
-        <Text style={styles.title}>Philly Fare Match</Text>
+        <Text style={styles.title}>Philly Food Frenzy</Text>
         <Text style={styles.subtitle}>Match ingredients. Cook Philly classics. Feed the city.</Text>
         <View style={styles.inputWrap}>
           <TextInput
@@ -172,8 +172,8 @@ export default function Home() {
             <LibertyBell size={52} />
             <RockyStatue size={52} />
           </View>
-          <Text style={styles.heroTitle}>Philly Fare</Text>
-          <Text style={styles.heroSubtitle}>MATCH • COOK • SERVE</Text>
+          <Text style={styles.heroTitle}>Food Frenzy</Text>
+          <Text style={styles.heroSubtitle}>PHILLY • MATCH • COOK • SERVE</Text>
         </View>
 
         <View style={[styles.bottomStack, { paddingBottom: insets.bottom + spacing.xl }]}>

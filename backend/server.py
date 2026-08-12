@@ -277,7 +277,7 @@ async def settle_previous_weeks():
 # ---------- Routes ----------
 @api_router.get("/")
 async def root():
-    return {"message": "Philly Fare Match API"}
+    return {"message": "Philly Food Frenzy API"}
 
 
 @api_router.get("/dishes")
