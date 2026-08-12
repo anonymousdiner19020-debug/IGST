@@ -172,8 +172,8 @@ export default function Home() {
             <LibertyBell size={52} />
             <RockyStatue size={52} />
           </View>
-          <Text style={styles.heroTitle}>Food Frenzy</Text>
-          <Text style={styles.heroSubtitle}>PHILLY • MATCH • COOK • SERVE</Text>
+          <Text style={styles.heroTitle}>Philly Food Frenzy</Text>
+          <Text style={styles.heroSubtitle}>MATCH • COOK • SERVE</Text>
         </View>
 
         <View style={[styles.bottomStack, { paddingBottom: insets.bottom + spacing.xl }]}>
