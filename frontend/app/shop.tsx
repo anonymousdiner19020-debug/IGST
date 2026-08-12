@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api, PlayerDTO } from "@/src/api";
+import { api, GrillInfo, PlayerDTO } from "@/src/api";
 import { playerStorage } from "@/src/storage";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 
@@ -21,6 +21,7 @@ export default function Shop() {
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [player, setPlayer] = useState<PlayerDTO | null>(null);
+  const [grill, setGrill] = useState<GrillInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -30,7 +31,11 @@ export default function Shop() {
     try {
       const [shop, id] = await Promise.all([api.getShop(), playerStorage.get()]);
       setItems(shop.items);
-      if (id) setPlayer(await api.getPlayer(id));
+      if (id) {
+        const [p, g] = await Promise.all([api.getPlayer(id), api.getGrillInfo(id)]);
+        setPlayer(p);
+        setGrill(g);
+      }
     } catch {}
     setLoading(false);
   }, []);
@@ -38,6 +43,27 @@ export default function Shop() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const upgradeGrill = async () => {
+    if (!player || !grill || grill.maxed || grill.next_cost == null) return;
+    if (player.coins < grill.next_cost) {
+      setToast("Not enough coins!");
+      setTimeout(() => setToast(null), 1500);
+      return;
+    }
+    setPurchasing("grill");
+    try {
+      const updated = await api.upgradeGrill(player.id);
+      setPlayer(updated);
+      setGrill(await api.getGrillInfo(player.id));
+      setToast("Grill upgraded! 🔥");
+      setTimeout(() => setToast(null), 1500);
+    } catch {
+      setToast("Upgrade failed");
+      setTimeout(() => setToast(null), 1500);
+    }
+    setPurchasing(null);
+  };
 
   const buy = async (item: ShopItem) => {
     if (!player) return;
@@ -76,32 +102,83 @@ export default function Shop() {
         <ActivityIndicator style={{ marginTop: spacing.xxxl }} color={colors.brand} />
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + spacing.xl }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.xl }]}
         >
-          {items.map((item) => {
-            const owned = player?.boosters?.[item.id] || 0;
-            const canAfford = (player?.coins ?? 0) >= item.cost;
-            return (
-              <View key={item.id} style={styles.card} testID={`shop-item-${item.id}`}>
-                <Text style={styles.emoji}>{item.emoji}</Text>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.owned}>Owned: {owned}</Text>
-                <Pressable
-                  disabled={!canAfford || purchasing === item.id}
-                  onPress={() => buy(item)}
-                  testID={`buy-${item.id}`}
-                  style={({ pressed }) => [
-                    styles.buyBtn,
-                    !canAfford && styles.buyBtnDisabled,
-                    pressed && { transform: [{ scale: 0.96 }] },
-                  ]}
-                >
-                  <Text style={styles.buyEmoji}>🪙</Text>
-                  <Text style={styles.buyText}>{item.cost}</Text>
-                </Pressable>
+          {/* Kitchen Upgrade: Bigger Grill */}
+          <View style={styles.upgradeCard} testID="grill-upgrade-card">
+            <View style={styles.upgradeTop}>
+              <Text style={styles.upgradeEmoji}>🔥</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.upgradeTitle}>Bigger Grill</Text>
+                <Text style={styles.upgradeDesc}>
+                  Start every level with base ingredients pre-stocked.
+                </Text>
+                <View style={styles.grillDots}>
+                  {Array.from({ length: grill?.max_level ?? 3 }).map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.grillDot,
+                        i < (grill?.grill_level ?? 0) && styles.grillDotOn,
+                      ]}
+                    />
+                  ))}
+                  <Text style={styles.grillLevelText}>
+                    Lv {grill?.grill_level ?? 0}/{grill?.max_level ?? 3}
+                  </Text>
+                </View>
               </View>
-            );
-          })}
+            </View>
+            <Pressable
+              testID="upgrade-grill-button"
+              disabled={!grill || grill.maxed || purchasing === "grill"}
+              onPress={upgradeGrill}
+              style={({ pressed }) => [
+                styles.upgradeBtn,
+                (!grill || grill.maxed) && styles.buyBtnDisabled,
+                pressed && { transform: [{ scale: 0.97 }] },
+              ]}
+            >
+              {!grill ? (
+                <Text style={styles.upgradeBtnText}>…</Text>
+              ) : grill.maxed ? (
+                <Text style={styles.upgradeBtnText}>MAXED OUT</Text>
+              ) : (
+                <>
+                  <Text style={styles.buyEmoji}>🪙</Text>
+                  <Text style={styles.upgradeBtnText}>Upgrade — {grill.next_cost}</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+
+          <Text style={styles.sectionLabel}>BOOSTERS</Text>
+          <View style={styles.grid}>
+            {items.map((item) => {
+              const owned = player?.boosters?.[item.id] || 0;
+              const canAfford = (player?.coins ?? 0) >= item.cost;
+              return (
+                <View key={item.id} style={styles.card} testID={`shop-item-${item.id}`}>
+                  <Text style={styles.emoji}>{item.emoji}</Text>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.owned}>Owned: {owned}</Text>
+                  <Pressable
+                    disabled={!canAfford || purchasing === item.id}
+                    onPress={() => buy(item)}
+                    testID={`buy-${item.id}`}
+                    style={({ pressed }) => [
+                      styles.buyBtn,
+                      !canAfford && styles.buyBtnDisabled,
+                      pressed && { transform: [{ scale: 0.96 }] },
+                    ]}
+                  >
+                    <Text style={styles.buyEmoji}>🪙</Text>
+                    <Text style={styles.buyText}>{item.cost}</Text>
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
         </ScrollView>
       )}
 
@@ -150,12 +227,54 @@ const styles = StyleSheet.create({
   coinEmoji: { fontSize: 16 },
   coinText: { fontSize: 14, fontWeight: "900", color: colors.onBrand },
   grid: {
-    padding: spacing.lg,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.md,
     justifyContent: "space-between",
   },
+  scrollContent: { padding: spacing.lg, gap: spacing.md },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: colors.surfaceInverse,
+    opacity: 0.5,
+    letterSpacing: 2,
+    marginTop: spacing.sm,
+  },
+  upgradeCard: {
+    backgroundColor: colors.surfaceInverse,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+    ...shadow.tier2,
+    borderWidth: 3,
+    borderColor: colors.brand,
+  },
+  upgradeTop: { flexDirection: "row", gap: spacing.md, alignItems: "flex-start" },
+  upgradeEmoji: { fontSize: 44 },
+  upgradeTitle: { fontSize: 20, fontWeight: "900", color: "#FFFFFF" },
+  upgradeDesc: { fontSize: 13, fontWeight: "700", color: "#FFFFFF", opacity: 0.75, marginTop: 2 },
+  grillDots: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.sm },
+  grillDot: {
+    width: 22,
+    height: 10,
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  grillDotOn: { backgroundColor: colors.brand },
+  grillLevelText: { color: colors.brand, fontWeight: "900", fontSize: 12, marginLeft: spacing.sm },
+  upgradeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    backgroundColor: colors.brand,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  upgradeBtnText: { fontSize: 15, fontWeight: "900", color: colors.onBrand },
   card: {
     width: "48%",
     backgroundColor: colors.surface,

@@ -25,7 +25,23 @@ export type PlayerDTO = {
   dishes_cooked: number;
   unlocked_dishes: string[];
   boosters: Record<string, number>;
+  grill_level: number;
   created_at: string;
+};
+
+export type DailySpecial = {
+  date: string;
+  dish_id: string;
+  name: string;
+  emoji: string;
+  bonus_multiplier: number;
+};
+
+export type GrillInfo = {
+  grill_level: number;
+  max_level: number;
+  next_cost: number | null;
+  maxed: boolean;
 };
 
 export const api = {
@@ -54,4 +70,8 @@ export const api = {
   getShop: () => req<{ items: { id: string; name: string; emoji: string; cost: number; type: string }[] }>("/shop"),
   getLeaderboard: () =>
     req<{ leaderboard: { id: string; username: string; high_score: number; dishes_cooked: number }[] }>("/leaderboard"),
+  upgradeGrill: (id: string) =>
+    req<PlayerDTO>(`/players/${id}/upgrade-grill`, { method: "POST" }),
+  getGrillInfo: (id: string) => req<GrillInfo>(`/grill-info/${id}`),
+  getDailySpecial: () => req<DailySpecial>("/daily-special"),
 };

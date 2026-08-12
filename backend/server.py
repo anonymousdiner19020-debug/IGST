@@ -106,6 +106,10 @@ SHOP_ITEMS = [
     {"id": "shuffle", "name": "Board Shuffle", "emoji": "🔀", "cost": 30, "type": "consumable"},
 ]
 
+GRILL_MAX = 3
+GRILL_BASE_COST = 150
+DAILY_BONUS_MULTIPLIER = 2.0
+
 
 # ---------- Models ----------
 class PlayerCreate(BaseModel):
@@ -146,8 +150,13 @@ def player_public(doc: dict) -> dict:
         "dishes_cooked": doc.get("dishes_cooked", 0),
         "unlocked_dishes": doc.get("unlocked_dishes", ["cheesesteak"]),
         "boosters": doc.get("boosters", {}),
+        "grill_level": doc.get("grill_level", 0),
         "created_at": doc.get("created_at", ""),
     }
+
+
+def grill_cost(level: int) -> int:
+    return GRILL_BASE_COST * (level + 1)
 
 
 # ---------- Routes ----------
@@ -178,6 +187,7 @@ async def create_player(payload: PlayerCreate):
         "dishes_cooked": 0,
         "unlocked_dishes": ["cheesesteak"],
         "boosters": {"extra_moves": 0, "hint": 1, "coin_doubler": 0, "hammer": 0, "shuffle": 1},
+        "grill_level": 0,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.players.insert_one(doc)
@@ -268,6 +278,56 @@ async def leaderboard():
     ).sort("high_score", -1).limit(20)
     rows = await cursor.to_list(length=20)
     return {"leaderboard": rows}
+
+
+@api_router.post("/players/{player_id}/upgrade-grill")
+async def upgrade_grill(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    level = doc.get("grill_level", 0)
+    if level >= GRILL_MAX:
+        raise HTTPException(status_code=400, detail="Grill already fully upgraded")
+    cost = grill_cost(level)
+    if doc.get("coins", 0) < cost:
+        raise HTTPException(status_code=400, detail="Not enough coins")
+    new_level = level + 1
+    new_coins = doc["coins"] - cost
+    await db.players.update_one(
+        {"id": player_id}, {"$set": {"coins": new_coins, "grill_level": new_level}}
+    )
+    doc["coins"] = new_coins
+    doc["grill_level"] = new_level
+    return player_public(doc)
+
+
+@api_router.get("/grill-info/{player_id}")
+async def grill_info(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    level = doc.get("grill_level", 0)
+    return {
+        "grill_level": level,
+        "max_level": GRILL_MAX,
+        "next_cost": grill_cost(level) if level < GRILL_MAX else None,
+        "maxed": level >= GRILL_MAX,
+    }
+
+
+@api_router.get("/daily-special")
+async def daily_special():
+    # Deterministic pick based on UTC day so it rotates once per day.
+    today = datetime.now(timezone.utc)
+    day_index = today.toordinal()
+    dish = DISH_CATALOG[day_index % len(DISH_CATALOG)]
+    return {
+        "date": today.date().isoformat(),
+        "dish_id": dish["id"],
+        "name": dish["name"],
+        "emoji": dish["emoji"],
+        "bonus_multiplier": DAILY_BONUS_MULTIPLIER,
+    }
 
 
 app.include_router(api_router)

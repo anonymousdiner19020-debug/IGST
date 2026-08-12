@@ -125,6 +125,77 @@ class TestPurchase:
         assert r2.status_code == 400
 
 
+# ---------- Daily Special ----------
+class TestDailySpecial:
+    def test_daily_special_shape_and_determinism(self, client):
+        r1 = client.get(f"{API}/daily-special")
+        assert r1.status_code == 200
+        d1 = r1.json()
+        assert set(["date", "dish_id", "name", "emoji", "bonus_multiplier"]).issubset(d1)
+        assert d1["bonus_multiplier"] == 2.0
+        # Deterministic: repeat call yields same dish_id for same day
+        r2 = client.get(f"{API}/daily-special")
+        assert r2.json()["dish_id"] == d1["dish_id"]
+        # dish_id belongs to catalog
+        dishes = client.get(f"{API}/dishes").json()["dishes"]
+        assert d1["dish_id"] in [d["id"] for d in dishes]
+
+
+# ---------- Grill Upgrade ----------
+class TestGrill:
+    def test_grill_info_defaults(self, client):
+        pl = client.post(f"{API}/players", json={"username": "TEST_GrillInfo"}).json()
+        r = client.get(f"{API}/grill-info/{pl['id']}")
+        assert r.status_code == 200
+        g = r.json()
+        assert g["grill_level"] == 0
+        assert g["max_level"] == 3
+        assert g["next_cost"] == 150
+        assert g["maxed"] is False
+        # Player doc includes grill_level default 0
+        assert pl.get("grill_level", 0) == 0
+
+    def test_upgrade_grill_insufficient_coins(self, client):
+        pl = client.post(f"{API}/players", json={"username": "TEST_GrillPoor"}).json()
+        r = client.post(f"{API}/players/{pl['id']}/upgrade-grill")
+        assert r.status_code == 400  # 100 < 150
+
+    def test_upgrade_grill_full_progression(self, client):
+        pl = client.post(f"{API}/players", json={"username": "TEST_GrillRich"}).json()
+        pid = pl["id"]
+        # Give plenty of coins by simulating a level completion with huge coins_earned
+        r = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 1, "dish_id": "cheesesteak", "score": 0, "coins_earned": 2000, "completed": False,
+        })
+        assert r.status_code == 200
+        # First upgrade: 150
+        r1 = client.post(f"{API}/players/{pid}/upgrade-grill")
+        assert r1.status_code == 200, r1.text
+        d1 = r1.json()
+        assert d1["grill_level"] == 1
+        g1 = client.get(f"{API}/grill-info/{pid}").json()
+        assert g1["next_cost"] == 300
+
+        # Second upgrade: 300
+        r2 = client.post(f"{API}/players/{pid}/upgrade-grill")
+        assert r2.status_code == 200, r2.text
+        assert r2.json()["grill_level"] == 2
+        g2 = client.get(f"{API}/grill-info/{pid}").json()
+        assert g2["next_cost"] == 450
+
+        # Third upgrade: 450 -> maxed
+        r3 = client.post(f"{API}/players/{pid}/upgrade-grill")
+        assert r3.status_code == 200, r3.text
+        assert r3.json()["grill_level"] == 3
+        g3 = client.get(f"{API}/grill-info/{pid}").json()
+        assert g3["maxed"] is True
+        assert g3["next_cost"] is None
+
+        # Extra upgrade rejected
+        r4 = client.post(f"{API}/players/{pid}/upgrade-grill")
+        assert r4.status_code == 400
+
+
 # ---------- Leaderboard ----------
 class TestLeaderboard:
     def test_leaderboard_sorted(self, client):

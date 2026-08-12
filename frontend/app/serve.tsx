@@ -48,6 +48,7 @@ export default function Serve() {
     inventory: string;
     toppings: string;
     movesLeft: string;
+    daily: string;
   }>();
 
   const dish = useMemo(
@@ -77,10 +78,15 @@ export default function Serve() {
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [patience, setPatience] = useState(1);
   const [finished, setFinished] = useState(false);
+  const [streak, setStreak] = useState(0);
   const patienceRef = useRef<any>(null);
   const startRef = useRef<number>(Date.now());
 
+  const isDaily = params.daily === "1";
   const current = customers[idx];
+
+  // combo multiplier grows with consecutive perfect serves: 1x, 1.5x, 2x, 2.5x...
+  const comboMult = 1 + streak * 0.5;
 
   // patience timer per customer
   useEffect(() => {
@@ -141,17 +147,26 @@ export default function Serve() {
 
     if (perfect) {
       const speedBonus = Math.round(patience * 20);
-      const tip = dish.reward_coins + speedBonus;
+      const base = dish.reward_coins + speedBonus;
+      const newStreak = streak + 1;
+      const mult = 1 + streak * 0.5; // multiplier from CURRENT streak before increment
+      const dailyMult = isDaily ? 2 : 1;
+      const tip = Math.round(base * mult * dailyMult);
+      setStreak(newStreak);
       sound.play("serve");
       sound.play("coin");
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {}
-      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙` });
-      nextCustomer(tip, 100 + speedBonus, true);
+      const comboLabel = mult > 1 ? ` 🔥x${mult}` : "";
+      const dailyLabel = isDaily ? " ⭐2×" : "";
+      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙${comboLabel}${dailyLabel}` });
+      nextCustomer(tip, Math.round((100 + speedBonus) * mult), true);
     } else {
       const partial = Math.max(0, current.wanted.length - missing.length - extra.length);
-      const coinsGot = partial * 8;
+      const dailyMult = isDaily ? 2 : 1;
+      const coinsGot = partial * 8 * dailyMult;
+      setStreak(0); // combo broken
       sound.play("error");
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -162,6 +177,7 @@ export default function Serve() {
   };
 
   const handleTimeout = () => {
+    setStreak(0);
     sound.play("error");
     setFeedback({ ok: false, text: "Too slow! Customer left 😤" });
     nextCustomer(0, 0, false);
@@ -207,6 +223,11 @@ export default function Serve() {
             Customer {idx + 1}/{customers.length}
           </Text>
         </View>
+        {streak >= 1 && (
+          <View style={styles.streakBadge} testID="combo-streak">
+            <Text style={styles.streakText}>🔥 x{(1 + streak * 0.5).toFixed(1)}</Text>
+          </View>
+        )}
         <View style={styles.coinChip} testID="serve-coins">
           <Text style={styles.coinEmoji}>🪙</Text>
           <Text style={styles.coinText}>{coins}</Text>
@@ -345,6 +366,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   counterText: { fontWeight: "900", color: colors.onBrand, fontSize: 13 },
+  streakBadge: {
+    backgroundColor: colors.brandSecondary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  streakText: { fontWeight: "900", color: "#FFFFFF", fontSize: 13 },
   coinChip: {
     flexDirection: "row",
     alignItems: "center",

@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api, PlayerDTO } from "@/src/api";
+import { api, DailySpecial, PlayerDTO } from "@/src/api";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import { playerStorage } from "@/src/storage";
 
@@ -23,6 +23,7 @@ export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [player, setPlayer] = useState<PlayerDTO | null>(null);
+  const [daily, setDaily] = useState<DailySpecial | null>(null);
   const [needsName, setNeedsName] = useState(false);
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(true);
@@ -50,6 +51,10 @@ export default function Home() {
   useEffect(() => {
     loadPlayer();
   }, [loadPlayer]);
+
+  useEffect(() => {
+    api.getDailySpecial().then(setDaily).catch(() => {});
+  }, []);
 
   // reload whenever screen refocuses (coin/level updates)
   useEffect(() => {
@@ -146,6 +151,30 @@ export default function Home() {
         </View>
 
         <View style={[styles.bottomStack, { paddingBottom: insets.bottom + spacing.xl }]}>
+          {daily && (
+            <Pressable
+              testID="daily-special-banner"
+              onPress={() =>
+                router.push({
+                  pathname: "/game",
+                  params: { dishId: daily.dish_id, level: String(player?.current_level ?? 1) },
+                })
+              }
+              style={({ pressed }) => [styles.dailyBanner, pressed && { transform: [{ scale: 0.98 }] }]}
+            >
+              <Text style={styles.dailyEmoji}>{daily.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dailyLabel}>⭐ TODAY'S SPECIAL</Text>
+                <Text style={styles.dailyName} numberOfLines={1}>
+                  {daily.name}
+                </Text>
+              </View>
+              <View style={styles.dailyBonus}>
+                <Text style={styles.dailyBonusText}>{daily.bonus_multiplier}× 🪙</Text>
+              </View>
+            </Pressable>
+          )}
+
           <View style={styles.secondaryRow}>
             <SecondaryButton
               testID="shop-button"
@@ -320,6 +349,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.lg,
   },
+  dailyBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    ...shadow.tier2,
+    borderWidth: 3,
+    borderColor: colors.brand,
+  },
+  dailyEmoji: { fontSize: 38 },
+  dailyLabel: { fontSize: 10, fontWeight: "900", color: colors.brandSecondary, letterSpacing: 1 },
+  dailyName: { fontSize: 16, fontWeight: "900", color: colors.surfaceInverse },
+  dailyBonus: {
+    backgroundColor: colors.brand,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.surfaceInverse,
+  },
+  dailyBonusText: { fontSize: 14, fontWeight: "900", color: colors.onBrand },
   secondaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",

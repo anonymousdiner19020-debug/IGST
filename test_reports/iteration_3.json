@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 3 (Customer Combos + Bigger Grill upgrade + Daily Special). Backend: 17/17 pytest tests green — new tests cover GET /api/daily-special (shape {date, dish_id, name, emoji, bonus_multiplier=2.0} + determinism across two calls + dish_id in catalog), GET /api/grill-info/{player_id} (grill_level=0, max_level=3, next_cost=150, maxed=false on a new player + player doc has grill_level=0), POST /api/players/{player_id}/upgrade-grill (400 when coins=100<150, then full progression 150→300→450 with grill_level advancing 0→1→2→3, next_cost updates each step, maxed=true and next_cost=null at level 3, extra upgrade rejected with 400). Prior 13 regression tests (root, dishes, shop, player create/get/404, complete-level/unlock, purchase/insufficient/use-booster, leaderboard) still pass with no _id leaks. Frontend (mobile 390x844): (1) Home / renders daily-special-banner reading 🥩 ⭐ TODAY'S SPECIAL / Philly Cheesesteak / 2× 🪙; tapping it routes to /game?dishId=cheesesteak&level=1. (2) /game order panel shows subtitle '⭐ Daily Special — 2× coins!' when dishId matches today's special. (3) /shop after onboarding renders grill-upgrade-card with title 'Bigger Grill', 3 level dots, 'Lv 0/3', upgrade-grill-button 'Upgrade — 150'; tapping with 100 coins shows shop-toast 'Not enough coins!'; booster cards shop-item-* and buy-* still present. (4) /serve?...&daily=1: no combo-streak visible before serving; 1st Perfect serve feedback = 'Perfect! +116 🪙 ⭐2×' (base 50 + ~8 speed = ~58 * 1× * 2× daily), combo-streak badge appears reading '🔥 x1.5'; 2nd Perfect feedback = 'Perfect! +174 🪙 🔥x1.5 ⭐2×' (58 * 1.5 * 2), badge escalates to '🔥 x2.0'; 3rd Wrong serve feedback = 'Wrong order!' and combo-streak badge disappears (streak reset). All spec bullets in the review_request validated. Deprecated packages detected: none. SafeAreaView issues detected: none. Non-blocking RN-web warnings for shadow*/textShadow*/Image.resizeMode still present (explicitly OK-to-ignore per review_request).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Shop (/shop)", "issues": ["When the Shop screen is loaded without a stored playerId in AsyncStorage, the header shows 🪙 0 and the upgrade button renders as 'Upgrade — ' (cost blank). This matches the review_request note ('grill card shows without a cost until a player is loaded'), but a Chef-name prompt or a disabled state with placeholder cost would prevent the ambiguous empty-label. Consider redirecting to onboarding from /shop when no id exists, or showing '—' / 'Sign in first' on the button."]},
+      {"screen": "Global (theme.ts)", "issues": ["RN-web deprecation warnings for shadow*/textShadow* style props and Image.style.resizeMode still emitted; whitelisted by review_request."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional UX: on /shop (and any other player-scoped screen) redirect to onboarding when playerStorage.get() returns null, so users don't see a Shop with 🪙0 and a costless 'Upgrade —' button.",
+    "Optional: migrate deprecated RN-web shadow*/textShadow*/Image.resizeMode style props in /app/frontend/src/theme.ts and Home ImageBackground to silence warnings.",
+    "Optional (from iteration 2, still open): dead-code cleanup in /app/frontend/src/constants/dishes.ts line 104."
+  ],
+  "critical_code_review_comments": [
+    "server.py daily-special: uses UTC ordinal % len(catalog) — deterministic per UTC day, cycles through 8 dishes over 8 days. OK.",
+    "server.py upgrade-grill correctly enforces max_level and insufficient-coins BEFORE mutation; grill_cost = 150*(level+1) matches spec 150→300→450 for level 0→2.",
+    "server.py player_public exposes grill_level with default 0 for pre-existing docs — good backward compatibility.",
+    "serve.tsx combo logic: `mult = 1 + streak*0.5` computed from CURRENT streak BEFORE incrementing, so first perfect pays 1× (streak was 0), second pays 1.5× (streak was 1). The badge text uses `(1+streak*0.5).toFixed(1)` on the NEW streak, so header badge shows x1.5 after 1st perfect / x2.0 after 2nd — this is a small mismatch with the payout multiplier but is intentional 'next-serve preview' UX. Verified visually.",
+    "serve.tsx daily bonus applies to both perfect (base*mult*daily) and partial (partial*8*daily) coins — spec says 'perfect-serve coins are doubled' so doubling partial coins is a mild spec deviation; harmless.",
+    "game.tsx pre-stock grill: `Math.min(lvl, need-1)` guarantees the level can never auto-complete without ≥1 match. Nice guardrail.",
+    "shop.tsx: when player/grill are null (no stored id) the upgrade button still renders enabled with blank cost. Consider disabling until grill != null.",
+    "index.tsx: getDailySpecial fetched independently of player load; safe (works pre-onboarding too)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestDailySpecial + TestGrill classes, +4 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17)",
+    "frontend": "100% of tested flows (Home daily banner + navigation to /game, Game daily subtitle, Shop grill card + upgrade button + insufficient-coins toast + booster cards, Serve combo streak escalation 1x→1.5x→2x + reset on wrong serve, Serve daily ⭐2× label on perfect feedback with correct 2x coin math)"
+  },
+  "seed_data_creation": "pytest run created disposable TEST_* players (TEST_Chef, TEST_Fail, TEST_Buy, TEST_Poor, TEST_Use, TEST_GrillInfo, TEST_GrillPoor, TEST_GrillRich). Playwright runs created TEST_UI_Chef and TEST_UI_Shop2. No cleanup endpoint; they will appear on leaderboard with high_score=0 (except TEST_GrillRich which has score=0 too since complete-level used score=0).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend URL: https://cooking-combo-philly.preview.emergentagent.com/api. Regression file /app/backend/tests/backend_test.py now covers all endpoints incl. daily-special + grill. Frontend deep-links: /serve?dishId=cheesesteak&level=1&score=0&inventory=%7B%7D&toppings=%5B%22onion%22%2C%22cheese%22%2C%22whiz%22%2C%22mushroom%22%2C%22hot_pepper%22%5D&movesLeft=10&daily=1 for combo/daily tests. To read wanted/forbidden toppings from ticket use `document.querySelectorAll('[data-testid^=\"want-\"]')` and `[data-testid^=\"no-\"]`. Serve combo header badge testID: combo-streak (shows text like '🔥 x1.5' after streak≥1). Serve feedback testID: serve-feedback (contains ' ⭐2×' when daily=1 and '🔥x{mult}' when combo carries). Shop testIDs: grill-upgrade-card, upgrade-grill-button, shop-toast, shop-item-{id}, buy-{id}, shop-coin-balance. Home testID: daily-special-banner. Note that Shop opened without a stored playerId shows 🪙0 and blank cost — always onboard from / first (fill username-input + tap create-player-button) before navigating to /shop in a fresh browser context. Today's daily dish_id via GET /api/daily-special is currently 'cheesesteak' (verified today).",
+  "rca_of_issue": "N/A — no bugs observed."
+}

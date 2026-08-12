@@ -5,6 +5,8 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FALLBACK_DISHES, INGREDIENTS } from "@/src/constants/dishes";
+import { api } from "@/src/api";
+import { playerStorage } from "@/src/storage";
 import {
   BOARD_SIZE,
   Cell,
@@ -60,9 +62,36 @@ export default function Game() {
   const [ended, setEnded] = useState(false);
   const [flashCells, setFlashCells] = useState<Set<string>>(new Set());
   const [combo, setCombo] = useState(0);
+  const [grillLevel, setGrillLevel] = useState(0);
+  const [isDaily, setIsDaily] = useState(false);
 
   useEffect(() => {
     sound.preload();
+    (async () => {
+      try {
+        const daily = await api.getDailySpecial();
+        if (daily.dish_id === dish.id) setIsDaily(true);
+      } catch {}
+      try {
+        const id = await playerStorage.get();
+        if (!id) return;
+        const p = await api.getPlayer(id);
+        const lvl = p.grill_level || 0;
+        setGrillLevel(lvl);
+        if (lvl > 0) {
+          // Pre-stock base ingredients but never enough to auto-complete a slot.
+          setInventory((prev) => {
+            const next = { ...prev };
+            for (const [k, need] of Object.entries(dish.base_recipe)) {
+              const stock = Math.min(lvl, Math.max(0, (need as number) - 1));
+              if (stock > 0) next[k] = (next[k] || 0) + stock;
+            }
+            return next;
+          });
+        }
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const baseMet = useMemo(
@@ -95,6 +124,7 @@ export default function Game() {
         inventory: JSON.stringify(inventory),
         toppings: JSON.stringify(paletteToppings),
         movesLeft: String(moves),
+        daily: isDaily ? "1" : "0",
       },
     });
   };
@@ -259,7 +289,13 @@ export default function Game() {
             <Text style={styles.orderTitle} numberOfLines={1}>
               Prep the {dish.name}
             </Text>
-            <Text style={styles.orderSub}>Match base items to open the counter</Text>
+            {isDaily ? (
+              <Text style={[styles.orderSub, { color: colors.brandSecondary }]}>
+                ⭐ Daily Special — 2× coins!
+              </Text>
+            ) : (
+              <Text style={styles.orderSub}>Match base items to open the counter</Text>
+            )}
           </View>
           <Text style={styles.dishEmoji}>{dish.emoji}</Text>
         </View>
