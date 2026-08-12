@@ -7,6 +7,7 @@ import { api, PlayerDTO } from "@/src/api";
 import { FALLBACK_DISHES } from "@/src/constants/dishes";
 import { playerStorage } from "@/src/storage";
 import { colors, radius, shadow, spacing } from "@/src/theme";
+import DishIcon from "@/src/components/DishIcon";
 
 export default function LevelMap() {
   const router = useRouter();
@@ -69,7 +70,11 @@ export default function LevelMap() {
                   pressed && unlocked && { transform: [{ scale: 0.95 }] },
                 ]}
               >
-                <Text style={styles.nodeEmoji}>{unlocked ? dish.emoji : "🔒"}</Text>
+                {unlocked ? (
+                  <DishIcon id={dish.id} emoji={dish.emoji} size={44} />
+                ) : (
+                  <Text style={styles.nodeEmoji}>🔒</Text>
+                )}
                 <Text
                   style={[
                     styles.nodeLevel,

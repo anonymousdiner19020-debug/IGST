@@ -8,6 +8,7 @@ import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import LibertyBell from "@/src/components/LibertyBell";
+import DishIcon from "@/src/components/DishIcon";
 
 export default function CookingResult() {
   const router = useRouter();
@@ -78,7 +79,7 @@ export default function CookingResult() {
 
         <View style={styles.body}>
           <View style={styles.dishBadge}>
-            <Text style={styles.dishEmoji}>{dish.emoji}</Text>
+            <DishIcon id={dish.id} emoji={dish.emoji} size={56} />
           </View>
           <Text style={styles.dishName}>{dish.name}</Text>
           <Text style={styles.dishMsg}>

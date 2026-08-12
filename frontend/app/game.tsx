@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FALLBACK_DISHES, INGREDIENTS } from "@/src/constants/dishes";
 import { api } from "@/src/api";
+import DishIcon from "@/src/components/DishIcon";
 import { playerStorage } from "@/src/storage";
 import {
   BOARD_SIZE,
@@ -299,7 +300,7 @@ export default function Game() {
               <Text style={styles.orderSub}>Match base items to open the counter</Text>
             )}
           </View>
-          <Text style={styles.dishEmoji}>{dish.emoji}</Text>
+          <DishIcon id={dish.id} emoji={dish.emoji} size={34} />
         </View>
         <ScrollView
           horizontal

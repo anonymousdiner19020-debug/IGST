@@ -18,6 +18,7 @@ import { colors, radius, shadow, spacing } from "@/src/theme";
 import { playerStorage } from "@/src/storage";
 import { CityHallPenn, LoveStatue, RockyStatue } from "@/src/components/LandmarkIcons";
 import LibertyBell from "@/src/components/LibertyBell";
+import DishIcon from "@/src/components/DishIcon";
 
 const BG = "https://images.unsplash.com/photo-1548696060-8fae845c6452?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwzfHxjb2xvcmZ1bCUyMGRpbmVyJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3ODY1NjY2Nzh8MA&ixlib=rb-4.1.0&q=85";
 
@@ -188,7 +189,7 @@ export default function Home() {
               }
               style={({ pressed }) => [styles.dailyBanner, pressed && { transform: [{ scale: 0.98 }] }]}
             >
-              <Text style={styles.dailyEmoji}>{daily.emoji}</Text>
+              <DishIcon id={daily.dish_id} emoji={daily.emoji} size={40} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.dailyLabel}>⭐ TODAY'S SPECIAL</Text>
                 <Text style={styles.dailyName} numberOfLines={1}>

@@ -15,6 +15,7 @@ import { FALLBACK_DISHES } from "@/src/constants/dishes";
 import { playerStorage } from "@/src/storage";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import LibertyBell from "@/src/components/LibertyBell";
+import DishIcon from "@/src/components/DishIcon";
 
 export default function Profile() {
   const router = useRouter();
@@ -98,8 +99,9 @@ export default function Profile() {
                   style={[styles.dishTile, !unlocked && styles.dishTileLocked]}
                 >
                   <Text style={[styles.dishEmoji, !unlocked && { opacity: 0.3 }]}>
-                    {unlocked ? d.emoji : "🔒"}
+                    {unlocked ? "" : "🔒"}
                   </Text>
+                  {unlocked && <DishIcon id={d.id} emoji={d.emoji} size={32} />}
                   <Text
                     style={[styles.dishName, !unlocked && { opacity: 0.4 }]}
                     numberOfLines={1}
