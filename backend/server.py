@@ -108,6 +108,8 @@ SHOP_ITEMS = [
 
 GRILL_MAX = 3
 GRILL_BASE_COST = 150
+PANTRY_MAX = 3
+PANTRY_BASE_COST = 120
 DAILY_BONUS_MULTIPLIER = 2.0
 
 
@@ -151,12 +153,33 @@ def player_public(doc: dict) -> dict:
         "unlocked_dishes": doc.get("unlocked_dishes", ["cheesesteak"]),
         "boosters": doc.get("boosters", {}),
         "grill_level": doc.get("grill_level", 0),
+        "pantry_level": doc.get("pantry_level", 0),
+        "pantry": doc.get("pantry", {}),
         "created_at": doc.get("created_at", ""),
     }
 
 
 def grill_cost(level: int) -> int:
     return GRILL_BASE_COST * (level + 1)
+
+
+def pantry_cost(level: int) -> int:
+    return PANTRY_BASE_COST * (level + 1)
+
+
+def current_week_key() -> str:
+    now = datetime.now(timezone.utc)
+    iso = now.isocalendar()
+    return f"{iso[0]}-W{iso[1]:02d}"
+
+
+def next_monday_iso() -> str:
+    now = datetime.now(timezone.utc)
+    days_ahead = (7 - now.weekday()) % 7  # Monday=0
+    if days_ahead == 0:
+        days_ahead = 7
+    from datetime import timedelta
+    return (now + timedelta(days=days_ahead)).date().isoformat()
 
 
 # ---------- Routes ----------
@@ -188,6 +211,9 @@ async def create_player(payload: PlayerCreate):
         "unlocked_dishes": ["cheesesteak"],
         "boosters": {"extra_moves": 0, "hint": 1, "coin_doubler": 0, "hammer": 0, "shuffle": 1},
         "grill_level": 0,
+        "pantry_level": 0,
+        "pantry": {},
+        "weekly": {"week": current_week_key(), "score": 0},
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.players.insert_one(doc)
@@ -230,6 +256,16 @@ async def complete_level(player_id: str, result: LevelResult):
         "unlocked_dishes": unlocked,
         "current_level": current_level,
     }
+
+    # Weekly tournament score (resets each ISO week)
+    wk = current_week_key()
+    weekly = doc.get("weekly", {"week": wk, "score": 0})
+    if weekly.get("week") != wk:
+        weekly = {"week": wk, "score": result.score}
+    else:
+        weekly = {"week": wk, "score": max(weekly.get("score", 0), result.score)}
+    update["weekly"] = weekly
+
     await db.players.update_one({"id": player_id}, {"$set": update})
     doc.update(update)
     return player_public(doc)
@@ -327,6 +363,91 @@ async def daily_special():
         "name": dish["name"],
         "emoji": dish["emoji"],
         "bonus_multiplier": DAILY_BONUS_MULTIPLIER,
+    }
+
+
+@api_router.get("/pantry-info/{player_id}")
+async def pantry_info(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    level = doc.get("pantry_level", 0)
+    return {
+        "pantry_level": level,
+        "max_level": PANTRY_MAX,
+        "next_cost": pantry_cost(level) if level < PANTRY_MAX else None,
+        "maxed": level >= PANTRY_MAX,
+        "per_item_cap": level,  # max stored per topping type
+        "pantry": doc.get("pantry", {}),
+    }
+
+
+@api_router.post("/players/{player_id}/upgrade-pantry")
+async def upgrade_pantry(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    level = doc.get("pantry_level", 0)
+    if level >= PANTRY_MAX:
+        raise HTTPException(status_code=400, detail="Pantry already fully upgraded")
+    cost = pantry_cost(level)
+    if doc.get("coins", 0) < cost:
+        raise HTTPException(status_code=400, detail="Not enough coins")
+    new_level = level + 1
+    new_coins = doc["coins"] - cost
+    await db.players.update_one(
+        {"id": player_id}, {"$set": {"coins": new_coins, "pantry_level": new_level}}
+    )
+    doc["coins"] = new_coins
+    doc["pantry_level"] = new_level
+    return player_public(doc)
+
+
+class PantrySave(BaseModel):
+    pantry: dict
+
+
+@api_router.post("/players/{player_id}/save-pantry")
+async def save_pantry(player_id: str, payload: PantrySave):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    cap = doc.get("pantry_level", 0)
+    cleaned: dict = {}
+    if cap > 0:
+        for k, v in (payload.pantry or {}).items():
+            try:
+                n = int(v)
+            except (TypeError, ValueError):
+                continue
+            if n > 0:
+                cleaned[k] = min(cap, n)
+    await db.players.update_one({"id": player_id}, {"$set": {"pantry": cleaned}})
+    doc["pantry"] = cleaned
+    return player_public(doc)
+
+
+@api_router.get("/weekly-leaderboard")
+async def weekly_leaderboard():
+    wk = current_week_key()
+    cursor = db.players.find(
+        {"weekly.week": wk}, {"_id": 0, "id": 1, "username": 1, "weekly": 1}
+    )
+    rows = await cursor.to_list(length=500)
+    ranked = sorted(
+        [
+            {"id": r["id"], "username": r["username"], "weekly_score": r.get("weekly", {}).get("score", 0)}
+            for r in rows
+        ],
+        key=lambda x: x["weekly_score"],
+        reverse=True,
+    )[:20]
+    champion = ranked[0] if ranked else None
+    return {
+        "week": wk,
+        "resets_on": next_monday_iso(),
+        "champion": champion,
+        "leaderboard": ranked,
     }
 
 

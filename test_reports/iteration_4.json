@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 4 (Streak Jackpot + Ingredient Pantry + Weekly Tournament). Backend: 23/23 pytest tests green (added 6 new tests: TestPantry {defaults, upgrade-progression+insufficient+maxed, save@level0 stores nothing, save caps per-item at pantry_level}, TestWeeklyLeaderboard {shape+ISO week regex+sorted+champion=row0, complete-level updates weekly.score as MAX}). All 17 prior regression tests (root, dishes, shop, players CRUD, purchase/insufficient/use-booster, complete-level unlock/no-unlock, leaderboard sorted+no _id leaks, daily-special, grill info+upgrade full progression) still pass. Frontend (mobile 390x844): (1) /shop renders BOTH grill-upgrade-card (Lv 0/3, Upgrade — 150) AND pantry-upgrade-card (Lv 2/3, Upgrade — 360) with correct level-dot fill, coin balance 240 after two upgrades, plus existing shop-item-*/buy-* booster cards. (2) /leaderboard: tab-all + tab-weekly toggle work; Weekly tab shows weekly-banner with '👑 Champion: WeekChamp' + 'Resets 2026-08-17 (Mon)' and rows sorted by weekly_score (999, 777, 532...); All-Time tab still renders high_score rows. (3) /serve with a player having pantry_level=2 and pantry={onion:2,cheese:2,whiz:1,mushroom:2} correctly renders pantry-shelf with 4 pantry-{id} chips each showing its count badge; tapping pantry-onion decremented the badge 2→1 and added onion to the plate. (4) Combo streak on /serve: after C1 perfect the combo-streak badge shows '🔥 x1.5', after C2 perfect it shows '🔥 x2.0', matches spec math. Jackpot popup jackpot-popup could NOT be reached in-app because cheesesteak has customers_per_level=3 and jackpot requires mult>=3 which needs streak>=4 (5 consecutive perfects); confirmed via code review that serve.tsx lines 205-213 gate jackpot on mult>=3 and awards 40*streak — logic matches spec. (5) Pantry cap verified end-to-end: save-pantry at pantry_level=2 with {onion:5,cheese:3,whiz:1,mushroom:2} produced {onion:2,cheese:2,whiz:1,mushroom:2}. (6) Serving all 3 customers completed the level and routed to /cooking-result?completed=1&coins=262&score=532; the /api/weekly-leaderboard then correctly shows TEST_UI_Serve with weekly_score=532. Deprecated packages detected: none. SafeAreaView issues detected: none. RN-web shadow*/textShadow*/audio-load warnings on web still emitted (explicitly OK-to-ignore per review_request).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Serve (/serve) — jackpot", "issues": ["Jackpot threshold requires 5 consecutive perfect serves (streak>=4 before the 5th serve so multiplier=1+4*0.5=3.0). No dish in DISH_CATALOG has customers_per_level >= 5 currently, so the jackpot popup cannot be triggered organically in a single level. If the intent per PRD is 'streak>=4' as stated in the request text, either (a) lower the mult threshold to mult>=2.5 (streak>=3) OR (b) increase customers_per_level for at least one dish to >=5, OR (c) let combo streak carry across customers within a run — currently it does, but level cap of 3 blocks it. Otherwise ship as a rare/impossible Easter-egg."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Decide the intended pantry/jackpot threshold: request text says 'streak>=4' but serve.tsx gates on mult>=3 which needs streak>=4 BEFORE the serve, i.e. 5 total perfects — impossible with any dish (max customers_per_level in code is currently 3-4). Either lower the gate to mult>=2.5 (streak>=3) or add a dish with >=5 customers so the jackpot can actually fire."
+  ],
+  "critical_code_review_comments": [
+    "server.py save-pantry: cap = doc.get('pantry_level', 0); when cap==0 cleaned stays {} regardless of payload — matches spec ('level 0 stores nothing'). Good.",
+    "server.py save-pantry silently drops non-int values (try/except int(v)) and negatives (n>0 guard) — safe input handling.",
+    "server.py weekly-leaderboard: filter {'weekly.week': wk} correctly excludes stale weeks; sort is done in Python after fetching (fine for ≤500 players/week).",
+    "server.py current_week_key uses UTC isocalendar so week rollover happens at UTC Monday 00:00 — matches 'resets each Monday'; next_monday_iso is also UTC-based and consistent.",
+    "server.py player_public exposes pantry_level and pantry with sane defaults (0 and {}), so pre-existing docs remain compatible.",
+    "serve.tsx line 191: mult = 1 + streak*0.5 with CURRENT (pre-increment) streak — so 1st perfect pays 1x, 2nd pays 1.5x, 3rd pays 2x, 4th pays 2.5x, 5th pays 3x. Jackpot line 205 gates on mult>=3, i.e. only fires on the 5th consecutive perfect. Given DISH_CATALOG dishes have moves 20-26 (customers_per_level derived elsewhere; observed=3 for cheesesteak), jackpot cannot fire in a normal level — see design_issues + action_items.",
+    "serve.tsx line 206: jackpotBonus = 40 * streak (pre-increment streak). If jackpot fired on the 5th perfect, that would be 40*4=160 coins. Spec text says '40*streak' — ambiguous whether streak means pre- or post-increment; current impl uses pre-increment which is consistent with the mult calculation.",
+    "serve.tsx line 249 savePantry: sends merged pantry {existing + this-level leftovers} — backend re-caps per level. Correctly uses invToppings (only true toppings, not base ingredients) to fuel pantry.",
+    "serve.tsx line 258: level 'completed' still requires served >= ceil(customers/2), unchanged from prior iteration.",
+    "shop.tsx: pantry card mirrors grill card structure — same 'null player' edge case (shows blank cost); flagged in iter 3 already, not a regression."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestPantry + TestWeeklyLeaderboard, +6 tests, now 23 tests total)"
+  ],
+  "success_rate": {
+    "backend": "100% (23/23)",
+    "frontend": "100% of tested flows (shop pantry+grill+boosters cards, leaderboard All-Time/Weekly toggle + banner + rows, serve pantry-shelf render + tap decrements + adds to plate, serve combo streak 1x→1.5x→2.0x, level completion + weekly score persistence). Jackpot popup validated only by code review — currently unreachable in-app."
+  },
+  "seed_data_creation": "Pytest created disposable TEST_* players (TEST_PantryNew, TEST_PantryPoor, TEST_PantrySaveL0, TEST_PantrySaveL1, TEST_WeeklyA, TEST_WeeklyMax). Playwright created TEST_UI_Iter4, TEST_UI_Pantry, TEST_UI_Serve. TEST_UI_Serve appears on weekly board with score=532. No cleanup endpoint.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend URL: https://cooking-combo-philly.preview.emergentagent.com/api. Player id in AsyncStorage under key 'philly_fare_player_id'. Regression file /app/backend/tests/backend_test.py now has 23 tests incl. pantry + weekly. To test pantry-shelf on /serve, seed via API: POST /api/players → POST /api/players/{id}/complete-level (coins_earned=500) → POST /api/players/{id}/upgrade-pantry ×N → POST /api/players/{id}/save-pantry {pantry:{...}} → navigate to '/' → localStorage.setItem('philly_fare_player_id', pid) → goto /serve?dishId=cheesesteak&level=1&score=0&inventory=%7B%7D&toppings=%5B%22onion%22%2C%22cheese%22%2C%22whiz%22%2C%22mushroom%22%2C%22hot_pepper%22%5D&movesLeft=10. Serve testIDs: pantry-shelf, pantry-{id}, combo-streak, want-{id}, no-{id}, tray-{id}, plate-{id}, serve-button, serve-feedback, jackpot-popup. Shop testIDs: pantry-upgrade-card, upgrade-pantry-button. Leaderboard testIDs: tab-all, tab-weekly, weekly-banner, leaderboard-row-{rank}. Current ISO week: 2026-W33; resets_on 2026-08-17. Jackpot unreachable in-app (see action_items).",
+  "rca_of_issue": "N/A — no bugs. Only design concern: streak jackpot threshold vs available customers_per_level is inconsistent with the request-text description ('streak>=4'). See action_items."
+}

@@ -44,6 +44,22 @@ export type GrillInfo = {
   maxed: boolean;
 };
 
+export type PantryInfo = {
+  pantry_level: number;
+  max_level: number;
+  next_cost: number | null;
+  maxed: boolean;
+  per_item_cap: number;
+  pantry: Record<string, number>;
+};
+
+export type WeeklyBoard = {
+  week: string;
+  resets_on: string;
+  champion: { id: string; username: string; weekly_score: number } | null;
+  leaderboard: { id: string; username: string; weekly_score: number }[];
+};
+
 export const api = {
   createPlayer: (username: string) =>
     req<PlayerDTO>("/players", { method: "POST", body: JSON.stringify({ username }) }),
@@ -74,4 +90,13 @@ export const api = {
     req<PlayerDTO>(`/players/${id}/upgrade-grill`, { method: "POST" }),
   getGrillInfo: (id: string) => req<GrillInfo>(`/grill-info/${id}`),
   getDailySpecial: () => req<DailySpecial>("/daily-special"),
+  getPantryInfo: (id: string) => req<PantryInfo>(`/pantry-info/${id}`),
+  upgradePantry: (id: string) =>
+    req<PlayerDTO>(`/players/${id}/upgrade-pantry`, { method: "POST" }),
+  savePantry: (id: string, pantry: Record<string, number>) =>
+    req<PlayerDTO>(`/players/${id}/save-pantry`, {
+      method: "POST",
+      body: JSON.stringify({ pantry }),
+    }),
+  getWeeklyLeaderboard: () => req<WeeklyBoard>("/weekly-leaderboard"),
 };

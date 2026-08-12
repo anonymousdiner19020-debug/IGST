@@ -65,6 +65,18 @@ export default function Serve() {
     }
   }, [params.toppings, dish]);
 
+  // Leftover toppings collected during the match-3 phase (fuel for the pantry).
+  const invToppings: Record<string, number> = useMemo(() => {
+    try {
+      const inv = JSON.parse(params.inventory || "{}") as Record<string, number>;
+      const out: Record<string, number> = {};
+      for (const t of toppings) if (inv[t] > 0) out[t] = inv[t];
+      return out;
+    } catch {
+      return {};
+    }
+  }, [params.inventory, toppings]);
+
   const customers = useMemo(
     () => buildCustomers(dish, toppings, dish.customers_per_level),
     [dish, toppings]
@@ -79,6 +91,9 @@ export default function Serve() {
   const [patience, setPatience] = useState(1);
   const [finished, setFinished] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [pantry, setPantry] = useState<Record<string, number>>({});
+  const [pantryLevel, setPantryLevel] = useState(0);
+  const [jackpot, setJackpot] = useState<number | null>(null);
   const patienceRef = useRef<any>(null);
   const startRef = useRef<number>(Date.now());
 
@@ -87,6 +102,18 @@ export default function Serve() {
 
   // combo multiplier grows with consecutive perfect serves: 1x, 1.5x, 2x, 2.5x...
   const comboMult = 1 + streak * 0.5;
+
+  useEffect(() => {
+    (async () => {
+      const id = await playerStorage.get();
+      if (!id) return;
+      try {
+        const info = await api.getPantryInfo(id);
+        setPantry(info.pantry || {});
+        setPantryLevel(info.pantry_level || 0);
+      } catch {}
+    })();
+  }, []);
 
   // patience timer per customer
   useEffect(() => {
@@ -113,6 +140,18 @@ export default function Serve() {
       Haptics.selectionAsync();
     } catch {}
     setPlate((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
+  };
+
+  // Tap a stored pantry item: instantly place it and consume one from storage.
+  const usePantry = (t: string) => {
+    if (finished) return;
+    if ((pantry[t] || 0) <= 0) return;
+    sound.play("pop");
+    try {
+      Haptics.selectionAsync();
+    } catch {}
+    setPantry((p) => ({ ...p, [t]: Math.max(0, (p[t] || 0) - 1) }));
+    setPlate((p) => (p.includes(t) ? p : [...p, t]));
   };
 
   const nextCustomer = useCallback(
@@ -161,7 +200,18 @@ export default function Serve() {
       const comboLabel = mult > 1 ? ` 🔥x${mult}` : "";
       const dailyLabel = isDaily ? " ⭐2×" : "";
       setFeedback({ ok: true, text: `Perfect! +${tip} 🪙${comboLabel}${dailyLabel}` });
-      nextCustomer(tip, Math.round((100 + speedBonus) * mult), true);
+      // Streak jackpot at 2.5x multiplier or higher (4+ consecutive perfects)
+      let jackpotBonus = 0;
+      if (mult >= 2.5) {
+        jackpotBonus = 40 * streak;
+        setJackpot(jackpotBonus);
+        sound.play("coin");
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {}
+        setTimeout(() => setJackpot(null), 1400);
+      }
+      nextCustomer(tip + jackpotBonus, Math.round((100 + speedBonus) * mult), true);
     } else {
       const partial = Math.max(0, current.wanted.length - missing.length - extra.length);
       const dailyMult = isDaily ? 2 : 1;
@@ -189,13 +239,23 @@ export default function Serve() {
     const completed = served > 0;
     const id = await playerStorage.get();
     if (id) {
+      // Carry leftover toppings into the pantry (backend caps by pantry level).
+      if (pantryLevel > 0) {
+        const merged: Record<string, number> = { ...pantry };
+        for (const [k, v] of Object.entries(invToppings)) {
+          merged[k] = (merged[k] || 0) + (v as number);
+        }
+        try {
+          await api.savePantry(id, merged);
+        } catch {}
+      }
       try {
         await api.completeLevel(id, {
           level: levelNum,
           dish_id: dish.id,
           score: totalScore,
           coins_earned: totalCoins,
-          completed: served >= Math.ceil(customers.length / 2), // unlock next if served at least half
+          completed: served >= Math.ceil(customers.length / 2),
         });
       } catch {}
     }
@@ -302,6 +362,30 @@ export default function Serve() {
         </View>
       </View>
 
+      {/* Pantry shelf — stored leftover toppings from previous levels */}
+      {pantryLevel > 0 && Object.values(pantry).some((n) => n > 0) && (
+        <View style={styles.pantryZone} testID="pantry-shelf">
+          <Text style={styles.pantryLabel}>🥫 PANTRY (tap to use)</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pantryRow}>
+            {Object.entries(pantry)
+              .filter(([, n]) => n > 0)
+              .map(([t, n]) => (
+                <Pressable
+                  key={t}
+                  testID={`pantry-${t}`}
+                  onPress={() => usePantry(t)}
+                  style={({ pressed }) => [styles.pantryChip, pressed && { transform: [{ scale: 0.93 }] }]}
+                >
+                  <Text style={styles.pantryEmoji}>{INGREDIENTS[t]?.emoji}</Text>
+                  <View style={styles.pantryCount}>
+                    <Text style={styles.pantryCountText}>{n}</Text>
+                  </View>
+                </Pressable>
+              ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Topping tray */}
       <View style={[styles.tray, { paddingBottom: insets.bottom + spacing.md }]}>
         <ScrollView
@@ -345,6 +429,16 @@ export default function Serve() {
           <Text style={styles.serveBtnText}>SERVE 🍽</Text>
         </Pressable>
       </View>
+
+      {jackpot != null && (
+        <View style={styles.jackpotOverlay} pointerEvents="none" testID="jackpot-popup">
+          <View style={styles.jackpotCard}>
+            <Text style={styles.jackpotEmoji}>🎰🔥</Text>
+            <Text style={styles.jackpotTitle}>HOT STREAK JACKPOT!</Text>
+            <Text style={styles.jackpotAmount}>+{jackpot} 🪙</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -467,6 +561,62 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
   },
   plateChipEmoji: { fontSize: 22 },
+  pantryZone: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  pantryLabel: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: colors.surfaceInverse,
+    opacity: 0.55,
+    letterSpacing: 1,
+    marginBottom: spacing.xs,
+  },
+  pantryRow: { gap: spacing.sm, paddingRight: spacing.md, paddingVertical: spacing.xs },
+  pantryChip: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceInverse,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.brand,
+    flexShrink: 0,
+  },
+  pantryEmoji: { fontSize: 24 },
+  pantryCount: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.surfaceInverse,
+  },
+  pantryCountText: { fontSize: 11, fontWeight: "900", color: colors.onBrand },
+  jackpotOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  jackpotCard: {
+    backgroundColor: colors.brandSecondary,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.xl,
+    alignItems: "center",
+    gap: spacing.xs,
+    borderWidth: 4,
+    borderColor: colors.brand,
+    ...shadow.tier3,
+  },
+  jackpotEmoji: { fontSize: 44 },
+  jackpotTitle: { fontSize: 18, fontWeight: "900", color: "#FFFFFF", letterSpacing: 1 },
+  jackpotAmount: { fontSize: 30, fontWeight: "900", color: colors.brand },
   tray: {
     marginTop: "auto",
     backgroundColor: colors.surface,

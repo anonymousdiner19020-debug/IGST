@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api, GrillInfo, PlayerDTO } from "@/src/api";
+import { api, GrillInfo, PantryInfo, PlayerDTO } from "@/src/api";
 import { playerStorage } from "@/src/storage";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 
@@ -22,6 +22,7 @@ export default function Shop() {
   const [items, setItems] = useState<ShopItem[]>([]);
   const [player, setPlayer] = useState<PlayerDTO | null>(null);
   const [grill, setGrill] = useState<GrillInfo | null>(null);
+  const [pantry, setPantry] = useState<PantryInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -32,9 +33,14 @@ export default function Shop() {
       const [shop, id] = await Promise.all([api.getShop(), playerStorage.get()]);
       setItems(shop.items);
       if (id) {
-        const [p, g] = await Promise.all([api.getPlayer(id), api.getGrillInfo(id)]);
+        const [p, g, pan] = await Promise.all([
+          api.getPlayer(id),
+          api.getGrillInfo(id),
+          api.getPantryInfo(id),
+        ]);
         setPlayer(p);
         setGrill(g);
+        setPantry(pan);
       }
     } catch {}
     setLoading(false);
@@ -57,6 +63,27 @@ export default function Shop() {
       setPlayer(updated);
       setGrill(await api.getGrillInfo(player.id));
       setToast("Grill upgraded! 🔥");
+      setTimeout(() => setToast(null), 1500);
+    } catch {
+      setToast("Upgrade failed");
+      setTimeout(() => setToast(null), 1500);
+    }
+    setPurchasing(null);
+  };
+
+  const upgradePantry = async () => {
+    if (!player || !pantry || pantry.maxed || pantry.next_cost == null) return;
+    if (player.coins < pantry.next_cost) {
+      setToast("Not enough coins!");
+      setTimeout(() => setToast(null), 1500);
+      return;
+    }
+    setPurchasing("pantry");
+    try {
+      const updated = await api.upgradePantry(player.id);
+      setPlayer(updated);
+      setPantry(await api.getPantryInfo(player.id));
+      setToast("Pantry upgraded! 🥫");
       setTimeout(() => setToast(null), 1500);
     } catch {
       setToast("Upgrade failed");
@@ -147,6 +174,50 @@ export default function Shop() {
                 <>
                   <Text style={styles.buyEmoji}>🪙</Text>
                   <Text style={styles.upgradeBtnText}>Upgrade — {grill.next_cost}</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+
+          <View style={styles.upgradeCard} testID="pantry-upgrade-card">
+            <View style={styles.upgradeTop}>
+              <Text style={styles.upgradeEmoji}>🥫</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.upgradeTitle}>Ingredient Pantry</Text>
+                <Text style={styles.upgradeDesc}>
+                  Store leftover toppings and reuse them in later levels.
+                </Text>
+                <View style={styles.grillDots}>
+                  {Array.from({ length: pantry?.max_level ?? 3 }).map((_, i) => (
+                    <View
+                      key={i}
+                      style={[styles.grillDot, i < (pantry?.pantry_level ?? 0) && styles.grillDotOn]}
+                    />
+                  ))}
+                  <Text style={styles.grillLevelText}>
+                    Lv {pantry?.pantry_level ?? 0}/{pantry?.max_level ?? 3}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <Pressable
+              testID="upgrade-pantry-button"
+              disabled={!pantry || pantry.maxed || purchasing === "pantry"}
+              onPress={upgradePantry}
+              style={({ pressed }) => [
+                styles.upgradeBtn,
+                (!pantry || pantry.maxed) && styles.buyBtnDisabled,
+                pressed && { transform: [{ scale: 0.97 }] },
+              ]}
+            >
+              {!pantry ? (
+                <Text style={styles.upgradeBtnText}>…</Text>
+              ) : pantry.maxed ? (
+                <Text style={styles.upgradeBtnText}>MAXED OUT</Text>
+              ) : (
+                <>
+                  <Text style={styles.buyEmoji}>🪙</Text>
+                  <Text style={styles.upgradeBtnText}>Upgrade — {pantry.next_cost}</Text>
                 </>
               )}
             </Pressable>

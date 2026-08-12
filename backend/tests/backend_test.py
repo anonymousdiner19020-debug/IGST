@@ -206,3 +206,126 @@ class TestLeaderboard:
         assert scores == sorted(scores, reverse=True)
         for row in rows:
             assert "_id" not in row
+
+
+# ---------- Pantry (iteration 4) ----------
+class TestPantry:
+    def test_new_player_pantry_defaults(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_PantryNew"}).json()["id"]
+        p = client.get(f"{API}/players/{pid}").json()
+        assert p["pantry_level"] == 0
+        assert p["pantry"] == {}
+        info = client.get(f"{API}/pantry-info/{pid}").json()
+        assert info["pantry_level"] == 0
+        assert info["max_level"] == 3
+        assert info["next_cost"] == 120
+        assert info["maxed"] is False
+        assert info["per_item_cap"] == 0
+        assert info["pantry"] == {}
+
+    def test_pantry_upgrade_insufficient_and_progression(self, client):
+        # New player has 100 coins, cannot afford 120
+        pid = client.post(f"{API}/players", json={"username": "TEST_PantryPoor"}).json()["id"]
+        r = client.post(f"{API}/players/{pid}/upgrade-pantry")
+        assert r.status_code == 400
+
+        # Give coins for progression
+        for _ in range(3):
+            client.post(
+                f"{API}/players/{pid}/complete-level",
+                json={"level": 1, "dish_id": "cheesesteak", "score": 0, "coins_earned": 500, "completed": False},
+            )
+        # 120 -> 240 -> 360
+        expected = [(1, 240), (2, 360), (3, None)]
+        for lvl, next_cost in expected:
+            r = client.post(f"{API}/players/{pid}/upgrade-pantry")
+            assert r.status_code == 200, r.text
+            assert r.json()["pantry_level"] == lvl
+            info = client.get(f"{API}/pantry-info/{pid}").json()
+            assert info["pantry_level"] == lvl
+            assert info["next_cost"] == next_cost
+            assert info["per_item_cap"] == lvl
+        assert client.get(f"{API}/pantry-info/{pid}").json()["maxed"] is True
+
+        # 4th upgrade rejected
+        r = client.post(f"{API}/players/{pid}/upgrade-pantry")
+        assert r.status_code == 400
+
+    def test_save_pantry_zero_level_stores_nothing(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_PantrySaveL0"}).json()["id"]
+        r = client.post(
+            f"{API}/players/{pid}/save-pantry",
+            json={"pantry": {"onion": 5, "cheese": 3}},
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["pantry"] == {}
+
+    def test_save_pantry_caps_at_level(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_PantrySaveL1"}).json()["id"]
+        # Give coins and upgrade to level 1
+        client.post(
+            f"{API}/players/{pid}/complete-level",
+            json={"level": 1, "dish_id": "cheesesteak", "score": 0, "coins_earned": 500, "completed": False},
+        )
+        assert client.post(f"{API}/players/{pid}/upgrade-pantry").status_code == 200
+        r = client.post(
+            f"{API}/players/{pid}/save-pantry",
+            json={"pantry": {"onion": 5, "cheese": 2, "salt": 0, "mustard": -1}},
+        )
+        assert r.status_code == 200
+        assert r.json()["pantry"] == {"onion": 1, "cheese": 1}
+
+        # Upgrade to level 2 and re-save, cap now 2
+        client.post(
+            f"{API}/players/{pid}/complete-level",
+            json={"level": 1, "dish_id": "cheesesteak", "score": 0, "coins_earned": 500, "completed": False},
+        )
+        assert client.post(f"{API}/players/{pid}/upgrade-pantry").status_code == 200
+        r2 = client.post(
+            f"{API}/players/{pid}/save-pantry",
+            json={"pantry": {"onion": 5, "cheese": 2}},
+        )
+        assert r2.json()["pantry"] == {"onion": 2, "cheese": 2}
+
+
+# ---------- Weekly Leaderboard (iteration 4) ----------
+class TestWeeklyLeaderboard:
+    def test_weekly_shape_and_sorted(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_WeeklyA"}).json()["id"]
+        client.post(
+            f"{API}/players/{pid}/complete-level",
+            json={"level": 1, "dish_id": "cheesesteak", "score": 777, "coins_earned": 10, "completed": True},
+        )
+        r = client.get(f"{API}/weekly-leaderboard")
+        assert r.status_code == 200
+        data = r.json()
+        # ISO week key like 2026-W03
+        import re
+        assert re.match(r"^\d{4}-W\d{2}$", data["week"]), data["week"]
+        # resets_on YYYY-MM-DD
+        assert re.match(r"^\d{4}-\d{2}-\d{2}$", data["resets_on"]), data["resets_on"]
+        assert "leaderboard" in data
+        scores = [row["weekly_score"] for row in data["leaderboard"]]
+        assert scores == sorted(scores, reverse=True)
+        for row in data["leaderboard"]:
+            assert "_id" not in row
+            assert set(row.keys()) == {"id", "username", "weekly_score"}
+        # champion is #1 row
+        if data["leaderboard"]:
+            assert data["champion"] == data["leaderboard"][0]
+        # our player is on the board
+        assert any(row["id"] == pid for row in data["leaderboard"])
+
+    def test_complete_level_updates_weekly_max(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_WeeklyMax"}).json()["id"]
+        client.post(
+            f"{API}/players/{pid}/complete-level",
+            json={"level": 1, "dish_id": "cheesesteak", "score": 300, "coins_earned": 0, "completed": False},
+        )
+        client.post(
+            f"{API}/players/{pid}/complete-level",
+            json={"level": 1, "dish_id": "cheesesteak", "score": 100, "coins_earned": 0, "completed": False},
+        )
+        wk = client.get(f"{API}/weekly-leaderboard").json()
+        me = next(row for row in wk["leaderboard"] if row["id"] == pid)
+        assert me["weekly_score"] == 300  # max, not overwritten by 100
