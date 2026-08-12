@@ -24,78 +24,20 @@ api_router = APIRouter(prefix="/api")
 
 # ---------- Static Philly Dish Catalog ----------
 DISH_CATALOG = [
-    {
-        "id": "cheesesteak",
-        "name": "Philly Cheesesteak",
-        "emoji": "🥪",
-        "unlock_level": 1,
-        "recipe": {"steak": 4, "onion": 3, "cheese": 3, "roll": 2},
-        "reward_coins": 50,
-        "moves": 22,
-    },
-    {
-        "id": "soft_pretzel",
-        "name": "Soft Pretzel",
-        "emoji": "🥨",
-        "unlock_level": 2,
-        "recipe": {"dough": 4, "salt": 3, "mustard": 2},
-        "reward_coins": 60,
-        "moves": 20,
-    },
-    {
-        "id": "water_ice",
-        "name": "Water Ice",
-        "emoji": "🍧",
-        "unlock_level": 3,
-        "recipe": {"ice": 5, "cherry": 3, "lemon": 3},
-        "reward_coins": 70,
-        "moves": 20,
-    },
-    {
-        "id": "hoagie",
-        "name": "Italian Hoagie",
-        "emoji": "🥖",
-        "unlock_level": 4,
-        "recipe": {"roll": 3, "ham": 3, "cheese": 3, "lettuce": 2},
-        "reward_coins": 80,
-        "moves": 22,
-    },
-    {
-        "id": "roast_pork",
-        "name": "Roast Pork Sandwich",
-        "emoji": "🥓",
-        "unlock_level": 5,
-        "recipe": {"pork": 4, "broccoli": 3, "provolone": 3, "roll": 3},
-        "reward_coins": 100,
-        "moves": 24,
-    },
-    {
-        "id": "tomato_pie",
-        "name": "Tomato Pie",
-        "emoji": "🍕",
-        "unlock_level": 6,
-        "recipe": {"dough": 4, "tomato": 4, "basil": 3, "cheese": 3},
-        "reward_coins": 110,
-        "moves": 24,
-    },
-    {
-        "id": "scrapple",
-        "name": "Scrapple",
-        "emoji": "🍳",
-        "unlock_level": 7,
-        "recipe": {"pork": 4, "cornmeal": 4, "sage": 3, "egg": 3},
-        "reward_coins": 130,
-        "moves": 26,
-    },
-    {
-        "id": "tastykake",
-        "name": "Tastykake",
-        "emoji": "🧁",
-        "unlock_level": 8,
-        "recipe": {"flour": 4, "sugar": 4, "chocolate": 4, "cream": 3},
-        "reward_coins": 150,
-        "moves": 26,
-    },
+    {"id": "soft_pretzel", "name": "Soft Pretzel", "emoji": "🥨", "unlock_level": 1,
+     "recipe": {"dough": 3, "salt": 3}, "reward_coins": 40, "moves": 24},
+    {"id": "happy_cakes", "name": "Happy Cakes", "emoji": "🧁", "unlock_level": 2,
+     "recipe": {"pb_cake": 3, "chocolate_cake": 3}, "reward_coins": 55, "moves": 24},
+    {"id": "water_ice", "name": "Water Ice", "emoji": "🍧", "unlock_level": 3,
+     "recipe": {"cup": 3}, "reward_coins": 65, "moves": 24},
+    {"id": "american_hoagie", "name": "American Hoagie", "emoji": "🥖", "unlock_level": 4,
+     "recipe": {"roll": 3, "ham": 3}, "reward_coins": 80, "moves": 28},
+    {"id": "italian_hoagie", "name": "Italian Hoagie", "emoji": "🥖", "unlock_level": 5,
+     "recipe": {"roll": 3, "salami": 3}, "reward_coins": 95, "moves": 28},
+    {"id": "cheesesteak", "name": "Cheesesteak", "emoji": "🥪", "unlock_level": 6,
+     "recipe": {"steak": 4, "roll": 2}, "reward_coins": 110, "moves": 28},
+    {"id": "roast_pork", "name": "Roast Pork", "emoji": "🥓", "unlock_level": 7,
+     "recipe": {"pork": 4, "roll": 2}, "reward_coins": 130, "moves": 30},
 ]
 
 SHOP_ITEMS = [
@@ -195,7 +137,7 @@ def player_public(doc: dict) -> dict:
         "high_score": doc.get("high_score", 0),
         "current_level": doc.get("current_level", 1),
         "dishes_cooked": doc.get("dishes_cooked", 0),
-        "unlocked_dishes": doc.get("unlocked_dishes", ["cheesesteak"]),
+        "unlocked_dishes": doc.get("unlocked_dishes", ["soft_pretzel"]),
         "boosters": doc.get("boosters", {}),
         "grill_level": doc.get("grill_level", 0),
         "pantry_level": doc.get("pantry_level", 0),
@@ -301,7 +243,7 @@ async def create_player(payload: PlayerCreate):
         "high_score": 0,
         "current_level": 1,
         "dishes_cooked": 0,
-        "unlocked_dishes": ["cheesesteak"],
+        "unlocked_dishes": ["soft_pretzel"],
         "boosters": {"extra_moves": 0, "hint": 1, "coin_doubler": 0, "hammer": 0, "shuffle": 1},
         "grill_level": 0,
         "pantry_level": 0,
@@ -335,7 +277,7 @@ async def complete_level(player_id: str, result: LevelResult):
     bells = doc.get("bells", 0) + max(0, result.bells_earned)
     high_score = max(doc.get("high_score", 0), result.score)
     dishes_cooked = doc.get("dishes_cooked", 0) + (1 if result.completed else 0)
-    unlocked = list(doc.get("unlocked_dishes", ["cheesesteak"]))
+    unlocked = list(doc.get("unlocked_dishes", ["soft_pretzel"]))
     current_level = doc.get("current_level", 1)
 
     if result.completed:
