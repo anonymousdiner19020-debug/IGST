@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 2 (two-phase gameplay + storefront serve + expanded recipes). Backend: 13/13 pytest tests still green on /api — GET /dishes (8 items), GET /shop (5 items), player create (100 coins, cheesesteak unlocked, current_level=1), get-by-id (no _id leak), complete-level unlocks next dish and advances current_level only when completed=true, purchase deducts coins & rejects insufficient balance, use-booster decrements & rejects when empty, leaderboard sorted desc. Frontend Game (/game?dishId=cheesesteak&level=1): renders 49 tiles, HUD MOVES=26 SCORE=0, base-recipe chips recipe-steak 🥩0/4 and recipe-roll 🥖0/2. Invalid swap correctly did NOT consume a move (26→26). Valid adjacent swap consumed a move (26→25), score jumped 0→90, and roll chip went 0/2→2/2 via match resolution. Non-adjacent tap correctly reselects without consuming a move. Frontend Serve deep-link (/serve?…toppings=onion,cheese,whiz,mushroom,hot_pepper): renders customer avatar, order-ticket, patience-bar, plate, 5 tray items (tray-onion|cheese|whiz|mushroom|hot_pepper), and serve-button. Tapping a tray item toggles a plate-{id} chip. Serving a plate matching wanted=hot_pepper yielded 'Perfect! +59 🪙' and serve-coins updated 🪙0→🪙59. Second customer served with empty plate produced 'Wrong order!' feedback. After the last customer the app auto-navigated to /cooking-result showing '🎉 ORDER SERVED!', 'Served 1/3 customers!', coins-earned=+59, score-earned=319, continue-button + home-button visible. Deprecated packages detected: none. SafeAreaView issues detected: none. Non-blocking RN-web deprecation warnings for shadow*/textShadow* (already noted in iteration 1) still present.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Global (theme.ts)", "issues": ["RN-web deprecation warnings: 'shadow*' style props are deprecated (use 'boxShadow'); 'textShadow*' style props are deprecated. Explicitly OK-to-ignore per review_request but should be migrated when convenient."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: migrate deprecated RN-web shadow*/textShadow* style props in /app/frontend/src/theme.ts to boxShadow/textShadow to silence warnings.",
+    "Optional cleanup in /app/frontend/src/constants/dishes.ts line 104: `.filter((k) => k !== 'butter')` placeholder is dead code (already overridden on line 185). Delete for clarity.",
+    "Optional: coins earned on /cooking-result reflects only Phase-2 storefront tips (base match-3 score is added to score-earned but not coins). If design intended combined coins, add Phase-1 coin bonus in serve.finishLevel or in game.tsx before router.replace. Current behavior is consistent though ('reward_coins + speed tip' as spec) — call-out only."
+  ],
+  "critical_code_review_comments": [
+    "serve.tsx – nextCustomer closes over stale coins/servedCount/score; author works around by computing totals inline in finishLevel(coins+earnedCoins, ...). Works but fragile; consider useReducer or refs to eliminate the eslint-disable.",
+    "serve.tsx – PATIENCE_MS=15000 while spec text says 'timeout=customer leaves' — 15s is short-ish for 3-topping orders on first play but acceptable for MVP tuning. Verified handleTimeout path exists and triggers 'Too slow! Customer left 😤'.",
+    "game.tsx – buildPalette caps at MAX_TILES=6 which for cheesesteak yields [steak, roll, onion, cheese, whiz, provolone]; note: `mushroom` is passed to /serve toppings but NOT guaranteed to be collectable on the board because provolone is picked before mushroom in topping_options order. That's fine because Phase-2 serve only requires plate topping toggles (no inventory gating). Just be aware.",
+    "dishes.ts – generateCustomerOrder mutates `pool` via .sort() on shuffle; harmless but non-standard. Also `wantedCount = 1 + Math.floor(rand()*Math.min(3, shuffled.length))` can exceed pool for tiny topping lists — currently every dish has >=3 toppings so safe.",
+    "server.py – complete-level still allows repeat coin awards for same level (no idempotency). MVP-OK.",
+    "board.ts – createBoard's guard checks `[...grid, row]` while row is still being built; correct because it references grid[r-1] rows only, and wouldCreateMatch reads grid[r][c-1]/[c-2] within the row-in-progress. Verified via observed no-immediate-match render."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "100% (13/13)", "frontend": "100% of tested flows (game HUD + swap semantics + serve UI + tray→plate toggle + perfect/wrong serves + navigation to cooking-result with stats + Continue/Home buttons)" },
+  "seed_data_creation": "pytest run created 4 disposable TEST_* players (TEST_Chef, TEST_Fail, TEST_Buy, TEST_Poor, TEST_Use) via POST /api/players. No cleanup endpoint; will appear on leaderboard.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend URL: https://cooking-combo-philly.preview.emergentagent.com/api — reuse /app/backend/tests/backend_test.py for regression. Mobile viewport 390x844. Deep-link testable screens: /game?dishId=cheesesteak&level=1 and /serve?dishId=cheesesteak&level=1&score=<n>&inventory=%7B%7D&toppings=%5B%22onion%22%2C%22cheese%22%2C%22whiz%22%2C%22mushroom%22%2C%22hot_pepper%22%5D&movesLeft=10. TestIDs — Game: game-screen, board, tile-{r}-{c}, moves-value, score-value, recipe-{ingredient}, pause-button, shuffle-button. Serve: serve-screen, order-ticket, patience-bar, want-{ing}, no-{ing}, plate, plate-{id}, tray-{id}, serve-button, serve-coins, serve-feedback. Cooking-result: cooking-result-screen, coins-earned, score-earned, unlock-banner, continue-button, home-button. To synthesize a valid match-3 swap in Playwright, read the emoji text of each tile-{r}-{c}, simulate a swap, and check for 3-in-row; first invalid_pair + first valid_pair works reliably.",
+  "rca_of_issue": "N/A — no bugs observed. All spec bullets validated end-to-end."
+}

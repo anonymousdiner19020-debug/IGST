@@ -6,12 +6,14 @@ import { colors, radius, shadow, spacing } from "@/src/theme";
 
 export default function CookingResult() {
   const router = useRouter();
-  const { completed, coins, score, dishId, nextLevel } = useLocalSearchParams<{
+  const { completed, coins, score, dishId, nextLevel, served, total } = useLocalSearchParams<{
     completed: string;
     coins: string;
     score: string;
     dishId: string;
     nextLevel: string;
+    served: string;
+    total: string;
   }>();
   const dish = FALLBACK_DISHES.find((d) => d.id === dishId) || FALLBACK_DISHES[0];
   const win = completed === "1";
@@ -37,7 +39,9 @@ export default function CookingResult() {
           </View>
           <Text style={styles.dishName}>{dish.name}</Text>
           <Text style={styles.dishMsg}>
-            {win ? "Fresh, hot, and delicious!" : "Try that recipe again."}
+            {win
+              ? `Served ${served || 0}/${total || 0} customers!`
+              : "Out of moves — try that recipe again."}
           </Text>
 
           <View style={styles.statsRow}>

@@ -36,6 +36,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="level-map" />
           <Stack.Screen name="game" />
+          <Stack.Screen name="serve" />
           <Stack.Screen
             name="cooking-result"
             options={{ presentation: "transparentModal", animation: "fade" }}
