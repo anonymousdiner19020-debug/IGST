@@ -1,44 +1,34 @@
 # Philly Fare Match — PRD
 
 ## Concept
-A bright, cartoon match-3 puzzle game themed around Philadelphia food classics. Players swap adjacent ingredient tiles to create matches of 3+; each cleared ingredient fills the current customer order. Complete an order (e.g., 4 steaks + 3 onions + 3 cheeses + 2 rolls = Cheesesteak) before running out of moves to serve the dish and earn coins.
+Bright, Philadelphia-sports-themed match-3 + storefront cooking game. Phase 1: swap ingredient tiles to collect a dish's base recipe. Phase 2: a Cooking-Fever-style counter where customers order dish variants (with/without toppings) that you assemble & serve against a patience timer.
 
-## User Choices
-- Gameplay: Match-3 (swap adjacent tiles)
-- Dishes: Full Philly catalog (8 dishes)
-- Progression: Level-based unlocks + coin economy
-- Storage: Backend with global leaderboard (anonymous player UUID)
-- Art: Bright cartoon/emoji-icon style
+## User Choices (cumulative)
+- Match-3 swap gameplay; full Philly dish set; level + coin progression; backend leaderboard; bright cartoon emoji art.
+- Two-phase play (match then serve storefront) with per-customer variant orders.
+- Combos, Bigger Grill, Daily Special.
+- Streak jackpot, Ingredient Pantry, Weekly Tournament.
+- Monetization: real-money COIN PACKS via Emergent-managed RevenueCat (freemium). Coin-spend upgrades: Serving Plates + Bigger Holding Area.
+- Theme: Philadelphia sports colors (Eagles midnight green, Flyers orange, Phillies red, Sixers blue, kelly green).
 
 ## Screens
-1. **Onboarding** — enter Chef name, creates player.
-2. **Home** — hero, coin balance, Play, Levels, Shop, Ranks, Profile.
-3. **Level Map** — vertical staggered node path for the 8 Philly dishes (locked/current/done states).
-4. **Game** — HUD (moves, score), 7x7 match-3 board, sticky order card + recipe chip row.
-5. **Cooking Result** — celebratory modal, coins earned, next dish preview.
-6. **Shop** — 5 consumable boosters (extra moves, hint, coin doubler, hammer, shuffle).
-7. **Leaderboard** — Top 20 chefs by high score.
-8. **Profile** — stats grid + unlocked dish gallery + reset.
+Onboarding, Home (daily special banner, tappable coin chip → coin store, Rush/Shop/Ranks/Levels), Level Map, Game (match-3), Serve (storefront w/ combo meter, pantry shelf, jackpot), Cooking Result, Shop (4 upgrades + boosters + get-coins), Coin Store (RevenueCat packs), Rush (endless 3-lives), Leaderboard (All-Time + Weekly Cup), Profile (crown badge).
 
 ## Backend (FastAPI + MongoDB)
-- `GET /api/dishes` — dish catalog
-- `GET /api/shop` — shop items
-- `POST /api/players` — create player (starting 100 coins, cheesesteak unlocked)
-- `GET /api/players/:id` — fetch player
-- `POST /api/players/:id/complete-level` — record score, add coins, unlock next dish
-- `POST /api/players/:id/purchase` — buy shop item
-- `POST /api/players/:id/use-booster` — decrement booster count
-- `GET /api/leaderboard` — top 20 by high_score
+- Dishes, shop, players CRUD, complete-level (coins/score/unlock/weekly), purchase/use-booster (consumables).
+- Upgrades: generic `/players/{id}/upgrade/{key}` for grill|pantry|plates|holding; `/upgrades-info/{id}`; grill/pantry info; pantry save w/ capacity = pantry_level + holding_level*2.
+- Daily special (rotates by UTC day, 2x coins).
+- Leaderboards: all-time + weekly (ISO week, resets Monday, champion crown + 500-coin prize via settle-on-read, idempotent `champions` collection).
+- Monetization: `/coin-packs`; `/revenuecat/webhook` (NON_RENEWING_PURCHASE → idempotent coin grant via `rc_purchases`). Product map: coins_500/1200/3000.
 
-## Dishes (unlock order)
-1. Philly Cheesesteak — steak/onion/cheese/roll
-2. Soft Pretzel — dough/salt/mustard
-3. Water Ice — ice/cherry/lemon
-4. Italian Hoagie — roll/ham/cheese/lettuce
-5. Roast Pork Sandwich — pork/broccoli/provolone/roll
-6. Tomato Pie — dough/tomato/basil/cheese
-7. Scrapple — pork/cornmeal/sage/egg
-8. Tastykake — flour/sugar/chocolate/cream
+## Env / Keys (to set before publishing)
+- frontend/.env: EXPO_PUBLIC_RC_IOS_KEY, EXPO_PUBLIC_RC_ANDROID_KEY (RevenueCat public SDK keys).
+- backend/.env: REVENUECAT_WEBHOOK_AUTH (shared secret; also set as the Authorization header in RevenueCat webhook config). Empty in preview = open for testing.
+- IAP only works on a published native build (not Expo Go / web).
 
-## Business Enhancement
-Coin economy + shop already monetization-ready: shop consumables can later be tied to IAP or ad rewards. Global leaderboard drives retention.
+## Testing
+- Iteration 5: 40/40 backend pytest passing; all frontend flows verified. No auth (anonymous UUID player).
+
+## Backlog / Next
+- P1: combo meter numeric tiers polish; pantry auto-stock indicator; champion prize claim popup.
+- P2: cups/drinks upgrade; ads/remove-ads pass; starter bundle IAP.

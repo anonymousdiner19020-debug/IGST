@@ -138,9 +138,24 @@ export default function Home() {
             </Text>
           </Pressable>
 
-          <View style={styles.coinChip} testID="coin-balance">
-            <Text style={styles.coinEmoji}>🪙</Text>
-            <Text style={styles.coinText}>{player?.coins ?? 0}</Text>
+          <View style={styles.balanceRow}>
+            <Pressable
+              testID="bell-balance"
+              style={styles.bellChip}
+              onPress={() => router.push("/coin-store")}
+            >
+              <Text style={styles.coinEmoji}>🔔</Text>
+              <Text style={styles.bellText}>{player?.bells ?? 0}</Text>
+            </Pressable>
+            <Pressable
+              testID="coin-balance"
+              style={styles.coinChip}
+              onPress={() => router.push("/coin-store")}
+            >
+              <Text style={styles.coinEmoji}>🪙</Text>
+              <Text style={styles.coinText}>{player?.coins ?? 0}</Text>
+              <Text style={styles.coinPlus}>＋</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -176,6 +191,12 @@ export default function Home() {
           )}
 
           <View style={styles.secondaryRow}>
+            <SecondaryButton
+              testID="rush-button"
+              emoji="🔥"
+              label="Rush"
+              onPress={() => router.push("/rush")}
+            />
             <SecondaryButton
               testID="shop-button"
               emoji="🛒"
@@ -322,6 +343,21 @@ const styles = StyleSheet.create({
   },
   coinEmoji: { fontSize: 18 },
   coinText: { fontSize: 16, fontWeight: "900", color: colors.onBrand },
+  coinPlus: { fontSize: 16, fontWeight: "900", color: colors.onBrand, marginLeft: 2 },
+  balanceRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  bellChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    backgroundColor: colors.brandTertiary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    ...shadow.tier1,
+    borderWidth: 2,
+    borderColor: colors.surfaceInverse,
+  },
+  bellText: { fontSize: 16, fontWeight: "900", color: colors.onBrandTertiary },
   hero: {
     flex: 1,
     alignItems: "center",

@@ -57,19 +57,33 @@ export default function Profile() {
         >
           <View style={styles.avatar}>
             <Text style={styles.avatarEmoji}>👨‍🍳</Text>
+            {player.crown && (
+              <View style={styles.crownBadge} testID="crown-badge">
+                <Text style={styles.crownEmoji}>👑</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.username} testID="profile-username">
             {player.username}
           </Text>
-          <Text style={styles.subline}>Head Chef of Philadelphia</Text>
+          {player.crown && player.champion_weeks && player.champion_weeks.length > 0 ? (
+            <Text style={styles.champLine} testID="champion-line">
+              🏆 Weekly Cup Champion ×{player.champion_weeks.length}
+            </Text>
+          ) : (
+            <Text style={styles.subline}>Head Chef of Philadelphia</Text>
+          )}
 
           <View style={styles.statsRow}>
             <StatCard label="COINS" value={player.coins} emoji="🪙" />
+            <StatCard label="BELLS" value={player.bells} emoji="🔔" />
+          </View>
+          <View style={styles.statsRow}>
             <StatCard label="HIGH SCORE" value={player.high_score} emoji="⭐" />
+            <StatCard label="LEVEL" value={player.current_level} emoji="🎯" />
           </View>
           <View style={styles.statsRow}>
             <StatCard label="DISHES COOKED" value={player.dishes_cooked} emoji="🍽" />
-            <StatCard label="LEVEL" value={player.current_level} emoji="🎯" />
           </View>
 
           <Text style={styles.sectionTitle}>Unlocked Dishes</Text>
@@ -151,7 +165,22 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   avatarEmoji: { fontSize: 60 },
+  crownBadge: {
+    position: "absolute",
+    top: -14,
+    alignSelf: "center",
+    backgroundColor: colors.brand,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+  },
+  crownEmoji: { fontSize: 20 },
   username: { fontSize: 26, fontWeight: "900", color: colors.surfaceInverse },
+  champLine: { fontSize: 13, fontWeight: "900", color: colors.brand, marginBottom: spacing.md },
   subline: { fontSize: 13, fontWeight: "700", color: colors.brandSecondary, marginBottom: spacing.md },
   statsRow: { flexDirection: "row", gap: spacing.md, width: "100%" },
   statCard: {

@@ -329,3 +329,326 @@ class TestWeeklyLeaderboard:
         wk = client.get(f"{API}/weekly-leaderboard").json()
         me = next(row for row in wk["leaderboard"] if row["id"] == pid)
         assert me["weekly_score"] == 300  # max, not overwritten by 100
+
+
+# ---------- Iteration 5: Coin Packs / RevenueCat webhook / generic upgrades / holding ----------
+import uuid as _uuid
+
+
+class TestCoinPacks:
+    def test_coin_packs_shape(self, client):
+        r = client.get(f"{API}/coin-packs")
+        assert r.status_code == 200
+        packs = r.json()["packs"]
+        ids = [p["product_id"] for p in packs]
+        assert ids == ["coins_500", "coins_1200", "coins_3000"]
+        by = {p["product_id"]: p for p in packs}
+        assert by["coins_500"]["coins"] == 500
+        assert by["coins_1200"]["coins"] == 1200
+        assert by["coins_3000"]["coins"] == 3000
+        assert by["coins_3000"]["best_value"] is True
+        assert all("fallback_price" in p for p in packs)
+
+
+class TestUpgradesInfo:
+    def test_upgrades_info_shape_new_player(self, client):
+        r = client.post(f"{API}/players", json={"username": "TEST_UInfoA"})
+        pid = r.json()["id"]
+        info = client.get(f"{API}/upgrades-info/{pid}").json()
+        assert set(info["upgrades"].keys()) == {"grill", "pantry", "plates", "holding"}
+        assert info["coins"] == 100
+        assert info["upgrades"]["grill"]["next_cost"] == 150
+        assert info["upgrades"]["pantry"]["next_cost"] == 120
+        assert info["upgrades"]["plates"]["next_cost"] == 100
+        assert info["upgrades"]["holding"]["next_cost"] == 130
+        for k in ("grill", "pantry", "plates", "holding"):
+            u = info["upgrades"][k]
+            assert u["level"] == 0 and u["max_level"] == 3 and u["maxed"] is False
+
+    def test_upgrades_info_404(self, client):
+        assert client.get(f"{API}/upgrades-info/does-not-exist").status_code == 404
+
+
+class TestGenericUpgrade:
+    def _prep(self, client, coins=2000):
+        pid = client.post(f"{API}/players", json={"username": "TEST_UGen"}).json()["id"]
+        # Top up coins via complete-level
+        client.post(
+            f"{API}/players/{pid}/complete-level",
+            json={"level": 1, "dish_id": "cheesesteak", "score": 100,
+                  "coins_earned": coins, "completed": False},
+        )
+        return pid
+
+    @pytest.mark.parametrize("key,base,field", [
+        ("grill", 150, "grill_level"),
+        ("pantry", 120, "pantry_level"),
+        ("plates", 100, "plates_level"),
+        ("holding", 130, "holding_level"),
+    ])
+    def test_upgrade_progression_and_scaling(self, client, key, base, field):
+        pid = self._prep(client)
+        for lvl in range(3):
+            info_before = client.get(f"{API}/upgrades-info/{pid}").json()
+            expected_cost = base * (lvl + 1)
+            assert info_before["upgrades"][key]["next_cost"] == expected_cost
+            coins_before = info_before["coins"]
+            r = client.post(f"{API}/players/{pid}/upgrade/{key}")
+            assert r.status_code == 200, r.text
+            body = r.json()
+            assert body[field] == lvl + 1
+            assert body["coins"] == coins_before - expected_cost
+        # 4th call rejected
+        r = client.post(f"{API}/players/{pid}/upgrade/{key}")
+        assert r.status_code == 400
+        info_after = client.get(f"{API}/upgrades-info/{pid}").json()
+        assert info_after["upgrades"][key]["maxed"] is True
+        assert info_after["upgrades"][key]["next_cost"] is None
+
+    def test_upgrade_insufficient_coins(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_UPoor"}).json()["id"]
+        # New player has 100 coins; grill costs 150
+        r = client.post(f"{API}/players/{pid}/upgrade/grill")
+        assert r.status_code == 400
+
+    def test_upgrade_unknown_key(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_UUnknown"}).json()["id"]
+        r = client.post(f"{API}/players/{pid}/upgrade/lasers")
+        assert r.status_code == 404
+
+    def test_upgrade_unknown_player(self, client):
+        r = client.post(f"{API}/players/nope-nope/upgrade/grill")
+        assert r.status_code == 404
+
+
+class TestHoldingAreaPantryCap:
+    def test_holding_expands_pantry_cap(self, client):
+        # Set up player with pantry_level=1 and holding_level=1 => cap = 1 + 1*2 = 3
+        pid = client.post(f"{API}/players", json={"username": "TEST_Holding"}).json()["id"]
+        client.post(
+            f"{API}/players/{pid}/complete-level",
+            json={"level": 1, "dish_id": "cheesesteak", "score": 0, "coins_earned": 1000, "completed": False},
+        )
+        assert client.post(f"{API}/players/{pid}/upgrade/pantry").status_code == 200
+        assert client.post(f"{API}/players/{pid}/upgrade/holding").status_code == 200
+        info = client.get(f"{API}/pantry-info/{pid}").json()
+        assert info["pantry_level"] == 1
+        assert info["per_item_cap"] == 3
+
+        # save-pantry should cap items at 3
+        r = client.post(
+            f"{API}/players/{pid}/save-pantry",
+            json={"pantry": {"onion": 9, "cheese": 2, "whiz": 5}},
+        )
+        pd = r.json()["pantry"]
+        assert pd == {"onion": 3, "cheese": 2, "whiz": 3}
+
+    def test_holding_level2_cap(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_Hold2"}).json()["id"]
+        client.post(
+            f"{API}/players/{pid}/complete-level",
+            json={"level": 1, "dish_id": "cheesesteak", "score": 0, "coins_earned": 2000, "completed": False},
+        )
+        # pantry=2, holding=2 -> cap 6
+        for _ in range(2):
+            client.post(f"{API}/players/{pid}/upgrade/pantry")
+            client.post(f"{API}/players/{pid}/upgrade/holding")
+        info = client.get(f"{API}/pantry-info/{pid}").json()
+        assert info["per_item_cap"] == 6
+        r = client.post(
+            f"{API}/players/{pid}/save-pantry",
+            json={"pantry": {"onion": 20}},
+        )
+        assert r.json()["pantry"] == {"onion": 6}
+
+
+class TestRevenueCatWebhook:
+    def test_non_renewing_grants_coins_and_is_idempotent(self, client):
+        p = client.post(f"{API}/players", json={"username": "TEST_RC1"}).json()
+        pid = p["id"]
+        starting = p["coins"]  # 100
+        txn = f"TEST_TXN_{_uuid.uuid4()}"
+        eid = f"TEST_EID_{_uuid.uuid4()}"
+        payload = {"event": {
+            "type": "NON_RENEWING_PURCHASE",
+            "app_user_id": pid,
+            "product_id": "coins_1200",
+            "transaction_id": txn,
+            "id": eid,
+            "store": "APP_STORE",
+            "environment": "SANDBOX",
+        }}
+        r = client.post(f"{API}/revenuecat/webhook", json=payload)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["ok"] is True and body["granted"] == 1200 and body["currency"] == "coins"
+        after = client.get(f"{API}/players/{pid}").json()
+        assert after["coins"] == starting + 1200
+
+        # duplicate transaction id: no double grant
+        r2 = client.post(f"{API}/revenuecat/webhook", json=payload)
+        assert r2.status_code == 200
+        assert r2.json().get("duplicate") is True
+        after2 = client.get(f"{API}/players/{pid}").json()
+        assert after2["coins"] == starting + 1200
+
+    def test_unknown_product(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_RC2"}).json()["id"]
+        payload = {"event": {
+            "type": "NON_RENEWING_PURCHASE",
+            "app_user_id": pid,
+            "product_id": "coins_9999",
+            "transaction_id": f"T_{_uuid.uuid4()}",
+            "id": f"E_{_uuid.uuid4()}",
+        }}
+        r = client.post(f"{API}/revenuecat/webhook", json=payload)
+        assert r.status_code == 400
+
+    def test_non_purchase_event_is_ignored(self, client):
+        payload = {"event": {"type": "TEST", "app_user_id": "x", "product_id": "coins_500"}}
+        r = client.post(f"{API}/revenuecat/webhook", json=payload)
+        assert r.status_code == 200
+        j = r.json()
+        assert j["ok"] is True and j.get("ignored") == "TEST"
+
+    def test_all_three_products_grant(self, client):
+        for prod, expected in [("coins_500", 500), ("coins_3000", 3000)]:
+            p = client.post(f"{API}/players", json={"username": f"TEST_RC_{prod}"}).json()
+            pid, base = p["id"], p["coins"]
+            payload = {"event": {
+                "type": "NON_RENEWING_PURCHASE",
+                "app_user_id": pid,
+                "product_id": prod,
+                "transaction_id": f"T_{_uuid.uuid4()}",
+                "id": f"E_{_uuid.uuid4()}",
+            }}
+            r = client.post(f"{API}/revenuecat/webhook", json=payload)
+            assert r.status_code == 200
+            after = client.get(f"{API}/players/{pid}").json()
+            assert after["coins"] == base + expected
+
+
+class TestPlayerDefaultsIter5:
+    def test_new_player_has_plates_and_holding(self, client):
+        p = client.post(f"{API}/players", json={"username": "TEST_Defaults5"}).json()
+        assert p["plates_level"] == 0
+        assert p["holding_level"] == 0
+        assert "_id" not in p
+
+
+# ---------- Iteration 6: Liberty Bells currency ----------
+class TestBellsBackend:
+    def test_new_player_starts_with_3_bells_and_public_shape(self, client):
+        p = client.post(f"{API}/players", json={"username": "TEST_BellsNew"}).json()
+        assert p["bells"] == 3
+        assert "_id" not in p
+        # GET also
+        g = client.get(f"{API}/players/{p['id']}").json()
+        assert g["bells"] == 3
+        assert "_id" not in g
+
+    def test_bell_packs_shape(self, client):
+        r = client.get(f"{API}/bell-packs")
+        assert r.status_code == 200
+        packs = r.json()["packs"]
+        ids = [p["product_id"] for p in packs]
+        assert ids == ["bells_5", "bells_20", "bells_50"]
+        by = {p["product_id"]: p for p in packs}
+        assert by["bells_5"]["bells"] == 5
+        assert by["bells_20"]["bells"] == 20
+        assert by["bells_50"]["bells"] == 50
+        assert by["bells_50"]["best_value"] is True
+        for p in packs:
+            assert "fallback_price" in p
+
+    def test_complete_level_increments_bells(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_BellEarn"}).json()["id"]
+        r = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 1, "dish_id": "cheesesteak", "score": 250,
+            "coins_earned": 12, "bells_earned": 5, "completed": True,
+        })
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["bells"] == 3 + 5  # STARTING_BELLS + earned
+        assert d["coins"] == 100 + 12
+        assert d["high_score"] == 250
+        assert d["current_level"] == 2
+        assert "soft_pretzel" in d["unlocked_dishes"]
+
+    def test_complete_level_default_bells_earned_zero(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_BellEarnZ"}).json()["id"]
+        r = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 1, "dish_id": "cheesesteak", "score": 100,
+            "coins_earned": 3, "completed": False,
+        })
+        assert r.status_code == 200
+        assert r.json()["bells"] == 3  # unchanged
+
+    def test_spend_bells_success(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_Spend"}).json()["id"]
+        r = client.post(f"{API}/players/{pid}/spend-bells", json={"amount": 1})
+        assert r.status_code == 200, r.text
+        assert r.json()["bells"] == 2
+        # GET verifies persistence
+        assert client.get(f"{API}/players/{pid}").json()["bells"] == 2
+
+    def test_spend_bells_insufficient(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_SpendPoor"}).json()["id"]
+        # Drain all 3 bells
+        for _ in range(3):
+            assert client.post(f"{API}/players/{pid}/spend-bells", json={"amount": 1}).status_code == 200
+        r = client.post(f"{API}/players/{pid}/spend-bells", json={"amount": 1})
+        assert r.status_code == 400
+        assert "Liberty Bells" in r.json().get("detail", "")
+
+    def test_spend_bells_404(self, client):
+        r = client.post(f"{API}/players/does-not-exist/spend-bells", json={"amount": 1})
+        assert r.status_code == 404
+
+
+class TestRevenueCatBells:
+    @pytest.mark.parametrize("prod,expected", [
+        ("bells_5", 5),
+        ("bells_20", 20),
+        ("bells_50", 50),
+    ])
+    def test_webhook_grants_bells(self, client, prod, expected):
+        p = client.post(f"{API}/players", json={"username": f"TEST_RCB_{prod}"}).json()
+        pid, base_bells = p["id"], p["bells"]
+        payload = {"event": {
+            "type": "NON_RENEWING_PURCHASE",
+            "app_user_id": pid,
+            "product_id": prod,
+            "transaction_id": f"TXNB_{_uuid.uuid4()}",
+            "id": f"EIDB_{_uuid.uuid4()}",
+            "store": "APP_STORE",
+            "environment": "SANDBOX",
+        }}
+        r = client.post(f"{API}/revenuecat/webhook", json=payload)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["granted"] == expected and body["currency"] == "bells"
+        after = client.get(f"{API}/players/{pid}").json()
+        assert after["bells"] == base_bells + expected
+        # coins unchanged
+        assert after["coins"] == p["coins"]
+
+    def test_webhook_bells_duplicate_idempotent(self, client):
+        p = client.post(f"{API}/players", json={"username": "TEST_RCB_Dup"}).json()
+        pid, base = p["id"], p["bells"]
+        txn = f"TXNB_{_uuid.uuid4()}"
+        payload = {"event": {
+            "type": "NON_RENEWING_PURCHASE",
+            "app_user_id": pid,
+            "product_id": "bells_20",
+            "transaction_id": txn,
+            "id": f"EIDB_{_uuid.uuid4()}",
+        }}
+        r1 = client.post(f"{API}/revenuecat/webhook", json=payload)
+        assert r1.status_code == 200
+        assert client.get(f"{API}/players/{pid}").json()["bells"] == base + 20
+        # duplicate: no double grant
+        r2 = client.post(f"{API}/revenuecat/webhook", json=payload)
+        assert r2.status_code == 200
+        assert r2.json().get("duplicate") is True
+        assert client.get(f"{API}/players/{pid}").json()["bells"] == base + 20

@@ -20,12 +20,17 @@ export type PlayerDTO = {
   id: string;
   username: string;
   coins: number;
+  bells: number;
   high_score: number;
   current_level: number;
   dishes_cooked: number;
   unlocked_dishes: string[];
   boosters: Record<string, number>;
   grill_level: number;
+  pantry_level?: number;
+  pantry?: Record<string, number>;
+  crown?: boolean;
+  champion_weeks?: string[];
   created_at: string;
 };
 
@@ -53,6 +58,37 @@ export type PantryInfo = {
   pantry: Record<string, number>;
 };
 
+export type UpgradeState = {
+  name: string;
+  emoji: string;
+  desc: string;
+  level: number;
+  max_level: number;
+  next_cost: number | null;
+  maxed: boolean;
+};
+
+export type UpgradesInfo = {
+  upgrades: Record<string, UpgradeState>;
+  coins: number;
+};
+
+export type CoinPack = {
+  product_id: string;
+  coins: number;
+  fallback_price: string;
+  emoji: string;
+  best_value?: boolean;
+};
+
+export type BellPack = {
+  product_id: string;
+  bells: number;
+  fallback_price: string;
+  emoji: string;
+  best_value?: boolean;
+};
+
 export type WeeklyBoard = {
   week: string;
   resets_on: string;
@@ -66,7 +102,7 @@ export const api = {
   getPlayer: (id: string) => req<PlayerDTO>(`/players/${id}`),
   completeLevel: (
     id: string,
-    payload: { level: number; dish_id: string; score: number; coins_earned: number; completed: boolean }
+    payload: { level: number; dish_id: string; score: number; coins_earned: number; bells_earned?: number; completed: boolean }
   ) =>
     req<PlayerDTO>(`/players/${id}/complete-level`, {
       method: "POST",
@@ -99,4 +135,14 @@ export const api = {
       body: JSON.stringify({ pantry }),
     }),
   getWeeklyLeaderboard: () => req<WeeklyBoard>("/weekly-leaderboard"),
+  getUpgradesInfo: (id: string) => req<UpgradesInfo>(`/upgrades-info/${id}`),
+  upgrade: (id: string, key: string) =>
+    req<PlayerDTO>(`/players/${id}/upgrade/${key}`, { method: "POST" }),
+  getCoinPacks: () => req<{ packs: CoinPack[] }>("/coin-packs"),
+  getBellPacks: () => req<{ packs: BellPack[] }>("/bell-packs"),
+  spendBells: (id: string, amount = 1) =>
+    req<PlayerDTO>(`/players/${id}/spend-bells`, {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
 };

@@ -137,8 +137,10 @@ export default function Game() {
       params: {
         completed: "0",
         coins: String(Math.floor(score / 25)),
+        bells: "0",
         score: String(score),
         dishId: dish.id,
+        level: String(levelNum),
         served: "0",
         nextLevel: String(levelNum + 1),
       },

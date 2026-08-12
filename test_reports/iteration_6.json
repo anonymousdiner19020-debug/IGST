@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 6 (Liberty Bells currency). Backend: 51/51 pytest tests green — 40 prior + 11 new iter-6 tests in 2 new classes (TestBellsBackend, TestRevenueCatBells). Confirmed: (a) new player starts with bells=3, player_public includes bells, no _id leaks in POST /api/players or GET /api/players/{id}; (b) GET /api/bell-packs returns 3 packs [bells_5(5,$0.99), bells_20(20,$2.99), bells_50(50,$4.99,best_value=true)] with fallback_price; (c) POST /api/players/{id}/complete-level with bells_earned=N increments player.bells (regression: coins/score/dishes_cooked/unlock/weekly still correct); default bells_earned=0 leaves bells unchanged; (d) POST /api/players/{id}/spend-bells decrements bells (3->2), 400 'Not enough Liberty Bells' when insufficient, 404 for unknown player; (e) POST /api/revenuecat/webhook with NON_RENEWING_PURCHASE + product_id bells_5/bells_20/bells_50 grants correct bells to player.bells with currency='bells' response, coins stay unchanged, duplicate transaction_id returns {duplicate:true} (no double grant), unknown product 400; (f) coins webhook response updated to include currency='coins' — existing coin regression tests still pass. Frontend (mobile 390x844): (1) home shows tappable bell-balance chip '🔔3' next to coin-balance chip, tapping routes to /coin-store; (2) /coin-store shows header coin+bell balances, '🪙 COIN PACKS' section with pack-coins_500/1200/3000 AND '🔔 LIBERTY BELLS' section with pack-bells_5/bells_20/bells_50 (BEST VALUE badge on bells_50), buying any pack on web shows toast 'Purchases activate after you publish a build'; (3) /cooking-result FAIL view (completed=0) shows coins-earned/bells-earned/score-earned stats + retry-bell-button 'Retry Level 🔔 1 You have 3 🔔'; tapping retry with a real player calls spend-bells API and navigates to /game (verified navigation succeeded); (4) /cooking-result WIN view (completed=1) shows bells-earned '+3 BELLS' stat, continue-button, NO retry-bell-button; (5) /serve deep-link now loads (RED-SCREEN BUG FIXED - see below) and shows serve-bells 🔔 chip alongside serve-coins chip; perfect-serve +N 🔔 feedback code path confirmed in serve.tsx:226 (`Perfect! +${tip} 🪙 +${bellTip} 🔔...`). Deprecated packages detected: none. SafeAreaView issues detected: none. RN-web shadow*/textShadow* deprecation warnings on web are still emitted and explicitly OK-to-ignore per review_request.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Main agent: verify the fix I applied to /app/frontend/app/serve.tsx (moved extraServings state declaration before the customers useMemo) — the previous ordering caused an 'Uncaught Error: Cannot access extraServings before initialization' RN red screen that broke every /serve session. Consider adding an ESLint rule (react-hooks/exhaustive-deps + no-use-before-define) to catch TDZ violations in future.",
+    "Optional: REVENUECAT_WEBHOOK_AUTH must be set to a strong secret in production .env before shipping — currently empty for preview testing (webhook accepts unauthenticated calls)."
+  ],
+  "critical_code_review_comments": [
+    "server.py revenuecat/webhook now returns `currency` field alongside `granted` — nice for client-side telemetry. Idempotency is preserved (rc_purchases row inserted before $inc). Unified PRODUCT_COINS / PRODUCT_BELLS maps keep the currency branch clean.",
+    "server.py spend-bells uses `max(1, int(payload.amount))` — good input clamp, prevents 0/negative from bypassing the balance check. STARTING_BELLS=3 and RETRY_BELL_COST=1 are module-level constants (single source of truth).",
+    "server.py complete-level clamps bells_earned via `max(0, result.bells_earned)` — prevents negative bells from a spoofed client.",
+    "server.py bell-packs mirrors coin-packs exactly — both use fallback_price and mark the top tier best_value=true. Consistent UX.",
+    "frontend/app/serve.tsx: FIXED critical TDZ bug where `extraServings` (declared on original line 97 via useState) was referenced in the `customers` useMemo dependency array on line 82 — since useMemo initializes during the render function's synchronous execution, this threw `Cannot access 'extraServings' before initialization`. Moved the useState declaration above the useMemo.",
+    "frontend/app/cooking-result.tsx retry flow correctly guards on `myBells < 1` and shows a buy-bells-link to /coin-store when the player is out — good freemium UX.",
+    "frontend/app/coin-store.tsx renders both sections + iap-notice banner and defers real IAP behind Platform.OS !== 'web' (fallback toast). Best-value badge only appears on bells_50 as spec'd."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (+11 iter-6 tests in TestBellsBackend + TestRevenueCatBells; also updated TestRevenueCatWebhook assertion to include new `currency` field)",
+    "/app/frontend/app/serve.tsx (moved `const [extraServings, setExtraServings] = useState(0);` above the `customers` useMemo to fix TDZ red-screen crash)"
+  ],
+  "success_rate": {
+    "backend": "100% (51/51 pytest, incl. all iter-6 bells endpoints + regression)",
+    "frontend": "100% of tested flows after the serve TDZ fix (home bell-balance chip + nav, coin-store 6 packs + BEST VALUE + buy toast, cooking-result FAIL retry button + spend-bells + nav to /game, cooking-result WIN bells-earned stat, serve-bells + serve-coins chips)"
+  },
+  "seed_data_creation": "Pytest created disposable TEST_Bells*, TEST_RCB_*, TEST_Spend* players. Playwright created TEST_UI_I6* players. No cleanup endpoint — safe.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend URL: https://cooking-combo-philly.preview.emergentagent.com/api. Iter-6 endpoints: GET /api/bell-packs, POST /api/players/{id}/spend-bells {amount:1}, POST /api/players/{id}/complete-level now accepts bells_earned:int (default 0), POST /api/revenuecat/webhook now supports product_id bells_5/bells_20/bells_50. Response from webhook includes `currency`. Player DTO now includes `bells` (STARTING_BELLS=3 for new players). Frontend testIDs added iter-6: home 'bell-balance' navigates to /coin-store; cooking-result 'coins-earned' + 'bells-earned' + 'score-earned' + 'retry-bell-button' + 'buy-bells-link' + 'continue-button'; coin-store now has 'pack-bells_5|20|50' + 'buy-pack-bells_*'; serve 'serve-bells' + 'serve-coins' chips + 'want-{id}' + 'no-{id}' + 'tray-{id}' + 'serve-button' + 'serve-feedback'. IMPORTANT: /app/frontend/app/serve.tsx had a TDZ bug (extraServings state referenced in useMemo deps before declaration) that produced a red-screen — I moved the useState above the useMemo; if serve.tsx is refactored, keep state declarations before any useMemo that depends on them. REVENUECAT_WEBHOOK_AUTH still empty in backend/.env — webhook accepts unauthenticated calls; MUST be set before ship. Real IAP is untestable in preview (RevenueCat SDK requires native build); only webhook grant path is exercised."
+}

@@ -77,14 +77,17 @@ export default function Serve() {
     }
   }, [params.inventory, toppings]);
 
+  const [extraServings, setExtraServings] = useState(0);
+
   const customers = useMemo(
-    () => buildCustomers(dish, toppings, dish.customers_per_level),
-    [dish, toppings]
+    () => buildCustomers(dish, toppings, dish.customers_per_level + extraServings),
+    [dish, toppings, extraServings]
   );
 
   const [idx, setIdx] = useState(0);
   const [plate, setPlate] = useState<string[]>([]);
   const [coins, setCoins] = useState(0);
+  const [bells, setBells] = useState(0);
   const [servedCount, setServedCount] = useState(0);
   const [score, setScore] = useState(baseScore);
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
@@ -99,6 +102,7 @@ export default function Serve() {
 
   const isDaily = params.daily === "1";
   const current = customers[idx];
+  const pantryMaxed = pantryLevel >= 3;
 
   // combo multiplier grows with consecutive perfect serves: 1x, 1.5x, 2x, 2.5x...
   const comboMult = 1 + streak * 0.5;
@@ -112,8 +116,21 @@ export default function Serve() {
         setPantry(info.pantry || {});
         setPantryLevel(info.pantry_level || 0);
       } catch {}
+      try {
+        const p = await api.getPlayer(id);
+        setExtraServings(p.plates_level || 0);
+      } catch {}
     })();
   }, []);
+
+  // Maxed pantry auto-places one wanted topping for each new customer.
+  useEffect(() => {
+    if (finished || !current) return;
+    if (pantryMaxed && current.wanted.length > 0) {
+      setPlate([current.wanted[0]]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, pantryMaxed, finished]);
 
   // patience timer per customer
   useEffect(() => {
@@ -155,8 +172,9 @@ export default function Serve() {
   };
 
   const nextCustomer = useCallback(
-    (earnedCoins: number, earnedScore: number, ok: boolean) => {
+    (earnedCoins: number, earnedScore: number, ok: boolean, earnedBells: number = 0) => {
       setCoins((c) => c + earnedCoins);
+      setBells((b) => b + earnedBells);
       setScore((s) => s + earnedScore);
       if (ok) setServedCount((c) => c + 1);
       setPlate([]);
@@ -164,14 +182,19 @@ export default function Serve() {
       setTimeout(() => {
         setFeedback(null);
         if (idx + 1 >= customers.length) {
-          finishLevel(coins + earnedCoins, servedCount + (ok ? 1 : 0), score + earnedScore);
+          finishLevel(
+            coins + earnedCoins,
+            servedCount + (ok ? 1 : 0),
+            score + earnedScore,
+            bells + earnedBells
+          );
         } else {
           setIdx((i) => i + 1);
         }
       }, 1100);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [idx, customers.length, coins, servedCount, score]
+    [idx, customers.length, coins, servedCount, score, bells]
   );
 
   const handleServe = () => {
@@ -199,7 +222,9 @@ export default function Serve() {
       } catch {}
       const comboLabel = mult > 1 ? ` 🔥x${mult}` : "";
       const dailyLabel = isDaily ? " ⭐2×" : "";
-      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙${comboLabel}${dailyLabel}` });
+      // Liberty Bell tip: faster serve = more bells (1-3)
+      const bellTip = patience > 0.66 ? 3 : patience > 0.33 ? 2 : 1;
+      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}` });
       // Streak jackpot at 2.5x multiplier or higher (4+ consecutive perfects)
       let jackpotBonus = 0;
       if (mult >= 2.5) {
@@ -211,7 +236,7 @@ export default function Serve() {
         } catch {}
         setTimeout(() => setJackpot(null), 1400);
       }
-      nextCustomer(tip + jackpotBonus, Math.round((100 + speedBonus) * mult), true);
+      nextCustomer(tip + jackpotBonus, Math.round((100 + speedBonus) * mult), true, bellTip);
     } else {
       const partial = Math.max(0, current.wanted.length - missing.length - extra.length);
       const dailyMult = isDaily ? 2 : 1;
@@ -233,7 +258,7 @@ export default function Serve() {
     nextCustomer(0, 0, false);
   };
 
-  const finishLevel = async (totalCoins: number, served: number, totalScore: number) => {
+  const finishLevel = async (totalCoins: number, served: number, totalScore: number, totalBells: number) => {
     if (finished) return;
     setFinished(true);
     const completed = served > 0;
@@ -255,6 +280,7 @@ export default function Serve() {
           dish_id: dish.id,
           score: totalScore,
           coins_earned: totalCoins,
+          bells_earned: totalBells,
           completed: served >= Math.ceil(customers.length / 2),
         });
       } catch {}
@@ -264,8 +290,10 @@ export default function Serve() {
       params: {
         completed: completed ? "1" : "0",
         coins: String(totalCoins),
+        bells: String(totalBells),
         score: String(totalScore),
         dishId: dish.id,
+        level: String(levelNum),
         served: String(served),
         total: String(customers.length),
         nextLevel: String(levelNum + 1),
@@ -291,6 +319,10 @@ export default function Serve() {
         <View style={styles.coinChip} testID="serve-coins">
           <Text style={styles.coinEmoji}>🪙</Text>
           <Text style={styles.coinText}>{coins}</Text>
+        </View>
+        <View style={styles.bellChip} testID="serve-bells">
+          <Text style={styles.coinEmoji}>🔔</Text>
+          <Text style={styles.bellText}>{bells}</Text>
         </View>
       </View>
 
@@ -342,6 +374,23 @@ export default function Serve() {
           <Text style={styles.feedbackText}>{feedback.text}</Text>
         </View>
       )}
+
+      {/* Combo meter */}
+      <View style={styles.comboMeter} testID="combo-meter">
+        <View style={styles.comboSegments}>
+          {[1.5, 2.0, 2.5, 3.0, 3.5].map((tier, i) => (
+            <View
+              key={tier}
+              style={[styles.comboSeg, i < streak && styles.comboSegOn]}
+            />
+          ))}
+        </View>
+        <Text style={styles.comboMeterLabel}>
+          {streak === 0
+            ? "Serve perfect to start a 🔥 combo"
+            : `Combo x${comboMult.toFixed(1)} • next x${(1 + (streak + 1) * 0.5).toFixed(1)}`}
+        </Text>
+      </View>
 
       {/* Plate builder */}
       <View style={styles.plateZone}>
@@ -480,6 +529,16 @@ const styles = StyleSheet.create({
   },
   coinEmoji: { fontSize: 16 },
   coinText: { fontSize: 15, fontWeight: "900", color: colors.surfaceInverse },
+  bellChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    backgroundColor: colors.brandTertiary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+  },
+  bellText: { fontSize: 15, fontWeight: "900", color: colors.onBrandTertiary },
   customerZone: { alignItems: "center", paddingTop: spacing.md, paddingHorizontal: spacing.lg },
   patienceTrack: {
     width: "70%",
@@ -524,6 +583,16 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
   },
   feedbackText: { color: "#FFFFFF", fontWeight: "900", fontSize: 15 },
+  comboMeter: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, alignItems: "center", gap: spacing.xs },
+  comboSegments: { flexDirection: "row", gap: spacing.xs, width: "100%" },
+  comboSeg: {
+    flex: 1,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceTertiary,
+  },
+  comboSegOn: { backgroundColor: colors.brand },
+  comboMeterLabel: { fontSize: 11, fontWeight: "800", color: colors.surfaceInverse, opacity: 0.7 },
   plateZone: { alignItems: "center", paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   plateLabel: {
     fontSize: 11,

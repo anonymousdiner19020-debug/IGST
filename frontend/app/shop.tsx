@@ -10,22 +10,27 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api, GrillInfo, PantryInfo, PlayerDTO } from "@/src/api";
+import { api, PlayerDTO, UpgradesInfo } from "@/src/api";
 import { playerStorage } from "@/src/storage";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 
 type ShopItem = { id: string; name: string; emoji: string; cost: number; type: string };
+const UPGRADE_ORDER = ["grill", "plates", "pantry", "holding"];
 
 export default function Shop() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [player, setPlayer] = useState<PlayerDTO | null>(null);
-  const [grill, setGrill] = useState<GrillInfo | null>(null);
-  const [pantry, setPantry] = useState<PantryInfo | null>(null);
+  const [upgrades, setUpgrades] = useState<UpgradesInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 1500);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,14 +38,9 @@ export default function Shop() {
       const [shop, id] = await Promise.all([api.getShop(), playerStorage.get()]);
       setItems(shop.items);
       if (id) {
-        const [p, g, pan] = await Promise.all([
-          api.getPlayer(id),
-          api.getGrillInfo(id),
-          api.getPantryInfo(id),
-        ]);
+        const [p, u] = await Promise.all([api.getPlayer(id), api.getUpgradesInfo(id)]);
         setPlayer(p);
-        setGrill(g);
-        setPantry(pan);
+        setUpgrades(u);
       }
     } catch {}
     setLoading(false);
@@ -50,44 +50,22 @@ export default function Shop() {
     load();
   }, [load]);
 
-  const upgradeGrill = async () => {
-    if (!player || !grill || grill.maxed || grill.next_cost == null) return;
-    if (player.coins < grill.next_cost) {
-      setToast("Not enough coins!");
-      setTimeout(() => setToast(null), 1500);
+  const doUpgrade = async (key: string) => {
+    if (!player || !upgrades) return;
+    const u = upgrades.upgrades[key];
+    if (!u || u.maxed || u.next_cost == null) return;
+    if (player.coins < u.next_cost) {
+      showToast("Not enough coins!");
       return;
     }
-    setPurchasing("grill");
+    setPurchasing(key);
     try {
-      const updated = await api.upgradeGrill(player.id);
+      const updated = await api.upgrade(player.id, key);
       setPlayer(updated);
-      setGrill(await api.getGrillInfo(player.id));
-      setToast("Grill upgraded! 🔥");
-      setTimeout(() => setToast(null), 1500);
+      setUpgrades(await api.getUpgradesInfo(player.id));
+      showToast(`${u.name} upgraded!`);
     } catch {
-      setToast("Upgrade failed");
-      setTimeout(() => setToast(null), 1500);
-    }
-    setPurchasing(null);
-  };
-
-  const upgradePantry = async () => {
-    if (!player || !pantry || pantry.maxed || pantry.next_cost == null) return;
-    if (player.coins < pantry.next_cost) {
-      setToast("Not enough coins!");
-      setTimeout(() => setToast(null), 1500);
-      return;
-    }
-    setPurchasing("pantry");
-    try {
-      const updated = await api.upgradePantry(player.id);
-      setPlayer(updated);
-      setPantry(await api.getPantryInfo(player.id));
-      setToast("Pantry upgraded! 🥫");
-      setTimeout(() => setToast(null), 1500);
-    } catch {
-      setToast("Upgrade failed");
-      setTimeout(() => setToast(null), 1500);
+      showToast("Upgrade failed");
     }
     setPurchasing(null);
   };
@@ -95,19 +73,16 @@ export default function Shop() {
   const buy = async (item: ShopItem) => {
     if (!player) return;
     if (player.coins < item.cost) {
-      setToast("Not enough coins!");
-      setTimeout(() => setToast(null), 1500);
+      showToast("Not enough coins!");
       return;
     }
     setPurchasing(item.id);
     try {
       const updated = await api.purchase(player.id, item.id);
       setPlayer(updated);
-      setToast(`${item.name} added!`);
-      setTimeout(() => setToast(null), 1500);
-    } catch (e: any) {
-      setToast("Purchase failed");
-      setTimeout(() => setToast(null), 1500);
+      showToast(`${item.name} added!`);
+    } catch {
+      showToast("Purchase failed");
     }
     setPurchasing(null);
   };
@@ -118,11 +93,16 @@ export default function Shop() {
         <Pressable onPress={() => router.back()} style={styles.iconBtn} testID="back-button">
           <Text style={styles.iconBtnText}>‹</Text>
         </Pressable>
-        <Text style={styles.title}>Kitchen Shop</Text>
-        <View style={styles.coinChip} testID="shop-coin-balance">
+        <Text style={styles.title}>Shop</Text>
+        <Pressable
+          testID="get-coins-button"
+          onPress={() => router.push("/coin-store")}
+          style={styles.coinChip}
+        >
           <Text style={styles.coinEmoji}>🪙</Text>
           <Text style={styles.coinText}>{player?.coins ?? 0}</Text>
-        </View>
+          <Text style={styles.plus}>＋</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -131,97 +111,63 @@ export default function Shop() {
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.xl }]}
         >
-          {/* Kitchen Upgrade: Bigger Grill */}
-          <View style={styles.upgradeCard} testID="grill-upgrade-card">
-            <View style={styles.upgradeTop}>
-              <Text style={styles.upgradeEmoji}>🔥</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.upgradeTitle}>Bigger Grill</Text>
-                <Text style={styles.upgradeDesc}>
-                  Start every level with base ingredients pre-stocked.
-                </Text>
-                <View style={styles.grillDots}>
-                  {Array.from({ length: grill?.max_level ?? 3 }).map((_, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.grillDot,
-                        i < (grill?.grill_level ?? 0) && styles.grillDotOn,
-                      ]}
-                    />
-                  ))}
-                  <Text style={styles.grillLevelText}>
-                    Lv {grill?.grill_level ?? 0}/{grill?.max_level ?? 3}
-                  </Text>
-                </View>
-              </View>
+          <Pressable
+            testID="buy-coins-banner"
+            onPress={() => router.push("/coin-store")}
+            style={({ pressed }) => [styles.coinBanner, pressed && { transform: [{ scale: 0.98 }] }]}
+          >
+            <Text style={styles.coinBannerEmoji}>🤑</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.coinBannerTitle}>Get More Coins</Text>
+              <Text style={styles.coinBannerDesc}>Buy coin packs to fuel your kitchen</Text>
             </View>
-            <Pressable
-              testID="upgrade-grill-button"
-              disabled={!grill || grill.maxed || purchasing === "grill"}
-              onPress={upgradeGrill}
-              style={({ pressed }) => [
-                styles.upgradeBtn,
-                (!grill || grill.maxed) && styles.buyBtnDisabled,
-                pressed && { transform: [{ scale: 0.97 }] },
-              ]}
-            >
-              {!grill ? (
-                <Text style={styles.upgradeBtnText}>…</Text>
-              ) : grill.maxed ? (
-                <Text style={styles.upgradeBtnText}>MAXED OUT</Text>
-              ) : (
-                <>
-                  <Text style={styles.buyEmoji}>🪙</Text>
-                  <Text style={styles.upgradeBtnText}>Upgrade — {grill.next_cost}</Text>
-                </>
-              )}
-            </Pressable>
-          </View>
+            <Text style={styles.coinBannerArrow}>›</Text>
+          </Pressable>
 
-          <View style={styles.upgradeCard} testID="pantry-upgrade-card">
-            <View style={styles.upgradeTop}>
-              <Text style={styles.upgradeEmoji}>🥫</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.upgradeTitle}>Ingredient Pantry</Text>
-                <Text style={styles.upgradeDesc}>
-                  Store leftover toppings and reuse them in later levels.
-                </Text>
-                <View style={styles.grillDots}>
-                  {Array.from({ length: pantry?.max_level ?? 3 }).map((_, i) => (
-                    <View
-                      key={i}
-                      style={[styles.grillDot, i < (pantry?.pantry_level ?? 0) && styles.grillDotOn]}
-                    />
-                  ))}
-                  <Text style={styles.grillLevelText}>
-                    Lv {pantry?.pantry_level ?? 0}/{pantry?.max_level ?? 3}
-                  </Text>
+          <Text style={styles.sectionLabel}>KITCHEN UPGRADES</Text>
+          {UPGRADE_ORDER.map((key) => {
+            const u = upgrades?.upgrades[key];
+            return (
+              <View key={key} style={styles.upgradeCard} testID={`upgrade-card-${key}`}>
+                <View style={styles.upgradeTop}>
+                  <Text style={styles.upgradeEmoji}>{u?.emoji ?? "⭐"}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.upgradeTitle}>{u?.name ?? key}</Text>
+                    <Text style={styles.upgradeDesc}>{u?.desc ?? ""}</Text>
+                    <View style={styles.dots}>
+                      {Array.from({ length: u?.max_level ?? 3 }).map((_, i) => (
+                        <View key={i} style={[styles.dot, i < (u?.level ?? 0) && styles.dotOn]} />
+                      ))}
+                      <Text style={styles.levelText}>
+                        Lv {u?.level ?? 0}/{u?.max_level ?? 3}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
+                <Pressable
+                  testID={`upgrade-btn-${key}`}
+                  disabled={!u || u.maxed || purchasing === key}
+                  onPress={() => doUpgrade(key)}
+                  style={({ pressed }) => [
+                    styles.upgradeBtn,
+                    (!u || u.maxed) && styles.disabled,
+                    pressed && { transform: [{ scale: 0.97 }] },
+                  ]}
+                >
+                  {!u ? (
+                    <Text style={styles.upgradeBtnText}>…</Text>
+                  ) : u.maxed ? (
+                    <Text style={styles.upgradeBtnText}>MAXED OUT</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.smallCoin}>🪙</Text>
+                      <Text style={styles.upgradeBtnText}>Upgrade — {u.next_cost}</Text>
+                    </>
+                  )}
+                </Pressable>
               </View>
-            </View>
-            <Pressable
-              testID="upgrade-pantry-button"
-              disabled={!pantry || pantry.maxed || purchasing === "pantry"}
-              onPress={upgradePantry}
-              style={({ pressed }) => [
-                styles.upgradeBtn,
-                (!pantry || pantry.maxed) && styles.buyBtnDisabled,
-                pressed && { transform: [{ scale: 0.97 }] },
-              ]}
-            >
-              {!pantry ? (
-                <Text style={styles.upgradeBtnText}>…</Text>
-              ) : pantry.maxed ? (
-                <Text style={styles.upgradeBtnText}>MAXED OUT</Text>
-              ) : (
-                <>
-                  <Text style={styles.buyEmoji}>🪙</Text>
-                  <Text style={styles.upgradeBtnText}>Upgrade — {pantry.next_cost}</Text>
-                </>
-              )}
-            </Pressable>
-          </View>
+            );
+          })}
 
           <Text style={styles.sectionLabel}>BOOSTERS</Text>
           <View style={styles.grid}>
@@ -239,11 +185,11 @@ export default function Shop() {
                     testID={`buy-${item.id}`}
                     style={({ pressed }) => [
                       styles.buyBtn,
-                      !canAfford && styles.buyBtnDisabled,
+                      !canAfford && styles.disabled,
                       pressed && { transform: [{ scale: 0.96 }] },
                     ]}
                   >
-                    <Text style={styles.buyEmoji}>🪙</Text>
+                    <Text style={styles.smallCoin}>🪙</Text>
                     <Text style={styles.buyText}>{item.cost}</Text>
                   </Pressable>
                 </View>
@@ -297,18 +243,28 @@ const styles = StyleSheet.create({
   },
   coinEmoji: { fontSize: 16 },
   coinText: { fontSize: 14, fontWeight: "900", color: colors.onBrand },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.md,
-    justifyContent: "space-between",
-  },
+  plus: { fontSize: 16, fontWeight: "900", color: colors.onBrand, marginLeft: 2 },
   scrollContent: { padding: spacing.lg, gap: spacing.md },
+  coinBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.brand,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    ...shadow.tier2,
+    borderWidth: 3,
+    borderColor: colors.surfaceInverse,
+  },
+  coinBannerEmoji: { fontSize: 40 },
+  coinBannerTitle: { fontSize: 18, fontWeight: "900", color: colors.onBrand },
+  coinBannerDesc: { fontSize: 12, fontWeight: "700", color: colors.onBrand, opacity: 0.8 },
+  coinBannerArrow: { fontSize: 30, fontWeight: "900", color: colors.onBrand },
   sectionLabel: {
     fontSize: 12,
     fontWeight: "900",
     color: colors.surfaceInverse,
-    opacity: 0.5,
+    opacity: 0.55,
     letterSpacing: 2,
     marginTop: spacing.sm,
   },
@@ -322,18 +278,13 @@ const styles = StyleSheet.create({
     borderColor: colors.brand,
   },
   upgradeTop: { flexDirection: "row", gap: spacing.md, alignItems: "flex-start" },
-  upgradeEmoji: { fontSize: 44 },
-  upgradeTitle: { fontSize: 20, fontWeight: "900", color: "#FFFFFF" },
-  upgradeDesc: { fontSize: 13, fontWeight: "700", color: "#FFFFFF", opacity: 0.75, marginTop: 2 },
-  grillDots: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.sm },
-  grillDot: {
-    width: 22,
-    height: 10,
-    borderRadius: radius.pill,
-    backgroundColor: "rgba(255,255,255,0.25)",
-  },
-  grillDotOn: { backgroundColor: colors.brand },
-  grillLevelText: { color: colors.brand, fontWeight: "900", fontSize: 12, marginLeft: spacing.sm },
+  upgradeEmoji: { fontSize: 40 },
+  upgradeTitle: { fontSize: 18, fontWeight: "900", color: "#FFFFFF" },
+  upgradeDesc: { fontSize: 12, fontWeight: "700", color: "#FFFFFF", opacity: 0.75, marginTop: 2 },
+  dots: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.sm },
+  dot: { width: 22, height: 10, borderRadius: radius.pill, backgroundColor: "rgba(255,255,255,0.25)" },
+  dotOn: { backgroundColor: colors.brand },
+  levelText: { color: colors.brand, fontWeight: "900", fontSize: 12, marginLeft: spacing.sm },
   upgradeBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -346,6 +297,8 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
   },
   upgradeBtnText: { fontSize: 15, fontWeight: "900", color: colors.onBrand },
+  smallCoin: { fontSize: 14 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md, justifyContent: "space-between" },
   card: {
     width: "48%",
     backgroundColor: colors.surface,
@@ -358,13 +311,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
   },
   emoji: { fontSize: 48 },
-  name: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: colors.surfaceInverse,
-    textAlign: "center",
-    minHeight: 36,
-  },
+  name: { fontSize: 14, fontWeight: "800", color: colors.surfaceInverse, textAlign: "center", minHeight: 36 },
   owned: { fontSize: 11, color: colors.surfaceInverse, opacity: 0.6, fontWeight: "700" },
   buyBtn: {
     marginTop: spacing.sm,
@@ -378,9 +325,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.surfaceInverse,
   },
-  buyBtnDisabled: { backgroundColor: colors.surfaceTertiary, borderColor: colors.border, opacity: 0.6 },
-  buyEmoji: { fontSize: 14 },
   buyText: { fontSize: 15, fontWeight: "900", color: colors.onBrand },
+  disabled: { backgroundColor: colors.surfaceTertiary, borderColor: colors.border, opacity: 0.6 },
   toast: {
     position: "absolute",
     left: spacing.xl,

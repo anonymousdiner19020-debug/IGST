@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 5 (Monetization: RevenueCat coin packs + generic upgrades + Serving Plates + Bigger Holding Area). Backend: 40/40 pytest tests green — 23 prior regression tests + 17 new iter-5 tests across 5 new classes (TestCoinPacks, TestUpgradesInfo, TestGenericUpgrade parametrized over grill/pantry/plates/holding, TestHoldingAreaPantryCap, TestRevenueCatWebhook, TestPlayerDefaultsIter5). Confirmed: (a) GET /api/coin-packs returns 3 packs coins_500/1200/3000 with fallback_price, best_value=true on coins_3000; (b) GET /api/upgrades-info/{pid} returns all 4 upgrades with correct bases (grill 150, pantry 120, plates 100, holding 130), each max_level=3, plus coins; 404 for unknown player; (c) POST /api/players/{pid}/upgrade/{key} progresses 0→3 for every key with cost scaling base*(level+1), rejects with 400 on insufficient coins and 400 when maxed (4th tap), 404 for unknown key and unknown player, and decrements coins + increments the correct field (grill_level/pantry_level/plates_level/holding_level); (d) holding-area pantry cap = pantry_level + holding_level*2 verified end-to-end via /api/pantry-info + /api/save-pantry (pantry=1+holding=1 caps at 3; pantry=2+holding=2 caps at 6); (e) POST /api/revenuecat/webhook grants coins for NON_RENEWING_PURCHASE (verified all 3 products: 500/1200/3000 all correctly increment coins), duplicate transaction_id returns {ok:true, duplicate:true} without re-granting, unknown product_id returns 400, non-purchase event types return {ok:true, ignored:...}; (f) new-player defaults now include plates_level=0 and holding_level=0 with no _id leaks. Frontend (mobile 390x844): (1) /coin-store renders 3 pack cards (pack-coins_500/1200/3000) with fallback prices $0.99/$2.99/$4.99, iap-notice banner explaining publish-required, BEST VALUE badge on coins_3000, and free-earn hint '💡 You can also earn coins free by playing levels & Rush!'; tapping buy-pack-coins_500 shows coin-toast 'Purchases activate after you publish a build' as expected since RevenueCat is web-unavailable; (2) /shop renders all 4 upgrade-card-* (grill/plates/pantry/holding) each with upgrade-btn-* + level dots + descriptive text, plus get-coins-button in header and buy-coins-banner both routing to /coin-store; regression boosters shop-item-*/buy-* (extra_moves/hint/coin_doubler/hammer/shuffle) all render; upgrading plates (Lv 0/3 → Lv 1/3, cost changes 100→200) and holding (Lv 0/3 → Lv 1/3, cost 130→260) via UI persists server-side (verified via GET /api/players/{pid}: plates_level=1, holding_level=1, coins=600-100-130=370); (3) home coin-balance chip is tappable and navigates to /coin-store. Deprecated packages detected: none. SafeAreaView issues detected: none. RN-web shadow*/textShadow* deprecation warnings on web are still emitted and are explicitly OK-to-ignore per review_request.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py UPGRADES map is a nice consolidation — single source of truth for max/base/field. However the old /players/{id}/upgrade-grill and /upgrade-pantry endpoints are now redundant with /upgrade/{key} — consider deprecating them in a future iteration to avoid drift (both currently correct, but if base costs ever change they would need to be edited in two places).",
+    "server.py revenuecat/webhook is idempotent by inserting the transaction row BEFORE the $inc — good ordering. One tiny concern: if db.players.update_one({'id': player_id}, ...) does not match (e.g. bogus app_user_id from the store), the transaction row is still stored and no coins are granted; the webhook still returns {ok:true, granted:1200}. Consider checking update_result.matched_count and reporting an error / cleaning up the rc_purchases row, else players who mis-register with the store could be silently lost.",
+    "server.py revenuecat/webhook: REVENUECAT_WEBHOOK_AUTH is currently empty in .env, so the endpoint accepts unauthenticated calls — expected for preview per review_request. Before shipping, this MUST be set to a strong random value in the production .env.",
+    "server.py pantry_capacity returns pantry_level + holding_level*2 — meaning at holding_level=0 & pantry_level=0 the cap is 0 (nothing stores). At pantry_level=3 & holding_level=3 the cap is 9. Matches the request description ('expands beyond level 3').",
+    "server.py upgrade_generic returns player_public(doc) — same shape as other endpoints, no _id leak.",
+    "frontend/app/coin-store.tsx iapReady = purchasesAvailable() && Platform.OS !== 'web'. On web this is always false, so buy always shows the preview toast — matches spec.",
+    "frontend/app/shop.tsx doUpgrade guards on maxed and next_cost==null and coin balance; showsToast('Not enough coins!') — good UX.",
+    "frontend/app/index.tsx coin-balance is now a Pressable that routes to /coin-store — confirmed via testID and tap."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (+17 tests, 5 new classes for iter-5)"
+  ],
+  "success_rate": {
+    "backend": "100% (40/40 pytest, incl. all iter-5 endpoints)",
+    "frontend": "100% of tested flows (home coin-balance nav, coin-store 3 packs + iap-notice + BEST VALUE + buy toast, shop 4 upgrade cards + buttons + banner + booster regression, upgrade progression persists server-side, buy-coins-banner nav)"
+  },
+  "seed_data_creation": "Pytest created disposable TEST_* players. Playwright created TEST_UI_I5_* players with 600 coins to exercise plates + holding upgrades. No cleanup endpoint — safe.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend URL: https://cooking-combo-philly.preview.emergentagent.com/api. Player id in localStorage key 'philly_fare_player_id' (AsyncStorage web maps it 1:1). All iteration-5 endpoints covered by /app/backend/tests/backend_test.py: TestCoinPacks, TestUpgradesInfo, TestGenericUpgrade (parametrized), TestHoldingAreaPantryCap, TestRevenueCatWebhook, TestPlayerDefaultsIter5. Frontend testIDs added this iteration: home 'coin-balance' now navigates to /coin-store; shop 'upgrade-card-{grill|plates|pantry|holding}' + 'upgrade-btn-{key}' + 'get-coins-button' + 'buy-coins-banner'; coin-store 'coin-store-screen' + 'pack-{product_id}' + 'buy-pack-{product_id}' + 'iap-notice' + 'coin-toast' + 'restore-button' (only in native builds). REVENUECAT_WEBHOOK_AUTH is empty for preview — set before shipping. To seed a player with lots of coins from tests, POST /api/players then POST /api/players/{id}/complete-level with coins_earned=<N>. Real in-app purchases are untestable in preview (RevenueCat SDK requires native build); only the webhook coin-grant path can be exercised, and it is thoroughly covered."
+}

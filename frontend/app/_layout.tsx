@@ -6,6 +6,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
+import { initPurchases } from "@/src/purchases";
+import { playerStorage } from "@/src/storage";
 
 LogBox.ignoreAllLogs(true);
 
@@ -20,6 +22,14 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded, error]);
+
+  useEffect(() => {
+    // Initialize in-app purchases (no-op on web / Expo Go / missing keys).
+    (async () => {
+      const id = await playerStorage.get();
+      if (id) initPurchases(id);
+    })();
+  }, []);
 
   if (!loaded && !error) return null;
 
@@ -37,11 +47,13 @@ export default function RootLayout() {
           <Stack.Screen name="level-map" />
           <Stack.Screen name="game" />
           <Stack.Screen name="serve" />
+          <Stack.Screen name="rush" />
           <Stack.Screen
             name="cooking-result"
             options={{ presentation: "transparentModal", animation: "fade" }}
           />
           <Stack.Screen name="shop" />
+          <Stack.Screen name="coin-store" />
           <Stack.Screen name="leaderboard" />
           <Stack.Screen name="profile" />
         </Stack>

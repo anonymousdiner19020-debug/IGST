@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -112,6 +112,49 @@ PANTRY_MAX = 3
 PANTRY_BASE_COST = 120
 DAILY_BONUS_MULTIPLIER = 2.0
 
+# Coin-spend upgrade catalog (levels 0..max)
+UPGRADES = {
+    "grill": {"field": "grill_level", "max": GRILL_MAX, "base": GRILL_BASE_COST,
+              "name": "Bigger Grill", "emoji": "🔥",
+              "desc": "Start each level with base ingredients pre-stocked."},
+    "pantry": {"field": "pantry_level", "max": PANTRY_MAX, "base": PANTRY_BASE_COST,
+               "name": "Ingredient Pantry", "emoji": "🥫",
+               "desc": "Store leftover toppings and reuse them in later levels."},
+    "plates": {"field": "plates_level", "max": 3, "base": 100,
+               "name": "Serving Plates", "emoji": "🍽️",
+               "desc": "Serve more customers per level for more coins."},
+    "holding": {"field": "holding_level", "max": 3, "base": 130,
+                "name": "Bigger Holding Area", "emoji": "🧺",
+                "desc": "Expand pantry storage capacity beyond level 3."},
+}
+
+
+def upgrade_cost(key: str, level: int) -> int:
+    return UPGRADES[key]["base"] * (level + 1)
+
+
+def pantry_capacity(doc: dict) -> int:
+    # base pantry per-item cap plus 2 per holding-area level
+    return doc.get("pantry_level", 0) + doc.get("holding_level", 0) * 2
+
+
+# Real-money coin packs (granted server-side via RevenueCat webhook)
+PRODUCT_COINS = {
+    "coins_500": 500,
+    "coins_1200": 1200,
+    "coins_3000": 3000,
+}
+
+# Real-money Liberty Bell packs (same price tiers as coins)
+PRODUCT_BELLS = {
+    "bells_5": 5,
+    "bells_20": 20,
+    "bells_50": 50,
+}
+
+RETRY_BELL_COST = 1
+STARTING_BELLS = 3
+
 
 # ---------- Models ----------
 class PlayerCreate(BaseModel):
@@ -135,6 +178,7 @@ class LevelResult(BaseModel):
     dish_id: str
     score: int
     coins_earned: int
+    bells_earned: int = 0
     completed: bool  # True if order fulfilled
 
 
@@ -147,6 +191,7 @@ def player_public(doc: dict) -> dict:
         "id": doc["id"],
         "username": doc["username"],
         "coins": doc.get("coins", 0),
+        "bells": doc.get("bells", 0),
         "high_score": doc.get("high_score", 0),
         "current_level": doc.get("current_level", 1),
         "dishes_cooked": doc.get("dishes_cooked", 0),
@@ -154,7 +199,11 @@ def player_public(doc: dict) -> dict:
         "boosters": doc.get("boosters", {}),
         "grill_level": doc.get("grill_level", 0),
         "pantry_level": doc.get("pantry_level", 0),
+        "plates_level": doc.get("plates_level", 0),
+        "holding_level": doc.get("holding_level", 0),
         "pantry": doc.get("pantry", {}),
+        "crown": doc.get("crown", False),
+        "champion_weeks": doc.get("champion_weeks", []),
         "created_at": doc.get("created_at", ""),
     }
 
@@ -182,6 +231,49 @@ def next_monday_iso() -> str:
     return (now + timedelta(days=days_ahead)).date().isoformat()
 
 
+WEEKLY_CHAMPION_PRIZE = 500
+
+
+async def settle_previous_weeks():
+    """Close out any finished weeks: crown the top scorer and award a coin prize.
+    Idempotent — records settled weeks in the `champions` collection."""
+    current = current_week_key()
+    past_weeks = await db.players.distinct("weekly.week", {"weekly.week": {"$ne": current}})
+    for wk in past_weeks:
+        if not wk:
+            continue
+        already = await db.champions.find_one({"week": wk})
+        if already:
+            continue
+        top = await db.players.find_one(
+            {"weekly.week": wk, "weekly.score": {"$gt": 0}},
+            {"_id": 0},
+            sort=[("weekly.score", -1)],
+        )
+        if not top:
+            # nothing worth crowning for that week; still mark settled to avoid rescans
+            await db.champions.insert_one({"week": wk, "player_id": None, "settled": True})
+            continue
+        await db.champions.insert_one(
+            {
+                "week": wk,
+                "player_id": top["id"],
+                "username": top.get("username", "Chef"),
+                "score": top.get("weekly", {}).get("score", 0),
+                "prize": WEEKLY_CHAMPION_PRIZE,
+                "settled": True,
+            }
+        )
+        await db.players.update_one(
+            {"id": top["id"]},
+            {
+                "$inc": {"coins": WEEKLY_CHAMPION_PRIZE},
+                "$set": {"crown": True},
+                "$addToSet": {"champion_weeks": wk},
+            },
+        )
+
+
 # ---------- Routes ----------
 @api_router.get("/")
 async def root():
@@ -205,6 +297,7 @@ async def create_player(payload: PlayerCreate):
         "id": str(uuid.uuid4()),
         "username": username,
         "coins": 100,
+        "bells": STARTING_BELLS,
         "high_score": 0,
         "current_level": 1,
         "dishes_cooked": 0,
@@ -212,7 +305,11 @@ async def create_player(payload: PlayerCreate):
         "boosters": {"extra_moves": 0, "hint": 1, "coin_doubler": 0, "hammer": 0, "shuffle": 1},
         "grill_level": 0,
         "pantry_level": 0,
+        "plates_level": 0,
+        "holding_level": 0,
         "pantry": {},
+        "crown": False,
+        "champion_weeks": [],
         "weekly": {"week": current_week_key(), "score": 0},
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -235,6 +332,7 @@ async def complete_level(player_id: str, result: LevelResult):
         raise HTTPException(status_code=404, detail="Player not found")
 
     coins = doc.get("coins", 0) + max(0, result.coins_earned)
+    bells = doc.get("bells", 0) + max(0, result.bells_earned)
     high_score = max(doc.get("high_score", 0), result.score)
     dishes_cooked = doc.get("dishes_cooked", 0) + (1 if result.completed else 0)
     unlocked = list(doc.get("unlocked_dishes", ["cheesesteak"]))
@@ -251,6 +349,7 @@ async def complete_level(player_id: str, result: LevelResult):
 
     update = {
         "coins": coins,
+        "bells": bells,
         "high_score": high_score,
         "dishes_cooked": dishes_cooked,
         "unlocked_dishes": unlocked,
@@ -372,12 +471,13 @@ async def pantry_info(player_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Player not found")
     level = doc.get("pantry_level", 0)
+    cap = pantry_capacity(doc)
     return {
         "pantry_level": level,
         "max_level": PANTRY_MAX,
         "next_cost": pantry_cost(level) if level < PANTRY_MAX else None,
         "maxed": level >= PANTRY_MAX,
-        "per_item_cap": level,  # max stored per topping type
+        "per_item_cap": cap,
         "pantry": doc.get("pantry", {}),
     }
 
@@ -407,12 +507,16 @@ class PantrySave(BaseModel):
     pantry: dict
 
 
+class SpendBells(BaseModel):
+    amount: int = 1
+
+
 @api_router.post("/players/{player_id}/save-pantry")
 async def save_pantry(player_id: str, payload: PantrySave):
     doc = await db.players.find_one({"id": player_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Player not found")
-    cap = doc.get("pantry_level", 0)
+    cap = pantry_capacity(doc)
     cleaned: dict = {}
     if cap > 0:
         for k, v in (payload.pantry or {}).items():
@@ -427,8 +531,53 @@ async def save_pantry(player_id: str, payload: PantrySave):
     return player_public(doc)
 
 
+@api_router.get("/upgrades-info/{player_id}")
+async def upgrades_info(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    out = {}
+    for key, cfg in UPGRADES.items():
+        level = doc.get(cfg["field"], 0)
+        out[key] = {
+            "name": cfg["name"],
+            "emoji": cfg["emoji"],
+            "desc": cfg["desc"],
+            "level": level,
+            "max_level": cfg["max"],
+            "next_cost": upgrade_cost(key, level) if level < cfg["max"] else None,
+            "maxed": level >= cfg["max"],
+        }
+    return {"upgrades": out, "coins": doc.get("coins", 0)}
+
+
+@api_router.post("/players/{player_id}/upgrade/{key}")
+async def upgrade_generic(player_id: str, key: str):
+    cfg = UPGRADES.get(key)
+    if not cfg:
+        raise HTTPException(status_code=404, detail="Unknown upgrade")
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    level = doc.get(cfg["field"], 0)
+    if level >= cfg["max"]:
+        raise HTTPException(status_code=400, detail="Already fully upgraded")
+    cost = upgrade_cost(key, level)
+    if doc.get("coins", 0) < cost:
+        raise HTTPException(status_code=400, detail="Not enough coins")
+    new_level = level + 1
+    new_coins = doc["coins"] - cost
+    await db.players.update_one(
+        {"id": player_id}, {"$set": {"coins": new_coins, cfg["field"]: new_level}}
+    )
+    doc["coins"] = new_coins
+    doc[cfg["field"]] = new_level
+    return player_public(doc)
+
+
 @api_router.get("/weekly-leaderboard")
 async def weekly_leaderboard():
+    await settle_previous_weeks()
     wk = current_week_key()
     cursor = db.players.find(
         {"weekly.week": wk}, {"_id": 0, "id": 1, "username": 1, "weekly": 1}
@@ -449,6 +598,87 @@ async def weekly_leaderboard():
         "champion": champion,
         "leaderboard": ranked,
     }
+
+
+@api_router.get("/coin-packs")
+async def coin_packs():
+    # Display metadata only. Real prices come from the store via RevenueCat.
+    return {
+        "packs": [
+            {"product_id": "coins_500", "coins": 500, "fallback_price": "$0.99", "emoji": "🪙"},
+            {"product_id": "coins_1200", "coins": 1200, "fallback_price": "$2.99", "emoji": "💰", "best_value": False},
+            {"product_id": "coins_3000", "coins": 3000, "fallback_price": "$4.99", "emoji": "🤑", "best_value": True},
+        ]
+    }
+
+
+@api_router.get("/bell-packs")
+async def bell_packs():
+    return {
+        "packs": [
+            {"product_id": "bells_5", "bells": 5, "fallback_price": "$0.99", "emoji": "🔔"},
+            {"product_id": "bells_20", "bells": 20, "fallback_price": "$2.99", "emoji": "🔔", "best_value": False},
+            {"product_id": "bells_50", "bells": 50, "fallback_price": "$4.99", "emoji": "🛎️", "best_value": True},
+        ]
+    }
+
+
+@api_router.post("/players/{player_id}/spend-bells")
+async def spend_bells(player_id: str, payload: SpendBells):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    amount = max(1, int(payload.amount))
+    if doc.get("bells", 0) < amount:
+        raise HTTPException(status_code=400, detail="Not enough Liberty Bells")
+    new_bells = doc["bells"] - amount
+    await db.players.update_one({"id": player_id}, {"$set": {"bells": new_bells}})
+    doc["bells"] = new_bells
+    return player_public(doc)
+
+
+@api_router.post("/revenuecat/webhook")
+async def revenuecat_webhook(request: Request, authorization: str | None = Header(default=None)):
+    expected = os.environ.get("REVENUECAT_WEBHOOK_AUTH")
+    # If a secret is configured, require it. (Placeholder until keys are set post-deploy.)
+    if expected and (not authorization or authorization != expected):
+        raise HTTPException(status_code=401, detail="invalid webhook authorization")
+
+    payload = await request.json()
+    event = payload.get("event", {})
+    if event.get("type") != "NON_RENEWING_PURCHASE":
+        return {"ok": True, "ignored": event.get("type")}
+
+    player_id = event.get("app_user_id")
+    product_id = event.get("product_id")
+    transaction_id = event.get("transaction_id")
+    event_id = event.get("id")
+    if not all(isinstance(x, str) and x for x in (player_id, product_id, transaction_id, event_id)):
+        raise HTTPException(status_code=400, detail="incomplete purchase event")
+
+    is_coins = product_id in PRODUCT_COINS
+    is_bells = product_id in PRODUCT_BELLS
+    if not (is_coins or is_bells):
+        raise HTTPException(status_code=400, detail="unknown product")
+
+    amount = PRODUCT_COINS[product_id] if is_coins else PRODUCT_BELLS[product_id]
+    currency = "coins" if is_coins else "bells"
+    # Idempotent: insert the transaction first; duplicates are ignored.
+    existing = await db.rc_purchases.find_one({"transaction_id": transaction_id})
+    if existing:
+        return {"ok": True, "duplicate": True}
+    await db.rc_purchases.insert_one({
+        "event_id": event_id,
+        "transaction_id": transaction_id,
+        "player_id": player_id,
+        "product_id": product_id,
+        "currency": currency,
+        "amount": amount,
+        "store": event.get("store"),
+        "environment": event.get("environment"),
+    })
+    await db.players.update_one({"id": player_id}, {"$inc": {currency: amount}})
+    return {"ok": True, "granted": amount, "currency": currency}
 
 
 app.include_router(api_router)
