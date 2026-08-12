@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, DailySpecial, PlayerDTO } from "@/src/api";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import { playerStorage } from "@/src/storage";
+import { CityHallPenn, LoveStatue, RockyStatue } from "@/src/components/LandmarkIcons";
+import LibertyBell from "@/src/components/LibertyBell";
 
 const BG = "https://images.unsplash.com/photo-1548696060-8fae845c6452?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwzfHxjb2xvcmZ1bCUyMGRpbmVyJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3ODY1NjY2Nzh8MA&ixlib=rb-4.1.0&q=85";
 
@@ -90,7 +92,11 @@ export default function Home() {
   if (needsName) {
     return (
       <View style={styles.onboarding} testID="onboarding-screen">
-        <Text style={styles.emojiHero}>🥩🧀🥨</Text>
+        <View style={styles.onboardIcons}>
+          <LoveStatue size={48} />
+          <LibertyBell size={48} />
+          <RockyStatue size={48} />
+        </View>
         <Text style={styles.title}>Philly Fare Match</Text>
         <Text style={styles.subtitle}>Match ingredients. Cook Philly classics. Feed the city.</Text>
         <View style={styles.inputWrap}>
@@ -144,7 +150,7 @@ export default function Home() {
               style={styles.bellChip}
               onPress={() => router.push("/coin-store")}
             >
-              <Text style={styles.coinEmoji}>🔔</Text>
+              <LibertyBell size={18} />
               <Text style={styles.bellText}>{player?.bells ?? 0}</Text>
             </Pressable>
             <Pressable
@@ -160,7 +166,12 @@ export default function Home() {
         </View>
 
         <View style={styles.hero}>
-          <Text style={styles.heroEmoji}>🥩🧀🥖</Text>
+          <View style={styles.heroIcons}>
+            <LoveStatue size={52} />
+            <CityHallPenn size={52} />
+            <LibertyBell size={52} />
+            <RockyStatue size={52} />
+          </View>
           <Text style={styles.heroTitle}>Philly Fare</Text>
           <Text style={styles.heroSubtitle}>MATCH • COOK • SERVE</Text>
         </View>
@@ -275,6 +286,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   emojiHero: { fontSize: 56 },
+  onboardIcons: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.sm },
   title: {
     fontSize: 34,
     fontWeight: "900",
@@ -365,6 +377,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   heroEmoji: { fontSize: 68, marginBottom: spacing.md },
+  heroIcons: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.lg },
   heroTitle: {
     fontSize: 44,
     fontWeight: "900",

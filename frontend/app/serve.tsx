@@ -15,6 +15,7 @@ import {
 import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
+import LibertyBell from "@/src/components/LibertyBell";
 
 type Customer = {
   avatar: string;
@@ -321,7 +322,7 @@ export default function Serve() {
           <Text style={styles.coinText}>{coins}</Text>
         </View>
         <View style={styles.bellChip} testID="serve-bells">
-          <Text style={styles.coinEmoji}>🔔</Text>
+          <LibertyBell size={16} />
           <Text style={styles.bellText}>{bells}</Text>
         </View>
       </View>

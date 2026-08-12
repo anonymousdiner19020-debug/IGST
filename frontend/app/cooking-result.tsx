@@ -7,6 +7,7 @@ import { FALLBACK_DISHES } from "@/src/constants/dishes";
 import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
+import LibertyBell from "@/src/components/LibertyBell";
 
 export default function CookingResult() {
   const router = useRouter();
@@ -88,7 +89,7 @@ export default function CookingResult() {
 
           <View style={styles.statsRow}>
             <Stat label="COINS" value={`+${coins}`} emoji="🪙" tone="brand" testID="coins-earned" />
-            <Stat label="BELLS" value={`+${bellsEarned}`} emoji="🔔" tone="tertiary" testID="bells-earned" />
+            <Stat label="BELLS" value={`+${bellsEarned}`} emoji="" bell tone="tertiary" testID="bells-earned" />
             <Stat label="SCORE" value={score} emoji="⭐" tone="secondary" testID="score-earned" />
           </View>
 
@@ -108,10 +109,15 @@ export default function CookingResult() {
               disabled={retrying}
               style={({ pressed }) => [styles.retryBtn, pressed && { transform: [{ scale: 0.96 }] }]}
             >
-              <Text style={styles.retryText}>
-                {retrying ? "Retrying…" : "Retry Level  🔔 1"}
-              </Text>
-              <Text style={styles.retrySub}>You have {myBells ?? "…"} 🔔</Text>
+              <View style={styles.retryRow}>
+                <Text style={styles.retryText}>{retrying ? "Retrying…" : "Retry Level"}</Text>
+                {!retrying && <LibertyBell size={22} />}
+                {!retrying && <Text style={styles.retryText}>1</Text>}
+              </View>
+              <View style={styles.retrySubRow}>
+                <Text style={styles.retrySub}>You have {myBells ?? "…"}</Text>
+                <LibertyBell size={13} />
+              </View>
             </Pressable>
           )}
 
@@ -150,12 +156,14 @@ function Stat({
   emoji,
   tone,
   testID,
+  bell,
 }: {
   label: string;
   value: string;
   emoji: string;
   tone: "brand" | "tertiary" | "secondary";
   testID: string;
+  bell?: boolean;
 }) {
   const bg =
     tone === "brand" ? colors.brand : tone === "tertiary" ? colors.brandTertiary : colors.brandSecondary;
@@ -166,7 +174,13 @@ function Stat({
       testID={testID}
       style={[styles.statCard, { backgroundColor: bg }]}
     >
-      <Text style={styles.statEmoji}>{emoji}</Text>
+      {bell ? (
+        <View style={styles.statEmoji}>
+          <LibertyBell size={24} />
+        </View>
+      ) : (
+        <Text style={styles.statEmoji}>{emoji}</Text>
+      )}
       <Text style={[styles.statValue, { color: fg }]}>{value}</Text>
       <Text style={[styles.statLabel, { color: fg }]}>{label}</Text>
     </View>
@@ -268,7 +282,9 @@ const styles = StyleSheet.create({
     ...shadow.tier2,
   },
   retryText: { fontSize: 18, fontWeight: "900", color: colors.onBrandTertiary, letterSpacing: 1 },
-  retrySub: { fontSize: 11, fontWeight: "800", color: colors.onBrandTertiary, opacity: 0.85, marginTop: 2 },
+  retryRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  retrySubRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: 2 },
+  retrySub: { fontSize: 11, fontWeight: "800", color: colors.onBrandTertiary, opacity: 0.85 },
   noteText: {
     fontSize: 13,
     fontWeight: "800",

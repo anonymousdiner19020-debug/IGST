@@ -86,7 +86,7 @@ export const FALLBACK_DISHES: Dish[] = [
   {
     id: "cheesesteak",
     name: "Cheesesteak",
-    emoji: "🥩",
+    emoji: "🥪",
     unlock_level: 1,
     base_recipe: { steak: 4, roll: 2 },
     topping_options: ["onion", "cheese", "whiz", "provolone", "mushroom", "hot_pepper", "sweet_pepper", "ketchup", "mustard"],

@@ -13,6 +13,7 @@ import {
 } from "@/src/purchases";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
+import LibertyBell from "@/src/components/LibertyBell";
 
 export default function CoinStore() {
   const router = useRouter();
@@ -100,7 +101,7 @@ export default function CoinStore() {
             <Text style={styles.coinText}>{player?.coins ?? 0}</Text>
           </View>
           <View style={styles.bellChip}>
-            <Text style={styles.coinEmoji}>🔔</Text>
+            <LibertyBell size={16} />
             <Text style={styles.bellText}>{player?.bells ?? 0}</Text>
           </View>
         </View>
@@ -120,8 +121,7 @@ export default function CoinStore() {
             </View>
           )}
 
-          <Text style={styles.sectionLabel}>🪙 COIN PACKS</Text>
-          {packs.map((pack) => (
+          <Text style={styles.sectionLabel}>🪙 COIN PACKS</Text>          {packs.map((pack) => (
             <View key={pack.product_id} style={styles.packCard} testID={`pack-${pack.product_id}`}>
               {pack.best_value && (
                 <View style={styles.badge}>
@@ -146,7 +146,10 @@ export default function CoinStore() {
             </View>
           ))}
 
-          <Text style={styles.sectionLabel}>🔔 LIBERTY BELLS</Text>
+          <View style={styles.bellSectionRow}>
+            <LibertyBell size={20} />
+            <Text style={styles.sectionLabel}>LIBERTY BELLS</Text>
+          </View>
           <Text style={styles.bellHint}>Spend bells to retry a failed level.</Text>
           {bellPacks.map((pack) => (
             <View key={pack.product_id} style={styles.packCard} testID={`pack-${pack.product_id}`}>
@@ -155,8 +158,8 @@ export default function CoinStore() {
                   <Text style={styles.badgeText}>BEST VALUE</Text>
                 </View>
               )}
-              <Text style={styles.packEmoji}>{pack.emoji}</Text>
-              <View style={{ flex: 1 }}>
+              <LibertyBell size={40} />
+              <View style={{ flex: 1, marginLeft: spacing.md }}>
                 <Text style={styles.packCoins}>{pack.bells} Liberty Bells</Text>
                 <Text style={styles.packSub}>Retry {pack.bells} levels</Text>
               </View>
@@ -250,6 +253,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   bellHint: { fontSize: 12, fontWeight: "700", color: colors.surfaceInverse, opacity: 0.6, marginTop: -spacing.xs },
+  bellSectionRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.md },
   coinEmoji: { fontSize: 16 },
   coinText: { fontSize: 14, fontWeight: "900", color: colors.onBrand },
   scroll: { padding: spacing.lg, gap: spacing.md },

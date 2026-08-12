@@ -27,7 +27,7 @@ DISH_CATALOG = [
     {
         "id": "cheesesteak",
         "name": "Philly Cheesesteak",
-        "emoji": "🥩",
+        "emoji": "🥪",
         "unlock_level": 1,
         "recipe": {"steak": 4, "onion": 3, "cheese": 3, "roll": 2},
         "reward_coins": 50,

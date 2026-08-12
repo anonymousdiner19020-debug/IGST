@@ -14,6 +14,7 @@ import { api, PlayerDTO } from "@/src/api";
 import { FALLBACK_DISHES } from "@/src/constants/dishes";
 import { playerStorage } from "@/src/storage";
 import { colors, radius, shadow, spacing } from "@/src/theme";
+import LibertyBell from "@/src/components/LibertyBell";
 
 export default function Profile() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export default function Profile() {
 
           <View style={styles.statsRow}>
             <StatCard label="COINS" value={player.coins} emoji="🪙" />
-            <StatCard label="BELLS" value={player.bells} emoji="🔔" />
+            <StatCard label="BELLS" value={player.bells} bell />
           </View>
           <View style={styles.statsRow}>
             <StatCard label="HIGH SCORE" value={player.high_score} emoji="⭐" />
@@ -119,10 +120,16 @@ export default function Profile() {
   );
 }
 
-function StatCard({ label, value, emoji }: { label: string; value: number; emoji: string }) {
+function StatCard({ label, value, emoji, bell }: { label: string; value: number; emoji?: string; bell?: boolean }) {
   return (
     <View style={styles.statCard} testID={`stat-${label.toLowerCase().replace(/\s/g, "-")}`}>
-      <Text style={styles.statEmoji}>{emoji}</Text>
+      {bell ? (
+        <View style={styles.statEmoji}>
+          <LibertyBell size={26} />
+        </View>
+      ) : (
+        <Text style={styles.statEmoji}>{emoji}</Text>
+      )}
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
