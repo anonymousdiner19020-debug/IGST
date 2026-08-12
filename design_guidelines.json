@@ -1,0 +1,181 @@
+{
+  "app_name": "Philly Fare Match",
+  "personality": "4 Tactile / Playful LIGHT",
+  "personality_one_liner": "A bright, bouncy, and delicious match-3 experience that feels as warm and satisfying as a fresh Philly cheesesteak.",
+  "color": {
+    "surface": "#FDFBF7",
+    "onSurface": "#1A1614",
+    "surfaceSecondary": "#F8EEDF",
+    "onSurfaceSecondary": "#1A1614",
+    "surfaceTertiary": "#E9DCC9",
+    "onSurfaceTertiary": "#1A1614",
+    "surfaceInverse": "#4D2700",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#FFB703",
+    "brandPrimary": "#FFB703",
+    "onBrandPrimary": "#4D2700",
+    "brandSecondary": "#E63946",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#219EBC",
+    "onBrandTertiary": "#FFFFFF",
+    "success": "#2A9D8F",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F4A261",
+    "onWarning": "#4D2700",
+    "error": "#E63946",
+    "onError": "#FFFFFF",
+    "info": "#219EBC",
+    "onInfo": "#FFFFFF",
+    "border": "#E9DCC9",
+    "borderStrong": "#D4A373",
+    "divider": "#F0E5D3"
+  },
+  "typography": {
+    "displayFontFamily": "Fredoka",
+    "textFontFamily": "Nunito",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Use playful, generous spacing to let chunky, touchable cards breathe. Avoid dense grouping. Every interactable element should feel like a physical block or pill.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "2",
+  "navigation": "stack_only",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": "false",
+    "do's": [
+      "Use solid playful surfaces and rounded containers to maintain the tactile cartoon aesthetic."
+    ],
+    "dont's": [
+      "Do not use blur overlays that wash out the bright colors."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home",
+      "purpose": "Launchpad for the game, featuring a massive Play button, and access to Shop and Leaderboards.",
+      "states": {
+        "loading": "Bouncing soft pretzel icon in the center.",
+        "empty": "N/A",
+        "error": "Failed to load profile. Retry button."
+      },
+      "layout": "Full-bleed background image of a colorful diner with vertical gradient scrim (top to bottom fade to surfaceInverse). Massive primary 'Play' CTA in the lower third (thumb zone). A top bar indicating player coin balance. Floating secondary buttons for Shop and Leaderboard stacked above the Play button."
+    },
+    {
+      "name": "LevelMap",
+      "purpose": "A scrolling progression path where players unlock iconic Philly dishes.",
+      "states": {
+        "loading": "Spinner over a map skeleton.",
+        "empty": "N/A",
+        "error": "Failed to sync map progress. Retry button."
+      },
+      "layout": "Vertical scrolling path with staggered level nodes. Background has subtle diner/skyline patterns. Unlocked levels use brandSecondary (Red) or brandPrimary (Yellow), locked levels use surfaceTertiary. Bottom sticky button to return Home."
+    },
+    {
+      "name": "Gameplay",
+      "purpose": "The core match-3 experience where players swap ingredients to complete customer orders.",
+      "states": {
+        "loading": "Shuffling board animation.",
+        "empty": "N/A",
+        "error": "Board desync. Reload button."
+      },
+      "layout": "Top HUD: Moves left (oversized text), Score, Pause button. Center: 7x7 or 8x8 grid of rounded, chunky ingredient tiles on a surfaceSecondary board with borderStrong outline. Bottom: Order queue cards showing customer avatar and required ingredient counts, using horizontal scroll or side-by-side cards."
+    },
+    {
+      "name": "CookingResult",
+      "purpose": "A celebratory popup when an order is completed, showing the final Philly dish and rewards.",
+      "states": {
+        "loading": "Sizzling animation...",
+        "empty": "N/A",
+        "error": "N/A"
+      },
+      "layout": "Full-screen overlay modal with a dark translucent backdrop. Central chunky card displaying the cooked dish (e.g., Cheesesteak), celebratory text, coins earned, and a massive 'Continue' pill button."
+    },
+    {
+      "name": "Shop",
+      "purpose": "Spend earned coins on kitchen upgrades and gameplay boosters.",
+      "states": {
+        "loading": "Loading shop inventory.",
+        "empty": "No items available to purchase right now.",
+        "error": "Store unavailable. Retry button."
+      },
+      "layout": "Top bar with current coin balance. 2-column grid of upgrade cards. Each card has an illustration, title, and a coin-price button. Cards use surfaceSecondary with heavy lg radius."
+    },
+    {
+      "name": "Leaderboard",
+      "purpose": "Global ranking of top chefs based on score or dishes served.",
+      "states": {
+        "loading": "Fetching top chefs...",
+        "empty": "No rankings yet. Be the first to cook!",
+        "error": "Could not connect to leaderboard. Retry."
+      },
+      "layout": "List rows of players. Top 3 highlighted with brandTertiary/brandPrimary tints. Each row has rank, initials avatar, name, and score. Sticky bottom bar showing the current user's rank."
+    },
+    {
+      "name": "Profile",
+      "purpose": "Displays player stats and gameplay history.",
+      "states": {
+        "loading": "Fetching player data...",
+        "empty": "No stats recorded yet.",
+        "error": "Failed to load profile. Retry."
+      },
+      "layout": "Top section with large player avatar and username. Middle section: stats grid (Dishes Cooked, High Score, Current Level) using surfaceSecondary cards. Bottom: list of unlocked dishes."
+    }
+  ],
+  "images": {
+    "home_background": {
+      "url": "https://images.unsplash.com/photo-1548696060-8fae845c6452?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwzfHxjb2xvcmZ1bCUyMGRpbmVyJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3ODY1NjY2Nzh8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Colorful diner interior"
+    },
+    "map_background": {
+      "url": "https://images.unsplash.com/photo-1616528279874-b3d3b50ab6c7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHwyfHxwaGlsYWRlbHBoaWElMjBza3lsaW5lJTIwY29sb3JmdWx8ZW58MHx8fHwxNzg2NTY2Njc4fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Philadelphia skyline at sunset"
+    },
+    "pattern_background": {
+      "url": "https://images.unsplash.com/photo-1700513971603-eda40374ba0a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwxfHxmYXN0JTIwZm9vZCUyMGNvbG9yZnVsJTIwcGF0dGVybnxlbnwwfHx8fDE3ODY1NjY2Nzh8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Food pattern background"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Follow 4 Tactile / Playful LIGHT personality rules strictly. This is a game UI - components should feel touchable, bouncy, and distinct.",
+    "Do not use default React Native navigation headers; build custom top HUDs that fit the game aesthetic.",
+    "Grid layout for Match-3 (Gameplay screen) must be prominent and use 'borderStrong' outlines to contain the grid cells.",
+    "For typography, use Fredoka for all headings, scores, and large buttons. Use Nunito for smaller labels and body text.",
+    "The Order Queue (Gameplay bottom area) should contain cards displaying a customer avatar + required ingredients. The ingredients should be clear icons with count badges.",
+    "In the Home screen, ensure the 'Play' button is massive, pill-shaped, and sticky in the bottom safe area.",
+    "Use a top-down gradient scrim (black/transparent) on any background images so foreground text remains readable.",
+    "Avoid glassmorphism. Use solid colors and shadow tier 2 to make UI pop.",
+    "Ensure all tappable elements have a minimum size of 44x44pt and utilize a press-scale animation (0.93) to feel responsive."
+  ]
+}
