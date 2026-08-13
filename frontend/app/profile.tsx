@@ -100,13 +100,27 @@ export default function Profile() {
             };
             const [topCode, topCount] = entries.sort((a, b) => b[1] - a[1])[0];
             const total = entries.reduce((s, [, v]) => s + v, 0);
+            const isSuperfan = topCount >= 25;
             return (
-              <View style={styles.fanStatCard} testID="top-team-stat">
+              <View
+                style={[styles.fanStatCard, isSuperfan && styles.superfanCard]}
+                testID="top-team-stat"
+              >
+                {isSuperfan && (
+                  <View style={styles.superfanBadge} testID="superfan-badge">
+                    <Text style={styles.superfanBadgeText}>⭐ SUPERFAN</Text>
+                  </View>
+                )}
                 <Text style={styles.fanStatLabel}>YOUR TEAM</Text>
                 <Text style={styles.fanStatTeam}>{teams[topCode] || topCode} superfan</Text>
                 <Text style={styles.fanStatSub}>
                   Served {topCount} {teams[topCode]?.split(" ")[1] || ""} fans · {total} Philly fans total
                 </Text>
+                {!isSuperfan && (
+                  <Text style={styles.superfanHint}>
+                    {25 - topCount} more {teams[topCode]?.split(" ")[1] || ""} fans to unlock the Superfan badge!
+                  </Text>
+                )}
               </View>
             );
           })()}
@@ -228,6 +242,16 @@ const styles = StyleSheet.create({
   fanStatLabel: { fontSize: 11, fontWeight: "800", color: colors.onSurface, opacity: 0.6, letterSpacing: 1 },
   fanStatTeam: { fontSize: 18, fontWeight: "900", color: colors.surfaceInverse, marginTop: 2 },
   fanStatSub: { fontSize: 12, fontWeight: "600", color: colors.onSurface, opacity: 0.8, marginTop: 2, textAlign: "center" },
+  superfanCard: { borderColor: "#F0B429", borderWidth: 3, backgroundColor: "#FFF9E9" },
+  superfanBadge: {
+    backgroundColor: "#F0B429",
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    marginBottom: spacing.xs,
+  },
+  superfanBadgeText: { fontSize: 12, fontWeight: "900", color: "#5A3E00", letterSpacing: 1 },
+  superfanHint: { fontSize: 11, fontWeight: "700", color: colors.brandSecondary, marginTop: 4, textAlign: "center" },
   statCard: {
     flex: 1,
     backgroundColor: colors.surface,
