@@ -166,6 +166,9 @@ export default function Serve() {
   const [chant, setChant] = useState<string | null>(null);
   const missedRef = useRef(0);
   const fanStreakRef = useRef(0);
+  const perfectServesRef = useRef(0);
+  const specialServedRef = useRef(0);
+  const fansServedRef = useRef(0);
   const patienceRef = useRef<any>(null);
   const startRef = useRef<number>(Date.now());
 
@@ -292,6 +295,9 @@ export default function Serve() {
     const perfect = missing.length === 0 && extra.length === 0 && !hasForbidden;
 
     if (perfect) {
+      perfectServesRef.current += 1;
+      if (current.special) specialServedRef.current += 1;
+      if (current.fan) fansServedRef.current += 1;
       const speedBonus = Math.round(patience * 20);
       const base = dish.reward_coins + speedBonus;
       const newStreak = streak + 1;
@@ -406,6 +412,16 @@ export default function Serve() {
           bells_earned: totalBells,
           completed: served >= Math.ceil(customers.length / 2),
           stars,
+        });
+      } catch {}
+      // Report progress toward today's daily challenge.
+      try {
+        await api.reportDailyGoal(id, {
+          special_served: specialServedRef.current,
+          customers_served: served,
+          perfect_serves: perfectServesRef.current,
+          levels_completed: completed ? 1 : 0,
+          fans_served: fansServedRef.current,
         });
       } catch {}
     }

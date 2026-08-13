@@ -316,3 +316,54 @@ frontend:
 agent_communication:
     - agent: "main"
       message: "Iteration 11. PRIMARY: verify onboarding legibility bug fix - on the first-launch onboarding screen (fresh player, no stored id), the 'Philly Food Frenzy' title + subtitle + 'Chef name' input + 'Start Cooking' button must be clearly readable in the lower area BELOW the skyline photo (not overlapping/washed out on the skyline). ALSO verify no regressions: (a) onboarding still creates a player and navigates to home; (b) water_ice serve shows the root beer photo icon; (c) happy_cakes serve tray no longer has a Chocolate(sauce) option (only Apple Pie topping); (d) serve/game screens for happy_cakes render the new cake/pie photo icons without crashing. Anonymous UUID player. To force onboarding, clear stored player. Deep-link serve e.g. /serve?dishId=water_ice&level=3&score=100&inventory=%7B%7D&movesLeft=10&daily=0."
+
+## ---- Iteration 12: hoagie photo icons + Recipe Variety (special orders) + Daily Goal ----
+backend:
+  - task: "Daily Goal challenge endpoints"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New rotating daily challenge. DAILY_GOALS pool of 5 goals; daily_goal_def() picks one per UTC day by ordinal%5. Endpoints: GET /api/players/{id}/daily-goal (returns goal def + progress/target/completed/claimed/claimable, resets on new UTC day), POST /api/players/{id}/daily-goal-progress (body has counters special_served/customers_served/perfect_serves/levels_completed/fans_served; only the ACTIVE goal's metric is added to progress; ignored once claimed), POST /api/players/{id}/claim-daily-goal (grants goal.reward coins once; 400 if not complete or already claimed - idempotent). Verified via curl: today's goal=serve25 (customers_served target 25); progress only counted customers_served; claim added +120 coins; 2nd claim returns 400 'Already claimed'."
+frontend:
+  - task: "Recipe Variety - surprise special orders"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/constants/dishes.ts, frontend/app/serve.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Each dish has special_options[2] rare extras. serveOptions() now includes specials so they render as tappable tray buttons. generateCustomerOrder(dish,rand,special) adds one special item to wanted when special. buildCustomers() rolls ~22%/customer for a special order (specials excluded from normal wanted pool; disabled during cheesesteak rivalry). Ticket shows '⭐ SPECIAL ORDER • BONUS TIP!' badge + highlighted special row; perfect serve on a special adds +50 coins. New emoji-fallback ingredients added (honey_mustard, garlic_butter, whipped_cream, caramel, rainbow_syrup, powdered_sugar, jelly, pickle, roasted_pepper, gravy, hot_sauce, bacon_bits, ranch, extra_cheese, hash_brown). Verified via screenshot: american_hoagie shows badge + highlighted Hot Sauce + Pickles/Hot Sauce tray buttons; normal serving still works."
+  - task: "Daily Goal card on Home + progress reporting"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/index.tsx, frontend/app/serve.tsx, frontend/src/api.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Home shows a Daily Challenge card (icon, label, +reward coins, progress bar progress/target, CLAIM button when claimable, '✓ Claimed' after). Loads via api.getDailyGoal on player load + 3s refresh. serve.tsx finishLevel reports counters via api.reportDailyGoal (special_served, customers_served=served, perfect_serves, levels_completed, fans_served) tracked with refs during the round. Claim calls api.claimDailyGoal and updates player coins. Verified via screenshot: card shows 'Serve 25 Customers +120 🪙' 0/25 'Keep serving!' for a fresh player."
+  - task: "Hoagie photo ingredient icons (ham, salami, bologna, oil&vinegar)"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/components/IngredientIcon.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Photo icons wired: ham (ham.jpg), salami (salami.jpg), bologna (bologna.jpeg), oil (oil_vinegar.webp cruet set, replaced earlier SVG). Also fixed an orphaned-JSX syntax error in IngredientIcon.tsx that had broken the bundle. Screenshot-verified in american_hoagie serve tray + ticket."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 12. Test focus: (1) BACKEND daily-goal endpoints: GET returns today's goal+progress; POST daily-goal-progress only increments the active goal's metric and is a no-op after claim; claim grants reward once (idempotent, 400 when incomplete/already claimed); new UTC day resets progress. (2) FRONTEND special orders: on hoagie/other dishes, ~22% of serve customers show a gold '⭐ SPECIAL ORDER • BONUS TIP!' badge with a highlighted special item, tray includes the special extras as tappable buttons, and serving that order perfectly awards +50 (feedback shows '⭐ +50 🪙 special!'); normal (non-special) serving unaffected. (3) FRONTEND Daily Goal card on Home shows the challenge, progress bar, and after finishing a serve level the progress updates; when progress>=target a CLAIM button appears, claiming adds coins and shows '✓ Claimed'. Anonymous UUID player via home onboarding. Deep-link serve e.g. /serve?dishId=american_hoagie&level=5&score=100&inventory=%7B%7D&movesLeft=10&daily=0."

@@ -212,6 +212,20 @@ def next_monday_iso() -> str:
 
 WEEKLY_CHAMPION_PRIZE = 500
 
+# Rotating daily challenge — one goal per UTC day from a fixed pool.
+DAILY_GOALS = [
+    {"id": "special3", "metric": "special_served", "target": 3, "reward": 150, "label": "Serve 3 Special Orders", "icon": "⭐"},
+    {"id": "serve25", "metric": "customers_served", "target": 25, "reward": 120, "label": "Serve 25 Customers", "icon": "🍽️"},
+    {"id": "perfect15", "metric": "perfect_serves", "target": 15, "reward": 140, "label": "Nail 15 Perfect Serves", "icon": "✨"},
+    {"id": "levels3", "metric": "levels_completed", "target": 3, "reward": 130, "label": "Complete 3 Levels", "icon": "🏆"},
+    {"id": "fans5", "metric": "fans_served", "target": 5, "reward": 150, "label": "Serve 5 Philly Fans", "icon": "🦅"},
+]
+
+
+def daily_goal_def(date_str: str | None = None) -> dict:
+    d = datetime.fromisoformat(date_str).date() if date_str else datetime.now(timezone.utc).date()
+    return DAILY_GOALS[d.toordinal() % len(DAILY_GOALS)]
+
 
 async def settle_previous_weeks():
     """Close out any finished weeks: crown the top scorer and award a coin prize.
@@ -693,6 +707,72 @@ async def served_fan(player_id: str, payload: dict = Body(...)):
         raise HTTPException(status_code=400, detail="team required")
     await db.players.update_one({"id": player_id}, {"$inc": {f"fan_served.{team}": 1}})
     return {"ok": True}
+
+
+def _daily_goal_view(doc: dict) -> dict:
+    today = today_iso()
+    goal = daily_goal_def(today)
+    dg = doc.get("daily_goal", {})
+    if dg.get("date") != today:
+        progress, claimed = 0, False
+    else:
+        progress, claimed = int(dg.get("progress", 0)), bool(dg.get("claimed", False))
+    completed = progress >= goal["target"]
+    return {
+        "goal": goal,
+        "progress": min(progress, goal["target"]),
+        "target": goal["target"],
+        "completed": completed,
+        "claimed": claimed,
+        "claimable": completed and not claimed,
+    }
+
+
+@api_router.get("/players/{player_id}/daily-goal")
+async def daily_goal_status(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    return _daily_goal_view(doc)
+
+
+@api_router.post("/players/{player_id}/daily-goal-progress")
+async def daily_goal_progress(player_id: str, payload: dict = Body(...)):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    today = today_iso()
+    goal = daily_goal_def(today)
+    dg = doc.get("daily_goal", {})
+    if dg.get("date") != today:
+        dg = {"date": today, "progress": 0, "claimed": False}
+    inc = int(payload.get(goal["metric"], 0) or 0)
+    if inc > 0 and not dg.get("claimed"):
+        dg["progress"] = int(dg.get("progress", 0)) + inc
+    await db.players.update_one({"id": player_id}, {"$set": {"daily_goal": dg}})
+    doc["daily_goal"] = dg
+    return _daily_goal_view(doc)
+
+
+@api_router.post("/players/{player_id}/claim-daily-goal")
+async def claim_daily_goal(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    today = today_iso()
+    goal = daily_goal_def(today)
+    dg = doc.get("daily_goal", {})
+    if dg.get("date") != today or int(dg.get("progress", 0)) < goal["target"]:
+        raise HTTPException(status_code=400, detail="Goal not complete")
+    if dg.get("claimed"):
+        raise HTTPException(status_code=400, detail="Already claimed")
+    dg["claimed"] = True
+    await db.players.update_one(
+        {"id": player_id},
+        {"$inc": {"coins": goal["reward"]}, "$set": {"daily_goal": dg}},
+    )
+    updated = await db.players.find_one({"id": player_id}, {"_id": 0})
+    return {"reward": goal["reward"], "player": player_public(updated)}
 
 
 @api_router.post("/revenuecat/webhook")

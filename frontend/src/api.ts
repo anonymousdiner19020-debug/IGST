@@ -46,6 +46,15 @@ export type DailyRewardStatus = {
   cycle: { coins: number; bells: number }[];
 };
 
+export type DailyGoalStatus = {
+  goal: { id: string; metric: string; target: number; reward: number; label: string; icon: string };
+  progress: number;
+  target: number;
+  completed: boolean;
+  claimed: boolean;
+  claimable: boolean;
+};
+
 export type DailySpecial = {
   date: string;
   dish_id: string;
@@ -166,5 +175,24 @@ export const api = {
     req<{ ok: boolean }>(`/players/${id}/served-fan`, {
       method: "POST",
       body: JSON.stringify({ team }),
+    }),
+  getDailyGoal: (id: string) => req<DailyGoalStatus>(`/players/${id}/daily-goal`),
+  reportDailyGoal: (
+    id: string,
+    payload: {
+      special_served?: number;
+      customers_served?: number;
+      perfect_serves?: number;
+      levels_completed?: number;
+      fans_served?: number;
+    }
+  ) =>
+    req<DailyGoalStatus>(`/players/${id}/daily-goal-progress`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  claimDailyGoal: (id: string) =>
+    req<{ reward: number; player: PlayerDTO }>(`/players/${id}/claim-daily-goal`, {
+      method: "POST",
     }),
 };

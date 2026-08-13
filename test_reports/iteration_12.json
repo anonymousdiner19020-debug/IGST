@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 12 both-tested: Daily Goal backend + Recipe Variety / Daily Challenge frontend. Backend: created /app/backend/tests/test_daily_goal.py with 7 pytest tests covering GET status shape, active-metric-only progress isolation, progress accumulation, claim-requires-complete (400), claim happy path grants exact reward once, second claim -> 400 'Already claimed', progress-after-claim frozen, and 404 for unknown player. All 7 PASSED. Frontend: (a) /serve?dishId=american_hoagie now shows tray-pickle AND tray-hot_sauce (special_options) on every reload, and the gold '⭐ SPECIAL ORDER • BONUS TIP!' badge appeared on customers across reloads (probabilistic ~22%, confirmed on reload 1 of 4). (b) Home screen renders daily-goal-card with icon (🍽️), 'DAILY CHALLENGE' label, goal name ('Serve 25 Customers'), '+120 🪙' pill, progress bar and '0/25' text on a fresh player. After pushing progress to target via /api/players/{id}/daily-goal-progress, the card auto-refreshed within ~3s to show '25/25' + CLAIM button. Tapping claim-goal-button increased coin-balance by exactly 120 (100 → 220) and the card switched to '✓ Claimed'. React Native deprecation warnings (shadow*/textShadow*/resizeMode/pointerEvents) still noisy but non-blocking (already reported in iter 11).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "index.tsx / serve.tsx styles", "issue": "React Native Web deprecation: 'shadow*' and 'textShadow*' style props are deprecated — use 'boxShadow' / 'textShadow' shorthand. (Non-blocking; pre-existing.)"},
+      {"component": "ImageBackground / Image", "issue": "'style.resizeMode' is deprecated; use props.resizeMode. (Pre-existing.)"},
+      {"component": "serve.tsx View pointerEvents", "issue": "'props.pointerEvents' is deprecated; use style.pointerEvents. Reference: rushBanner/chantBubble/milestoneOverlay/jackpotOverlay in /app/frontend/app/serve.tsx (lines 670, 676, 682, 692)."}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_daily_goal.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "(Optional cleanup) Migrate remaining deprecated RN Web props: shadow*/textShadow*/resizeMode/pointerEvents to their newer equivalents.",
+    "(Optional) Consider snapshotting the active daily goal id in the player's daily_goal doc so behavior remains deterministic if DAILY_GOALS ordering ever changes mid-day (currently derived from UTC ordinal on each request)."
+  ],
+  "critical_code_review_comments": [
+    "daily_goal_progress correctly ignores non-active metrics by only reading payload[goal['metric']] — verified with 4 non-active metrics set to 500-999 producing 0 progress.",
+    "claim_daily_goal is idempotent: sets daily_goal.claimed=true and re-claim raises 400 'Already claimed'; verified reward is credited exactly once (delta=120 on Serve 25 Customers goal).",
+    "daily_goal_progress guards further increments with `if inc > 0 and not dg.get('claimed')` — verified post-claim progress calls do not advance the counter (stays at target).",
+    "_daily_goal_view clamps returned progress to target (min(progress, goal['target'])), avoiding UI overflow.",
+    "Frontend correctly reports 5 counters in one call via api.reportDailyGoal(finishLevel in serve.tsx:419-425); the backend only credits the active one, so this is safe.",
+    "serve.tsx buildCustomers filters special_options OUT of the normal topping pool (specialSet) so specials only appear via the ~22% special roll — matches product intent."
+  ],
+  "updated_files": ["/app/backend/tests/test_daily_goal.py"],
+  "success_rate": {"backend": "100% (7/7 pytest)", "frontend": "100% (special orders tray/badge + daily-goal card + claim flow all verified)"},
+  "seed_data_creation": "Created ephemeral test players via POST /api/players (usernames TEST_dailygoal, TESTChef, TESTChef3-5) — each isolated per-test; no cleanup needed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Today's daily goal is 'Serve 25 Customers' (id serve25, metric customers_served, target 25, reward 120) — rotates by UTC ordinal, so this may differ on other test days. AsyncStorage key on web is 'philly_fare_player_id'. Home screen's goal card is fetched fire-and-forget on load and refreshed via a 3s polling loadPlayer interval, so allow ~3-5s for progress/CLAIM state changes to reflect after backend pokes. Serve screen deep-link works with just dishId+level; the ~22% special_order roll may need multiple reloads to observe the badge but the tray specials (pickle/hot_sauce/etc) are always rendered.",
+  "rca_of_issue": "N/A — no bugs found this iteration."
+}

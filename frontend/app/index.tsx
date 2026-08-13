@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api, DailySpecial, PlayerDTO } from "@/src/api";
+import { api, DailySpecial, DailyGoalStatus, PlayerDTO } from "@/src/api";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import { playerStorage } from "@/src/storage";
 import { CityHallPenn, LoveStatue, RockyStatue } from "@/src/components/LandmarkIcons";
@@ -28,6 +28,8 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const [player, setPlayer] = useState<PlayerDTO | null>(null);
   const [daily, setDaily] = useState<DailySpecial | null>(null);
+  const [goal, setGoal] = useState<DailyGoalStatus | null>(null);
+  const [claimingGoal, setClaimingGoal] = useState(false);
   const [needsName, setNeedsName] = useState(false);
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,7 @@ export default function Home() {
       }
       const p = await api.getPlayer(id);
       setPlayer(p);
+      api.getDailyGoal(id).then(setGoal).catch(() => {});
     } catch (e) {
       // stored id invalid — force onboarding
       await playerStorage.clear();
@@ -65,6 +68,22 @@ export default function Home() {
     const interval = setInterval(loadPlayer, 3000);
     return () => clearInterval(interval);
   }, [loadPlayer]);
+
+  const handleClaimGoal = async () => {
+    const id = await playerStorage.get();
+    if (!id) return;
+    setClaimingGoal(true);
+    try {
+      const res = await api.claimDailyGoal(id);
+      setPlayer(res.player);
+      const g = await api.getDailyGoal(id);
+      setGoal(g);
+    } catch {
+      // ignore
+    } finally {
+      setClaimingGoal(false);
+    }
+  };
 
   const handleCreate = async () => {
     const trimmed = username.trim();
@@ -207,6 +226,50 @@ export default function Home() {
                 <Text style={styles.dailyBonusText}>{daily.bonus_multiplier}× 🪙</Text>
               </View>
             </Pressable>
+          )}
+
+          {goal && (
+            <View testID="daily-goal-card" style={styles.goalCard}>
+              <View style={styles.goalHeader}>
+                <Text style={styles.goalIcon}>{goal.goal.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.goalLabel}>DAILY CHALLENGE</Text>
+                  <Text style={styles.goalName} numberOfLines={1}>
+                    {goal.goal.label}
+                  </Text>
+                </View>
+                <View style={styles.goalReward}>
+                  <Text style={styles.goalRewardText}>+{goal.goal.reward} 🪙</Text>
+                </View>
+              </View>
+              <View style={styles.goalBarTrack}>
+                <View
+                  style={[
+                    styles.goalBarFill,
+                    { width: `${Math.round((goal.progress / goal.target) * 100)}%` },
+                  ]}
+                />
+              </View>
+              <View style={styles.goalFooter}>
+                <Text style={styles.goalProgressText}>
+                  {goal.progress}/{goal.target}
+                </Text>
+                {goal.claimable ? (
+                  <Pressable
+                    testID="claim-goal-button"
+                    onPress={handleClaimGoal}
+                    disabled={claimingGoal}
+                    style={({ pressed }) => [styles.goalClaim, pressed && { transform: [{ scale: 0.96 }] }]}
+                  >
+                    <Text style={styles.goalClaimText}>{claimingGoal ? "..." : "CLAIM"}</Text>
+                  </Pressable>
+                ) : goal.claimed ? (
+                  <Text style={styles.goalDone}>✓ Claimed</Text>
+                ) : (
+                  <Text style={styles.goalHint}>Keep serving!</Text>
+                )}
+              </View>
+            </View>
           )}
 
           <View style={styles.secondaryRow}>
@@ -446,6 +509,54 @@ const styles = StyleSheet.create({
     borderColor: colors.surfaceInverse,
   },
   dailyBonusText: { fontSize: 14, fontWeight: "900", color: colors.onBrand },
+  goalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+    ...shadow.tier2,
+    borderWidth: 3,
+    borderColor: colors.brandSecondary,
+  },
+  goalHeader: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  goalIcon: { fontSize: 30 },
+  goalLabel: { fontSize: 10, fontWeight: "900", color: colors.brandSecondary, letterSpacing: 1 },
+  goalName: { fontSize: 15, fontWeight: "900", color: colors.surfaceInverse },
+  goalReward: {
+    backgroundColor: colors.brandSecondary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.surfaceInverse,
+  },
+  goalRewardText: { fontSize: 13, fontWeight: "900", color: colors.onBrandSecondary },
+  goalBarTrack: {
+    height: 12,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.pill,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  goalBarFill: {
+    height: "100%",
+    backgroundColor: colors.success,
+    borderRadius: radius.pill,
+  },
+  goalFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  goalProgressText: { fontSize: 14, fontWeight: "900", color: colors.surfaceInverse },
+  goalClaim: {
+    backgroundColor: colors.brand,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.surfaceInverse,
+  },
+  goalClaimText: { fontSize: 13, fontWeight: "900", color: colors.onBrand, letterSpacing: 1 },
+  goalDone: { fontSize: 13, fontWeight: "900", color: colors.success },
+  goalHint: { fontSize: 12, fontWeight: "700", color: colors.surfaceTertiary },
   secondaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
