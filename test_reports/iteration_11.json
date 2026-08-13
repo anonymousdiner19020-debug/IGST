@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only re-test after onboarding readability fix and ingredient/dish icon photo swap. All 5 requested checks PASSED. Onboarding renders Philadelphia skyline as ImageBackground (top half, ~0-360px), a dark rgba(2,20,24,0.55) overlay covers the whole screen, and the content stack (icons/title/subtitle/input/Start Cooking button) sits in the darker lower half (input at y=665, button at y=732 in a 844px viewport) with white shadowed title clearly readable against the dark background. Player creation via testID create-player-button successfully navigates to home-screen. water_ice serve screen renders with tray-rootbeer (root beer photo) and does not crash. happy_cakes serve tray shows tray-apple_pie and does NOT show tray-chocolate_sauce (options: pb_cake, chocolate_cake, butterscotch_cake, mini_pie, sprinkles, apple_pie). Level map renders all 12 levels (level-1 through level-12) with photo/SVG dish preview icons and no crashes.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "index.tsx styles.title/subtitle/heroTitle", "issue": "React Native Web deprecation warning: 'textShadow*' style props are deprecated, use 'textShadow' shorthand. Reference: /app/frontend/app/index.tsx:314-316, 324-326, 411-413"},
+      {"component": "theme/shadow.tier*", "issue": "React Native Web deprecation warning: 'shadow*' style props are deprecated, use 'boxShadow'. Emitted from shared shadow tokens applied across screens."},
+      {"component": "ImageBackground imageStyle resizeMode", "issue": "React Native Web deprecation warning: Image style.resizeMode is deprecated, use props.resizeMode. Reference: /app/frontend/app/index.tsx styles.onboardBgImg / styles.bgImg (lines 285, 302)"}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Optional cleanup, non-blocking) Migrate textShadow*/shadow*/resizeMode style props to the newer RN Web equivalents (textShadow shorthand, boxShadow, resizeMode prop on Image) to silence deprecation warnings."
+  ],
+  "critical_code_review_comments": [
+    "Onboarding fix is well implemented: ImageBackground + absolute-fill dark overlay + flex-end content stack + white text with textShadow. Content is safely below the bright skyline region.",
+    "IngredientIcon/DishIcon correctly return PhotoIngredient/SVG components for the new ids (rootbeer, apple_pie, cheese_sauce, pb_cake, chocolate_cake, butterscotch_cake, mini_pie, sprinkles, american_hoagie, italian_hoagie, tomato_pie, seasoned_fries, scrapple_ec) without breaking the emoji fallback path.",
+    "happy_cakes.topping_options in /app/frontend/src/constants/dishes.ts correctly lists only ['apple_pie']; chocolate_sauce is no longer offered as a happy_cakes topping."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only)", "frontend": "100% (5/5 checks passed)"},
+  "seed_data_creation": "Created one anonymous player named 'TestChef' via onboarding to reach downstream screens (home, level-map, serve). No cleanup needed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Onboarding screen uses ImageBackground(assets/philly_skyline.jpg) + absolute-fill dark overlay + justifyContent flex-end. To force onboarding, clear localStorage in the web preview then reload. Serve routes are reachable directly via /serve?dishId=<id>&level=<n>. Deprecation warnings from RN Web (textShadow*/shadow*/resizeMode) are noisy but non-blocking.",
+  "rca_of_issue": "N/A - regression checks only; all reported behaviors verified as fixed."
+}

@@ -22,6 +22,7 @@ export const INGREDIENTS: Record<string, Ingredient> = {
   butterscotch_cake: { id: "butterscotch_cake", emoji: "🟨", color: "#E0A030", label: "Butterscotch" },
   chocolate_cake: { id: "chocolate_cake", emoji: "🍫", color: "#5C3418", label: "Choc Cake" },
   mini_pie: { id: "mini_pie", emoji: "🥧", color: "#D4A373", label: "Mini Pie" },
+  apple_pie: { id: "apple_pie", emoji: "🥧", color: "#D9A441", label: "Apple Pie" },
 
   // Water Ice
   cup: { id: "cup", emoji: "🥤", color: "#B8E0FF", label: "Cup" },
@@ -116,7 +117,7 @@ export const FALLBACK_DISHES: Dish[] = [
     emoji: "🧁",
     unlock_level: 2,
     base_recipe: { pb_cake: 2, chocolate_cake: 2, butterscotch_cake: 2, mini_pie: 2, sprinkles: 2 },
-    topping_options: ["chocolate_sauce", "cherry"],
+    topping_options: ["apple_pie"],
     verb: "box",
     reward_coins: 55,
     moves: 30,

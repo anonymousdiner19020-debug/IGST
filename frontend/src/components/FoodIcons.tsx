@@ -65,6 +65,23 @@ export function PorkRoll({ size = 24 }: Props) {
   );
 }
 
+// Twin salt & pepper shakers.
+export function SaltPepperShaker({ size = 24 }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      <Rect x={12} y={26} width={18} height={30} rx={5} fill="#F5F3EC" stroke="#B9B4A6" strokeWidth={1.6} />
+      <Rect x={11} y={20} width={20} height={8} rx={3} fill="#D9D4C6" stroke="#B9B4A6" strokeWidth={1.4} />
+      <Circle cx={18} cy={24} r={1.1} fill="#7C7869" />
+      <Circle cx={24} cy={24} r={1.1} fill="#7C7869" />
+      <Rect x={34} y={26} width={18} height={30} rx={5} fill="#3A342C" stroke="#1F1B15" strokeWidth={1.6} />
+      <Rect x={33} y={20} width={20} height={8} rx={3} fill="#565046" stroke="#1F1B15" strokeWidth={1.4} />
+      <Circle cx={40} cy={24} r={1.1} fill="#CFC9BB" />
+      <Circle cx={46} cy={24} r={1.1} fill="#CFC9BB" />
+    </Svg>
+  );
+}
+
+
 // Spice/seasoning shaker (distinct from the plain salt shaker).
 export function SeasoningShaker({ size = 24 }: Props) {
   return (

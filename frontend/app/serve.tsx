@@ -26,18 +26,26 @@ type Customer = {
   wanted: string[];
   forbidden: string[];
   fan?: string; // Philly team emoji if this is a sports fan
+  tag?: string; // fan flavor text
 };
 
 const PATIENCE_MS = 15000;
 
 // Philly sports teams — fans occasionally show up repping their colors.
 const PHILLY_TEAMS = ["🦅", "⚾", "🏀", "🏒"];
-const TEAM_CHANTS: Record<string, string> = {
-  "🦅": "Go Birds! 🦅",
-  "⚾": "Go Phils! ⚾",
-  "🏀": "Trust the Process! 🏀",
-  "🏒": "Let's Go Flyers! 🏒",
+const TEAM_CHANTS: Record<string, string[]> = {
+  "🦅": ["Go Birds! 🦅", "Bleed green! 💚", "E-A-G-L-E-S! 🦅", "Dawg mentality! 🐶"],
+  "⚾": ["Go Phils! ⚾", "Ring the bell! 🔔", "Red October! 🍁", "Phandom forever! ⚾"],
+  "🏀": ["Trust the Process! 🏀", "Go Sixers! 🏀", "Philly hoops! 🏀", "Bell ringer! 🔔"],
+  "🏒": ["Let's Go Flyers! 🏒", "Orange & black! 🟠", "Drop the puck! 🏒", "Broad Street brawlers! 🏒"],
 };
+
+function pickChant(team: string): string {
+  const list = TEAM_CHANTS[team] || ["Go Philly! 🔔"];
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+const FAN_TAGS = ["Philly fan!", "It's a Philly thing!", "Philly proud!", "Repping Philly!"];
 
 function buildCustomers(dish: Dish, toppings: string[], count: number): Customer[] {
   const filteredDish = { ...dish, topping_options: toppings };
@@ -50,6 +58,7 @@ function buildCustomers(dish: Dish, toppings: string[], count: number): Customer
       wanted: order.wanted,
       forbidden: order.forbidden,
       fan: isFan ? PHILLY_TEAMS[Math.floor(Math.random() * PHILLY_TEAMS.length)] : undefined,
+      tag: isFan ? FAN_TAGS[Math.floor(Math.random() * FAN_TAGS.length)] : undefined,
     });
   }
   return list;
@@ -119,6 +128,7 @@ export default function Serve() {
   const [milestone, setMilestone] = useState<string | null>(null);
   const [chant, setChant] = useState<string | null>(null);
   const missedRef = useRef(0);
+  const fanStreakRef = useRef(0);
   const patienceRef = useRef<any>(null);
   const startRef = useRef<number>(Date.now());
 
@@ -262,13 +272,20 @@ export default function Serve() {
       const dailyLabel = isDaily ? " ⭐2×" : "";
       // Liberty Bell tip: faster serve = more bells (1-3)
       const bellTip = patience > 0.66 ? 3 : patience > 0.33 ? 2 : 1;
-      // Bonus coin tip + chant for perfectly serving a Philly sports fan.
-      const fanBonus = current.fan ? 25 : 0;
-      const fanLabel = fanBonus > 0 ? ` +${fanBonus} 🪙 fan tip` : "";
+      // Bonus coin tip + chant for perfectly serving Philly sports fans.
+      // Consecutive perfect fan serves stack a growing streak bonus.
+      let fanBonus = 0;
       if (current.fan) {
-        setChant(TEAM_CHANTS[current.fan] || "Go Philly!");
-        setTimeout(() => setChant(null), 1400);
+        fanStreakRef.current += 1;
+        const fs = fanStreakRef.current;
+        fanBonus = 25 * fs;
+        const streakTag = fs >= 2 ? `  🔥 ${fs} fans!` : "";
+        setChant(pickChant(current.fan) + streakTag);
+        setTimeout(() => setChant(null), 1500);
+      } else {
+        fanStreakRef.current = 0;
       }
+      const fanLabel = fanBonus > 0 ? ` +${fanBonus} 🪙 fan tip` : "";
       setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}${fanLabel}` });
       // Streak jackpot at 2.5x multiplier or higher (4+ consecutive perfects)
       let jackpotBonus = 0;
@@ -292,12 +309,14 @@ export default function Serve() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch {}
       setFeedback({ ok: false, text: coinsGot > 0 ? `Close! +${coinsGot} 🪙` : "Wrong order!" });
+      fanStreakRef.current = 0;
       nextCustomer(coinsGot, partial * 15, false);
     }
   };
 
   const handleTimeout = () => {
     setStreak(0);
+    fanStreakRef.current = 0;
     sound.play("error");
     setFeedback({ ok: false, text: "Too slow! Customer left 😤" });
     nextCustomer(0, 0, false);
@@ -408,7 +427,7 @@ export default function Serve() {
         </View>
         {current.fan && (
           <View style={styles.fanTag} testID="fan-tag">
-            <Text style={styles.fanTagText}>{current.fan} Philly fan!</Text>
+            <Text style={styles.fanTagText}>{current.fan} {current.tag || "Philly fan!"}</Text>
           </View>
         )}
         <View style={styles.ticket} testID="order-ticket">

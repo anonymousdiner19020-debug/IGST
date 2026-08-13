@@ -21,6 +21,7 @@ import LibertyBell from "@/src/components/LibertyBell";
 import DishIcon from "@/src/components/DishIcon";
 
 const BG = "https://images.unsplash.com/photo-1548696060-8fae845c6452?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwzfHxjb2xvcmZ1bCUyMGRpbmVyJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3ODY1NjY2Nzh8MA&ixlib=rb-4.1.0&q=85";
+const SKYLINE = require("../assets/philly_skyline.jpg");
 
 export default function Home() {
   const router = useRouter();
@@ -92,7 +93,13 @@ export default function Home() {
 
   if (needsName) {
     return (
-      <View style={styles.onboarding} testID="onboarding-screen">
+      <ImageBackground
+        source={SKYLINE}
+        style={styles.onboarding}
+        imageStyle={styles.onboardBgImg}
+        testID="onboarding-screen"
+      >
+        <View style={styles.onboardOverlay} />
         <View style={styles.onboardIcons}>
           <LoveStatue size={48} />
           <LibertyBell size={48} />
@@ -120,7 +127,7 @@ export default function Home() {
         >
           <Text style={styles.ctaText}>{creating ? "Cooking..." : "Start Cooking"}</Text>
         </Pressable>
-      </View>
+      </ImageBackground>
     );
   }
 
@@ -286,26 +293,37 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 64 },
   onboarding: {
     flex: 1,
-    backgroundColor: colors.surface,
     padding: spacing.xl,
+    paddingBottom: spacing.xxxl,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-end",
     gap: spacing.lg,
+  },
+  onboardBgImg: { resizeMode: "cover" },
+  onboardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(2, 20, 24, 0.55)",
   },
   emojiHero: { fontSize: 56 },
   onboardIcons: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.sm },
   title: {
     fontSize: 34,
     fontWeight: "900",
-    color: colors.surfaceInverse,
+    color: "#FFFFFF",
     textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.6)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   subtitle: {
     fontSize: 16,
-    color: colors.onSurface,
+    color: "#FFFFFF",
     textAlign: "center",
-    opacity: 0.7,
+    opacity: 0.9,
     marginBottom: spacing.md,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   inputWrap: { width: "100%" },
   input: {

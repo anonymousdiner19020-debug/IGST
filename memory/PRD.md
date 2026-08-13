@@ -46,3 +46,5 @@ Onboarding, Home (daily special banner, tappable coin chip → coin store, Rush/
 - Icons: ketchup(KetchupBottle SVG), egg/scrapple/porkroll (FoodIcons SVG), donut flavors (Donut SVG w/ glaze color + sprinkles) wired via IngredientIcon; donuts dish icon in DishIcon. Level-map now shows dish icon on locked cards (dimmed + lock badge). Random ~25% Philly sports-fan customer (team emoji jersey badge + "Philly fan!" tag) in serve.tsx buildCustomers.
 
 - Level order changed: Donuts moved to Lvl 4; American Hoagie..Pork Roll shifted +1 (now 5..12). unlock_level updated in dishes.ts + server.py; level-map sorts by unlock_level. Backend unlock keyed on unlock_level so chain intact.
+
+- Cake/pie photo icons wired (pb_cake, butterscotch_cake, chocolate_cake, mini_pie=glazed, apple_pie) + dish photos (american_hoagie, italian_hoagie, tomato_pie). happy_cakes topping cherry->apple_pie. Salt&Pepper twin-shaker SVG + Seasoning shaker. Fan streak bonus (25*streak coins, resets on miss/timeout) + team chant. NOTE: real team logos declined (copyright); using team colors/jersey. Skyline bg pending real asset (fries webp was watermarked AI content).

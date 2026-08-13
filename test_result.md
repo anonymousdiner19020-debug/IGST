@@ -294,3 +294,25 @@ frontend:
 agent_communication:
     - agent: "main"
       message: "Iteration 10: added levels 8-12 (Scrapple E&C, Seasoned Fries, Tomato Pie, Pork Roll E&C, Donuts) with their ingredients, and replaced mustard emoji with a custom cartoon mustard-bottle SVG everywhere. Please test: (1) backend /api/dishes returns 12 dishes; complete-level unlock chain works up through level 12; (2) frontend level-map shows all 12 levels; (3) each new level's game board shows only its base ingredients and completes to serve; (4) each new level's serve tray shows all non-carrier ingredients and orders are fulfillable; (5) mustard renders as a bottle icon (not emoji) on board tiles, recipe chips and serve tray. Anonymous UUID player via home onboarding."
+
+## ---- Iteration 11: onboarding skyline legibility fix + more photo icons ----
+frontend:
+  - task: "Onboarding legibility (title over skyline)"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/index.tsx"
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "BUG FIX: title was unreadable on the skyline background. Onboarding now uses ImageBackground(philly_skyline.jpg) with justifyContent flex-end so the skyline sits at top and content (icons/title/subtitle/input/Start Cooking) sits in the darker lower area. Title/subtitle now white with text shadow. Overlay rgba(2,20,24,0.55)."
+  - task: "Additional photo ingredient/dish icons"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/components/IngredientIcon.tsx, frontend/src/components/DishIcon.tsx"
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Wired photo icons: sprinkles, rootbeer (water_ice), pb_cake/butterscotch_cake/chocolate_cake/mini_pie/apple_pie (happy_cakes), dish photos american_hoagie/italian_hoagie/tomato_pie/seasoned_fries. happy_cakes chocolate_sauce removed (topping_options=['apple_pie']). Salt&pepper + seasoning shaker SVGs. Fan streak bonus (25*streak, resets on miss/timeout) + team chant."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 11. PRIMARY: verify onboarding legibility bug fix - on the first-launch onboarding screen (fresh player, no stored id), the 'Philly Food Frenzy' title + subtitle + 'Chef name' input + 'Start Cooking' button must be clearly readable in the lower area BELOW the skyline photo (not overlapping/washed out on the skyline). ALSO verify no regressions: (a) onboarding still creates a player and navigates to home; (b) water_ice serve shows the root beer photo icon; (c) happy_cakes serve tray no longer has a Chocolate(sauce) option (only Apple Pie topping); (d) serve/game screens for happy_cakes render the new cake/pie photo icons without crashing. Anonymous UUID player. To force onboarding, clear stored player. Deep-link serve e.g. /serve?dishId=water_ice&level=3&score=100&inventory=%7B%7D&movesLeft=10&daily=0."
