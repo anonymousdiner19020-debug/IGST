@@ -29,6 +29,8 @@ type Customer = {
   fan?: string; // Philly team emoji if this is a sports fan
   tag?: string; // fan flavor text
   rivalry?: string; // "whiz" or "provolone" cheesesteak mini-challenge
+  special?: boolean; // surprise "special order" with a rare extra topping
+  specialItem?: string; // the rare topping requested
 };
 
 const PATIENCE_MS = 15000;
@@ -58,21 +60,29 @@ const TEAM_STYLE: Record<string, { color: string; number: string; code: string; 
 };
 
 function buildCustomers(dish: Dish, toppings: string[], count: number, allFans = false): Customer[] {
-  const filteredDish = { ...dish, topping_options: toppings };
+  // Keep special-order extras out of the everyday topping pool so they only
+  // appear as surprise requests.
+  const specialSet = new Set(dish.special_options || []);
+  const normalToppings = toppings.filter((t) => !specialSet.has(t));
+  const filteredDish = { ...dish, topping_options: normalToppings };
   const list: Customer[] = [];
   for (let i = 0; i < count; i++) {
-    const order = generateCustomerOrder(filteredDish);
+    // ~22% of customers place a surprise special order for a rare extra.
+    const wantSpecial = Math.random() < 0.22 && (dish.special_options || []).length > 0;
+    const order = generateCustomerOrder(filteredDish, Math.random, wantSpecial);
     const isFan = allFans || Math.random() < 0.25;
     // Cheesesteak rivalry: some customers demand exactly Whiz or Provolone
     // (and refuse the other) as a mini-challenge.
     let wanted = order.wanted;
     let forbidden = order.forbidden;
+    let specialItem = order.specialItem;
     let rivalry: string | undefined;
     if (dish.id === "cheesesteak" && Math.random() < 0.4) {
       rivalry = Math.random() < 0.5 ? "whiz" : "provolone";
       const other = rivalry === "whiz" ? "provolone" : "whiz";
       wanted = [rivalry, ...order.wanted.filter((w) => w !== rivalry && w !== other)].slice(0, 2);
       forbidden = [other];
+      specialItem = undefined; // rivalry is its own challenge
     }
     list.push({
       avatar: CUSTOMER_AVATARS[Math.floor(Math.random() * CUSTOMER_AVATARS.length)],
@@ -81,6 +91,8 @@ function buildCustomers(dish: Dish, toppings: string[], count: number, allFans =
       fan: isFan ? PHILLY_TEAMS[Math.floor(Math.random() * PHILLY_TEAMS.length)] : undefined,
       tag: isFan ? FAN_TAGS[Math.floor(Math.random() * FAN_TAGS.length)] : undefined,
       rivalry,
+      special: !!specialItem,
+      specialItem,
     });
   }
   return list;
@@ -317,7 +329,16 @@ export default function Serve() {
         fanStreakRef.current = 0;
       }
       const fanLabel = fanBonus > 0 ? ` +${fanBonus} 🪙 fan tip` : "";
-      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}${fanLabel}` });
+      // Special order bonus for nailing a surprise request.
+      let specialBonus = 0;
+      if (current.special) {
+        specialBonus = 50;
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {}
+      }
+      const specialLabel = specialBonus > 0 ? ` ⭐ +${specialBonus} 🪙 special!` : "";
+      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}${fanLabel}${specialLabel}` });
       // Streak jackpot at 2.5x multiplier or higher (4+ consecutive perfects)
       let jackpotBonus = 0;
       if (mult >= 2.5) {
@@ -329,7 +350,7 @@ export default function Serve() {
         } catch {}
         setTimeout(() => setJackpot(null), 1400);
       }
-      nextCustomer(tip + jackpotBonus + fanBonus, Math.round((100 + speedBonus) * mult), true, bellTip);
+      nextCustomer(tip + jackpotBonus + fanBonus + specialBonus, Math.round((100 + speedBonus) * mult), true, bellTip);
     } else {
       const partial = Math.max(0, current.wanted.length - missing.length - extra.length);
       const dailyMult = isDaily ? 2 : 1;
@@ -475,18 +496,34 @@ export default function Serve() {
               </Text>
             </View>
           )}
+          {current.special && (
+            <View style={styles.specialTag} testID="special-tag">
+              <Text style={styles.specialText}>⭐ SPECIAL ORDER • BONUS TIP!</Text>
+            </View>
+          )}
           <View style={styles.ticketTitleRow}>
             <DishIcon id={dish.id} emoji={dish.emoji} size={24} />
             <Text style={styles.ticketTitle}>{dish.name}</Text>
           </View>
           <View style={styles.ticketDivider} />
-          {current.wanted.map((w) => (
-            <View key={w} style={styles.ticketRow} testID={`want-${w}`}>
-              <Text style={styles.ticketPlus}>＋</Text>
-              <Text style={styles.ticketItem}>{INGREDIENTS[w]?.label || w}</Text>
-              <IngredientIcon id={w} emoji={INGREDIENTS[w]?.emoji} size={22} />
-            </View>
-          ))}
+          {current.wanted.map((w) => {
+            const isSpecial = current.special && w === current.specialItem;
+            return (
+              <View
+                key={w}
+                style={[styles.ticketRow, isSpecial && styles.ticketRowSpecial]}
+                testID={`want-${w}`}
+              >
+                <Text style={[styles.ticketPlus, isSpecial && { color: "#B7791F" }]}>
+                  {isSpecial ? "⭐" : "＋"}
+                </Text>
+                <Text style={[styles.ticketItem, isSpecial && styles.ticketItemSpecial]}>
+                  {INGREDIENTS[w]?.label || w}
+                </Text>
+                <IngredientIcon id={w} emoji={INGREDIENTS[w]?.emoji} size={22} />
+              </View>
+            );
+          })}
           {current.forbidden.map((f) => (
             <View key={f} style={styles.ticketRow} testID={`no-${f}`}>
               <Text style={styles.ticketNo}>NO</Text>
@@ -800,6 +837,24 @@ const styles = StyleSheet.create({
     borderColor: colors.surfaceInverse,
   },
   rivalryText: { fontSize: 12, fontWeight: "900", color: "#5A3E00" },
+  specialTag: {
+    alignSelf: "center",
+    backgroundColor: "#FFF3C4",
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    marginBottom: spacing.xs,
+    borderWidth: 2,
+    borderColor: "#F0B429",
+  },
+  specialText: { fontSize: 11, fontWeight: "900", color: "#B7791F", letterSpacing: 0.3 },
+  ticketRowSpecial: {
+    backgroundColor: "#FFF8E1",
+    borderRadius: radius.sm,
+    paddingHorizontal: 6,
+    marginVertical: 1,
+  },
+  ticketItemSpecial: { color: "#B7791F", fontWeight: "900" },
   ticketDivider: { height: 2, backgroundColor: colors.divider, marginVertical: spacing.sm },
   ticketRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: 3 },
   ticketPlus: { fontSize: 14, fontWeight: "900", color: colors.success, width: 24 },
