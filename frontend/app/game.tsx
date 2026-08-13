@@ -280,12 +280,12 @@ export default function Game() {
                     onPress={() => handleTileTap(r, c)}
                     style={[
                       styles.tile,
-                      { width: TILE, height: TILE, backgroundColor: ing?.color || colors.surfaceTertiary },
+                      { width: TILE, height: TILE },
                       isSel && styles.tileSelected,
                       isFlash && styles.tileFlash,
                     ]}
                   >
-                    <IngredientIcon id={cell} emoji={ing?.emoji} size={TILE * 0.62} />
+                    <IngredientIcon id={cell} emoji={ing?.emoji} size={TILE * 0.82} />
                   </Pressable>
                 );
               })}
@@ -434,10 +434,8 @@ const styles = StyleSheet.create({
     margin: 2,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.4)",
   },
-  tileSelected: { borderColor: colors.surfaceInverse, borderWidth: 3, transform: [{ scale: 1.08 }] },
+  tileSelected: { borderWidth: 3, borderColor: colors.brand, borderRadius: radius.md, transform: [{ scale: 1.12 }] },
   tileFlash: { opacity: 0.3, transform: [{ scale: 0.82 }] },
   orderPanel: {
     marginTop: "auto",
