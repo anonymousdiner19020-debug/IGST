@@ -88,6 +88,29 @@ export default function Profile() {
             <StatCard label="DISHES COOKED" value={player.dishes_cooked} emoji="🍽" />
           </View>
 
+          {(() => {
+            const fs = player.fan_served || {};
+            const entries = Object.entries(fs);
+            if (entries.length === 0) return null;
+            const teams: Record<string, string> = {
+              eagles: "🦅 Eagles",
+              phillies: "⚾ Phillies",
+              sixers: "🏀 Sixers",
+              flyers: "🏒 Flyers",
+            };
+            const [topCode, topCount] = entries.sort((a, b) => b[1] - a[1])[0];
+            const total = entries.reduce((s, [, v]) => s + v, 0);
+            return (
+              <View style={styles.fanStatCard} testID="top-team-stat">
+                <Text style={styles.fanStatLabel}>YOUR TEAM</Text>
+                <Text style={styles.fanStatTeam}>{teams[topCode] || topCode} superfan</Text>
+                <Text style={styles.fanStatSub}>
+                  Served {topCount} {teams[topCode]?.split(" ")[1] || ""} fans · {total} Philly fans total
+                </Text>
+              </View>
+            );
+          })()}
+
           <Text style={styles.sectionTitle}>Unlocked Dishes</Text>
           <View style={styles.dishGrid}>
             {FALLBACK_DISHES.map((d) => {
@@ -192,6 +215,19 @@ const styles = StyleSheet.create({
   champLine: { fontSize: 13, fontWeight: "900", color: colors.brand, marginBottom: spacing.md },
   subline: { fontSize: 13, fontWeight: "700", color: colors.brandSecondary, marginBottom: spacing.md },
   statsRow: { flexDirection: "row", gap: spacing.md, width: "100%" },
+  fanStatCard: {
+    width: "100%",
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: colors.brandSecondary,
+  },
+  fanStatLabel: { fontSize: 11, fontWeight: "800", color: colors.onSurface, opacity: 0.6, letterSpacing: 1 },
+  fanStatTeam: { fontSize: 18, fontWeight: "900", color: colors.surfaceInverse, marginTop: 2 },
+  fanStatSub: { fontSize: 12, fontWeight: "600", color: colors.onSurface, opacity: 0.8, marginTop: 2, textAlign: "center" },
   statCard: {
     flex: 1,
     backgroundColor: colors.surface,

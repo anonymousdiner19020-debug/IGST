@@ -28,6 +28,7 @@ type Customer = {
   forbidden: string[];
   fan?: string; // Philly team emoji if this is a sports fan
   tag?: string; // fan flavor text
+  rivalry?: string; // "whiz" or "provolone" cheesesteak mini-challenge
 };
 
 const PATIENCE_MS = 15000;
@@ -49,11 +50,11 @@ function pickChant(team: string): string {
 const FAN_TAGS = ["Philly fan!", "It's a Philly thing!", "Philly proud!", "Repping Philly!"];
 
 // Official team colors + a jersey number for each Philly team.
-const TEAM_STYLE: Record<string, { color: string; number: string }> = {
-  "🦅": { color: "#004C54", number: "9" },
-  "⚾": { color: "#E81828", number: "3" },
-  "🏀": { color: "#006BB6", number: "21" },
-  "🏒": { color: "#F74902", number: "88" },
+const TEAM_STYLE: Record<string, { color: string; number: string; code: string; name: string }> = {
+  "🦅": { color: "#004C54", number: "9", code: "eagles", name: "Eagles" },
+  "⚾": { color: "#E81828", number: "3", code: "phillies", name: "Phillies" },
+  "🏀": { color: "#006BB6", number: "21", code: "sixers", name: "Sixers" },
+  "🏒": { color: "#F74902", number: "88", code: "flyers", name: "Flyers" },
 };
 
 function buildCustomers(dish: Dish, toppings: string[], count: number, allFans = false): Customer[] {
@@ -62,12 +63,24 @@ function buildCustomers(dish: Dish, toppings: string[], count: number, allFans =
   for (let i = 0; i < count; i++) {
     const order = generateCustomerOrder(filteredDish);
     const isFan = allFans || Math.random() < 0.25;
+    // Cheesesteak rivalry: some customers demand exactly Whiz or Provolone
+    // (and refuse the other) as a mini-challenge.
+    let wanted = order.wanted;
+    let forbidden = order.forbidden;
+    let rivalry: string | undefined;
+    if (dish.id === "cheesesteak" && Math.random() < 0.4) {
+      rivalry = Math.random() < 0.5 ? "whiz" : "provolone";
+      const other = rivalry === "whiz" ? "provolone" : "whiz";
+      wanted = [rivalry, ...order.wanted.filter((w) => w !== rivalry && w !== other)].slice(0, 2);
+      forbidden = [other];
+    }
     list.push({
       avatar: CUSTOMER_AVATARS[Math.floor(Math.random() * CUSTOMER_AVATARS.length)],
-      wanted: order.wanted,
-      forbidden: order.forbidden,
+      wanted,
+      forbidden,
       fan: isFan ? PHILLY_TEAMS[Math.floor(Math.random() * PHILLY_TEAMS.length)] : undefined,
       tag: isFan ? FAN_TAGS[Math.floor(Math.random() * FAN_TAGS.length)] : undefined,
+      rivalry,
     });
   }
   return list;
@@ -295,6 +308,10 @@ export default function Serve() {
         const streakTag = fs >= 2 ? `  🔥 ${fs} fans!` : "";
         setChant(pickChant(current.fan) + streakTag);
         sound.play("cheer");
+        const code = TEAM_STYLE[current.fan]?.code;
+        if (code) {
+          playerStorage.get().then((id) => id && api.servedFan(id, code).catch(() => {}));
+        }
         setTimeout(() => setChant(null), 1500);
       } else {
         fanStreakRef.current = 0;
@@ -451,6 +468,13 @@ export default function Serve() {
           </View>
         )}
         <View style={styles.ticket} testID="order-ticket">
+          {current.rivalry && (
+            <View style={styles.rivalryTag} testID="rivalry-tag">
+              <Text style={styles.rivalryText}>
+                🧀 {current.rivalry === "whiz" ? "WHIZ" : "PROVOLONE"} ONLY!
+              </Text>
+            </View>
+          )}
           <View style={styles.ticketTitleRow}>
             <DishIcon id={dish.id} emoji={dish.emoji} size={24} />
             <Text style={styles.ticketTitle}>{dish.name}</Text>
@@ -766,6 +790,17 @@ const styles = StyleSheet.create({
   },
   ticketTitle: { fontSize: 18, fontWeight: "900", color: colors.surfaceInverse, textAlign: "center" },
   ticketTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs },
+  rivalryTag: {
+    alignSelf: "center",
+    backgroundColor: "#F0B429",
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    marginBottom: spacing.xs,
+    borderWidth: 2,
+    borderColor: colors.surfaceInverse,
+  },
+  rivalryText: { fontSize: 12, fontWeight: "900", color: "#5A3E00" },
   ticketDivider: { height: 2, backgroundColor: colors.divider, marginVertical: spacing.sm },
   ticketRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: 3 },
   ticketPlus: { fontSize: 14, fontWeight: "900", color: colors.success, width: 24 },

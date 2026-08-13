@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Header, Body
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -158,6 +158,7 @@ def player_public(doc: dict) -> dict:
         "crown": doc.get("crown", False),
         "champion_weeks": doc.get("champion_weeks", []),
         "stars": doc.get("stars", {}),
+        "fan_served": doc.get("fan_served", {}),
         "daily_streak": doc.get("daily_streak", 0),
         "last_reward_date": doc.get("last_reward_date"),
         "created_at": doc.get("created_at", ""),
@@ -289,6 +290,7 @@ async def create_player(payload: PlayerCreate):
         "crown": False,
         "champion_weeks": [],
         "stars": {},
+        "fan_served": {},
         "daily_streak": 0,
         "last_reward_date": None,
         "weekly": {"week": current_week_key(), "score": 0},
@@ -682,6 +684,15 @@ async def claim_daily_reward(player_id: str):
     )
     updated = await db.players.find_one({"id": player_id}, {"_id": 0})
     return {"reward": reward, "streak": new_streak, "player": player_public(updated)}
+
+
+@api_router.post("/players/{player_id}/served-fan")
+async def served_fan(player_id: str, payload: dict = Body(...)):
+    team = payload.get("team")
+    if not team:
+        raise HTTPException(status_code=400, detail="team required")
+    await db.players.update_one({"id": player_id}, {"$inc": {f"fan_served.{team}": 1}})
+    return {"ok": True}
 
 
 @api_router.post("/revenuecat/webhook")

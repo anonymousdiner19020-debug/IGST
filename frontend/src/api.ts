@@ -32,6 +32,7 @@ export type PlayerDTO = {
   crown?: boolean;
   champion_weeks?: string[];
   stars?: Record<string, number>;
+  fan_served?: Record<string, number>;
   daily_streak?: number;
   last_reward_date?: string | null;
   created_at: string;
@@ -156,10 +157,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ amount }),
     }),
-  getDailyReward: (id: string) => req<DailyRewardStatus>(`/players/${id}/daily-reward`),
-  claimDailyReward: (id: string) =>
+  getDailyReward: (id: string) => req<DailyRewardStatus>(`/players/${id}/daily-reward`),  claimDailyReward: (id: string) =>
     req<{ reward: { coins: number; bells: number; day: number }; streak: number; player: PlayerDTO }>(
       `/players/${id}/claim-daily-reward`,
       { method: "POST" }
     ),
+  servedFan: (id: string, team: string) =>
+    req<{ ok: boolean }>(`/players/${id}/served-fan`, {
+      method: "POST",
+      body: JSON.stringify({ team }),
+    }),
 };
