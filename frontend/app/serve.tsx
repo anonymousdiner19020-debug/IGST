@@ -584,7 +584,6 @@ export default function Serve() {
                 onPress={() => toggleTopping(t)}
                 style={({ pressed }) => [
                   styles.trayItem,
-                  { backgroundColor: info?.color || colors.surfaceSecondary },
                   active && styles.trayItemActive,
                   pressed && { transform: [{ scale: 0.93 }] },
                 ]}
@@ -947,11 +946,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
-    borderColor: "rgba(0,0,0,0.12)",
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: "rgba(0,0,0,0.10)",
     gap: 2,
   },
-  trayItemActive: { borderColor: colors.surfaceInverse, transform: [{ scale: 1.05 }] },
+  trayItemActive: { borderColor: colors.brand, borderWidth: 3, transform: [{ scale: 1.06 }] },
   trayEmoji: { fontSize: 26 },
   trayLabel: { fontSize: 9, fontWeight: "900", color: colors.surfaceInverse, textAlign: "center" },
   trayCheck: {
