@@ -17,6 +17,7 @@ const MINI_PIE = require("../../assets/glazed_pie.png");
 const APPLE_PIE = require("../../assets/apple_pie.png");
 const SPRINKLES = require("../../assets/sprinkles.webp");
 const ROOTBEER = require("../../assets/rootbeer.webp");
+const MAYO = require("../../assets/mayo.png");
 
 type Props = {
   id?: string;
@@ -47,6 +48,7 @@ export function IngredientIcon({ id, emoji, size = 24, style }: Props) {
   if (id === "apple_pie") return <PhotoIngredient size={size} src={APPLE_PIE} />;
   if (id === "sprinkles") return <PhotoIngredient size={size} src={SPRINKLES} />;
   if (id === "rootbeer") return <PhotoIngredient size={size} src={ROOTBEER} />;
+  if (id === "mayo") return <PhotoIngredient size={size} src={MAYO} />;
   if (id === "vanilla_donut") return <Donut size={size} glaze="#EFDDB0" />;
   if (id === "chocolate_donut") return <Donut size={size} glaze="#6B4226" />;
   if (id === "strawberry_donut") return <Donut size={size} glaze="#F2A0B4" sprinkles />;
