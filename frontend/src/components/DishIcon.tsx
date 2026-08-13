@@ -5,6 +5,7 @@ import Cheesesteak from "./Cheesesteak";
 import SoftPretzel from "./SoftPretzel";
 import RoastPork from "./RoastPork";
 import WaterIce from "./WaterIce";
+import { Donut } from "./FoodIcons";
 
 type Props = {
   id?: string;
@@ -19,6 +20,7 @@ export function DishIcon({ id, emoji, size = 32, style }: Props) {
   if (id === "soft_pretzel") return <SoftPretzel size={size} />;
   if (id === "roast_pork") return <RoastPork size={size} />;
   if (id === "water_ice") return <WaterIce size={size} />;
+  if (id === "donuts") return <Donut size={size} glaze="#F2A0B4" sprinkles />;
   return <Text style={[{ fontSize: size * 0.92 }, style]}>{emoji}</Text>;
 }
 

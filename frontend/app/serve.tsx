@@ -25,19 +25,25 @@ type Customer = {
   avatar: string;
   wanted: string[];
   forbidden: string[];
+  fan?: string; // Philly team emoji if this is a sports fan
 };
 
 const PATIENCE_MS = 15000;
+
+// Philly sports teams — fans occasionally show up repping their colors.
+const PHILLY_TEAMS = ["🦅", "⚾", "🏀", "🏒"];
 
 function buildCustomers(dish: Dish, toppings: string[], count: number): Customer[] {
   const filteredDish = { ...dish, topping_options: toppings };
   const list: Customer[] = [];
   for (let i = 0; i < count; i++) {
     const order = generateCustomerOrder(filteredDish);
+    const isFan = Math.random() < 0.25;
     list.push({
       avatar: CUSTOMER_AVATARS[Math.floor(Math.random() * CUSTOMER_AVATARS.length)],
       wanted: order.wanted,
       forbidden: order.forbidden,
+      fan: isFan ? PHILLY_TEAMS[Math.floor(Math.random() * PHILLY_TEAMS.length)] : undefined,
     });
   }
   return list;
@@ -379,7 +385,18 @@ export default function Serve() {
         <View style={styles.avatarWrap}>
           <Text style={styles.customerAvatar}>{current.avatar}</Text>
           <Text style={styles.moodBubble} testID="customer-mood">{mood}</Text>
+          {current.fan && (
+            <View style={styles.fanBadge} testID="fan-badge">
+              <Text style={styles.fanJersey}>👕</Text>
+              <Text style={styles.fanTeam}>{current.fan}</Text>
+            </View>
+          )}
         </View>
+        {current.fan && (
+          <View style={styles.fanTag} testID="fan-tag">
+            <Text style={styles.fanTagText}>{current.fan} Philly fan!</Text>
+          </View>
+        )}
         <View style={styles.ticket} testID="order-ticket">
           <View style={styles.ticketTitleRow}>
             <DishIcon id={dish.id} emoji={dish.emoji} size={24} />
@@ -608,6 +625,25 @@ const styles = StyleSheet.create({
     right: -14,
     fontSize: 26,
   },
+  fanBadge: {
+    position: "absolute",
+    bottom: -6,
+    left: -16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fanJersey: { fontSize: 26 },
+  fanTeam: { position: "absolute", fontSize: 13, top: 5 },
+  fanTag: {
+    marginTop: spacing.xs,
+    backgroundColor: colors.brand,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    borderWidth: 2,
+    borderColor: colors.surfaceInverse,
+  },
+  fanTagText: { fontSize: 12, fontWeight: "900", color: colors.onBrand },
   milestoneOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",

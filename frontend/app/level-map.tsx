@@ -70,11 +70,16 @@ export default function LevelMap() {
                   pressed && unlocked && { transform: [{ scale: 0.95 }] },
                 ]}
               >
-                {unlocked ? (
-                  <DishIcon id={dish.id} emoji={dish.emoji} size={44} />
-                ) : (
-                  <Text style={styles.nodeEmoji}>🔒</Text>
-                )}
+                <View style={styles.previewWrap}>
+                  <View style={!unlocked && styles.previewLocked}>
+                    <DishIcon id={dish.id} emoji={dish.emoji} size={48} />
+                  </View>
+                  {!unlocked && (
+                    <View style={styles.lockBadge}>
+                      <Text style={styles.lockBadgeText}>🔒</Text>
+                    </View>
+                  )}
+                </View>
                 <Text
                   style={[
                     styles.nodeLevel,
@@ -195,6 +200,22 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   nodeEmoji: { fontSize: 44 },
+  previewWrap: { alignItems: "center", justifyContent: "center" },
+  previewLocked: { opacity: 0.35 },
+  lockBadge: {
+    position: "absolute",
+    bottom: -4,
+    right: -10,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+  },
+  lockBadgeText: { fontSize: 12 },
   nodeLevel: { fontSize: 12, fontWeight: "900", color: colors.surfaceInverse, letterSpacing: 1 },
   nodeName: { fontSize: 15, fontWeight: "800", color: colors.surfaceInverse },
   starRow: { flexDirection: "row", gap: 2, marginTop: 2 },
