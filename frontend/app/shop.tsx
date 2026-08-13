@@ -10,9 +10,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { api, PlayerDTO, UpgradesInfo } from "@/src/api";
+import { api, PlayerDTO, UpgradesInfo, DailyRewardStatus } from "@/src/api";
 import { playerStorage } from "@/src/storage";
 import { colors, radius, shadow, spacing } from "@/src/theme";
+import LibertyBell from "@/src/components/LibertyBell";
 
 type ShopItem = { id: string; name: string; emoji: string; cost: number; type: string };
 const UPGRADE_ORDER = ["grill", "plates", "pantry", "holding"];
@@ -26,6 +27,8 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [daily, setDaily] = useState<DailyRewardStatus | null>(null);
+  const [claiming, setClaiming] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -41,10 +44,28 @@ export default function Shop() {
         const [p, u] = await Promise.all([api.getPlayer(id), api.getUpgradesInfo(id)]);
         setPlayer(p);
         setUpgrades(u);
+        try {
+          setDaily(await api.getDailyReward(id));
+        } catch {}
       }
     } catch {}
     setLoading(false);
   }, []);
+
+  const claimReward = async () => {
+    if (!player || !daily?.claimable) return;
+    setClaiming(true);
+    try {
+      const res = await api.claimDailyReward(player.id);
+      setPlayer(res.player);
+      setDaily(await api.getDailyReward(player.id));
+      const b = res.reward.bells > 0 ? ` +${res.reward.bells} 🔔` : "";
+      showToast(`Day ${res.reward.day} reward! +${res.reward.coins} 🪙${b}`);
+    } catch {
+      showToast("Already claimed today");
+    }
+    setClaiming(false);
+  };
 
   useEffect(() => {
     load();
@@ -111,6 +132,65 @@ export default function Shop() {
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.xl }]}
         >
+          {daily && (
+            <View style={styles.dailyCard} testID="daily-reward-card">
+              <View style={styles.dailyTop}>
+                <Text style={styles.dailyGift}>🎁</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dailyTitle}>Daily Reward</Text>
+                  <Text style={styles.dailyStreak}>
+                    🔥 {daily.streak} day streak
+                    {daily.reward.bells > 0 ? "  •  includes bells!" : ""}
+                  </Text>
+                </View>
+                <View style={styles.dailyAmount}>
+                  <Text style={styles.dailyCoins}>+{daily.reward.coins} 🪙</Text>
+                  {daily.reward.bells > 0 && (
+                    <View style={styles.dailyBells}>
+                      <Text style={styles.dailyCoins}>+{daily.reward.bells}</Text>
+                      <LibertyBell size={16} />
+                    </View>
+                  )}
+                </View>
+              </View>
+              <View style={styles.dailyCycle}>
+                {daily.cycle.map((r, i) => {
+                  const day = i + 1;
+                  const claimed = day < daily.reward.day || (!daily.claimable && day === daily.reward.day);
+                  const isToday = daily.claimable && day === daily.reward.day;
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.cycleDot,
+                        claimed && styles.cycleDotDone,
+                        isToday && styles.cycleDotToday,
+                      ]}
+                    >
+                      <Text style={[styles.cycleDayText, (claimed || isToday) && { color: "#FFFFFF" }]}>
+                        {r.bells > 0 ? "🔔" : day}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+              <Pressable
+                testID="claim-reward-button"
+                disabled={!daily.claimable || claiming}
+                onPress={claimReward}
+                style={({ pressed }) => [
+                  styles.claimBtn,
+                  !daily.claimable && styles.disabled,
+                  pressed && daily.claimable && { transform: [{ scale: 0.97 }] },
+                ]}
+              >
+                <Text style={styles.claimBtnText}>
+                  {claiming ? "…" : daily.claimable ? "CLAIM REWARD" : "Come back tomorrow ✓"}
+                </Text>
+              </Pressable>
+            </View>
+          )}
+
           <Pressable
             testID="buy-coins-banner"
             onPress={() => router.push("/coin-store")}
@@ -245,6 +325,45 @@ const styles = StyleSheet.create({
   coinText: { fontSize: 14, fontWeight: "900", color: colors.onBrand },
   plus: { fontSize: 16, fontWeight: "900", color: colors.onBrand, marginLeft: 2 },
   scrollContent: { padding: spacing.lg, gap: spacing.md },
+  dailyCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+    ...shadow.tier2,
+    borderWidth: 3,
+    borderColor: colors.brandSecondary,
+  },
+  dailyTop: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  dailyGift: { fontSize: 40 },
+  dailyTitle: { fontSize: 18, fontWeight: "900", color: colors.surfaceInverse },
+  dailyStreak: { fontSize: 12, fontWeight: "700", color: colors.surfaceInverse, opacity: 0.65, marginTop: 2 },
+  dailyAmount: { alignItems: "flex-end", gap: 2 },
+  dailyCoins: { fontSize: 16, fontWeight: "900", color: colors.surfaceInverse },
+  dailyBells: { flexDirection: "row", alignItems: "center", gap: 4 },
+  dailyCycle: { flexDirection: "row", justifyContent: "space-between" },
+  cycleDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  cycleDotDone: { backgroundColor: colors.success, borderColor: colors.surfaceInverse },
+  cycleDotToday: { backgroundColor: colors.brandSecondary, borderColor: colors.surfaceInverse },
+  cycleDayText: { fontSize: 13, fontWeight: "900", color: colors.surfaceInverse },
+  claimBtn: {
+    backgroundColor: colors.brandSecondary,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: colors.surfaceInverse,
+  },
+  claimBtnText: { fontSize: 16, fontWeight: "900", color: colors.onBrandSecondary, letterSpacing: 1 },
   coinBanner: {
     flexDirection: "row",
     alignItems: "center",

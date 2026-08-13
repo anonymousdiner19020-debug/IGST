@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FALLBACK_DISHES, INGREDIENTS } from "@/src/constants/dishes";
 import { api } from "@/src/api";
 import DishIcon from "@/src/components/DishIcon";
-import { playerStorage } from "@/src/storage";
+import { playerStorage, flagStorage } from "@/src/storage";
 import {
   BOARD_SIZE,
   Cell,
@@ -67,6 +67,19 @@ export default function Game() {
   const [combo, setCombo] = useState(0);
   const [grillLevel, setGrillLevel] = useState(0);
   const [isDaily, setIsDaily] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (dish.id !== "soft_pretzel") return;
+    (async () => {
+      if (!(await flagStorage.seen("tutorial_pretzel"))) setShowTutorial(true);
+    })();
+  }, [dish.id]);
+
+  const dismissTutorial = () => {
+    flagStorage.mark("tutorial_pretzel");
+    setShowTutorial(false);
+  };
 
   useEffect(() => {
     sound.preload();
@@ -332,6 +345,40 @@ export default function Game() {
           })}
         </ScrollView>
       </View>
+
+      {showTutorial && (
+        <View style={styles.tutorialOverlay} testID="tutorial-overlay">
+          <View style={styles.tutorialCard}>
+            <DishIcon id={dish.id} emoji={dish.emoji} size={56} />
+            <Text style={styles.tutorialTitle}>How to Play</Text>
+            <View style={styles.tutorialStep}>
+              <Text style={styles.tutorialNum}>1</Text>
+              <Text style={styles.tutorialText}>
+                Swap two touching tiles to line up 3+ of the same ingredient.
+              </Text>
+            </View>
+            <View style={styles.tutorialStep}>
+              <Text style={styles.tutorialNum}>2</Text>
+              <Text style={styles.tutorialText}>
+                Collect every item in the recipe list below to open the counter.
+              </Text>
+            </View>
+            <View style={styles.tutorialStep}>
+              <Text style={styles.tutorialNum}>3</Text>
+              <Text style={styles.tutorialText}>
+                Then build each customer&apos;s order and hit SERVE before their patience runs out!
+              </Text>
+            </View>
+            <Pressable
+              testID="tutorial-got-it"
+              onPress={dismissTutorial}
+              style={({ pressed }) => [styles.tutorialBtn, pressed && { transform: [{ scale: 0.96 }] }]}
+            >
+              <Text style={styles.tutorialBtnText}>Got it! 👨‍🍳</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -433,4 +480,50 @@ const styles = StyleSheet.create({
   recipeEmoji: { fontSize: 20 },
   recipeCount: { fontSize: 13, fontWeight: "900", color: colors.surfaceInverse, marginTop: 2 },
   recipeCountDone: { color: colors.onSuccess },
+  tutorialOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.overlay,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+    zIndex: 100,
+  },
+  tutorialCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    alignItems: "center",
+    gap: spacing.md,
+    borderWidth: 3,
+    borderColor: colors.brand,
+    ...shadow.tier3,
+  },
+  tutorialTitle: { fontSize: 22, fontWeight: "900", color: colors.surfaceInverse },
+  tutorialStep: { flexDirection: "row", alignItems: "center", gap: spacing.md, width: "100%" },
+  tutorialNum: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.brand,
+    color: colors.onBrand,
+    fontWeight: "900",
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 28,
+    overflow: "hidden",
+  },
+  tutorialText: { flex: 1, fontSize: 14, fontWeight: "700", color: colors.surfaceInverse, lineHeight: 19 },
+  tutorialBtn: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.brandSecondary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xxxl,
+    borderRadius: radius.pill,
+    borderWidth: 3,
+    borderColor: colors.surfaceInverse,
+    ...shadow.tier2,
+  },
+  tutorialBtnText: { fontSize: 18, fontWeight: "900", color: colors.onBrandSecondary, letterSpacing: 1 },
 });

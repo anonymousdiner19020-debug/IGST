@@ -663,3 +663,131 @@ class TestRevenueCatBells:
         assert r2.status_code == 200
         assert r2.json().get("duplicate") is True
         assert client.get(f"{API}/players/{pid}").json()["bells"] == base + 20
+
+
+
+# ---------- Iteration 8: Daily Reward + Level Stars ----------
+DAILY_REWARDS_EXPECTED = [
+    {"coins": 25, "bells": 0},
+    {"coins": 40, "bells": 0},
+    {"coins": 60, "bells": 1},
+    {"coins": 80, "bells": 0},
+    {"coins": 100, "bells": 1},
+    {"coins": 120, "bells": 0},
+    {"coins": 150, "bells": 2},
+]
+
+
+class TestDailyReward:
+    def test_new_player_daily_reward_status_shape(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_DailyNew"}).json()["id"]
+        r = client.get(f"{API}/players/{pid}/daily-reward")
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert set(["claimable", "streak", "next_streak", "reward", "cycle"]).issubset(d)
+        assert d["claimable"] is True
+        assert d["streak"] == 0
+        assert d["next_streak"] == 1
+        assert d["reward"]["day"] == 1
+        assert d["reward"]["coins"] == 25 and d["reward"]["bells"] == 0
+        # 7-item cycle matches server constant
+        assert d["cycle"] == DAILY_REWARDS_EXPECTED
+
+    def test_claim_grants_coins_bells_and_increments_streak(self, client):
+        p = client.post(f"{API}/players", json={"username": "TEST_DailyClaim"}).json()
+        pid = p["id"]
+        base_coins, base_bells = p["coins"], p["bells"]
+        r = client.post(f"{API}/players/{pid}/claim-daily-reward")
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["streak"] == 1
+        assert body["reward"] == {"coins": 25, "bells": 0, "day": 1}
+        pl = body["player"]
+        assert pl["coins"] == base_coins + 25
+        assert pl["bells"] == base_bells + 0
+        assert pl["daily_streak"] == 1
+        assert pl["last_reward_date"] is not None
+        # GET verifies persistence
+        g = client.get(f"{API}/players/{pid}").json()
+        assert g["coins"] == base_coins + 25
+        assert g["daily_streak"] == 1
+
+    def test_second_claim_same_day_returns_400(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_DailyTwice"}).json()["id"]
+        r1 = client.post(f"{API}/players/{pid}/claim-daily-reward")
+        assert r1.status_code == 200, r1.text
+        # Status after claim: not claimable
+        s = client.get(f"{API}/players/{pid}/daily-reward").json()
+        assert s["claimable"] is False
+        assert s["streak"] == 1
+        # Second claim same UTC-day rejected
+        r2 = client.post(f"{API}/players/{pid}/claim-daily-reward")
+        assert r2.status_code == 400
+        assert "Already" in r2.json().get("detail", "") or "already" in r2.json().get("detail", "")
+
+    def test_daily_reward_404(self, client):
+        r1 = client.get(f"{API}/players/does-not-exist/daily-reward")
+        assert r1.status_code == 404
+        r2 = client.post(f"{API}/players/does-not-exist/claim-daily-reward")
+        assert r2.status_code == 404
+
+
+class TestLevelStars:
+    def test_complete_level_stores_stars_and_keeps_best(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_Stars"}).json()["id"]
+        # First attempt at level 1: 2 stars
+        r = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 1, "dish_id": "soft_pretzel", "score": 100,
+            "coins_earned": 10, "completed": True, "stars": 2,
+        })
+        assert r.status_code == 200, r.text
+        assert r.json()["stars"] == {"1": 2}
+        g = client.get(f"{API}/players/{pid}").json()
+        assert g["stars"] == {"1": 2}
+
+        # Re-do level 1 with 3 stars -> upgrades to 3
+        r2 = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 1, "dish_id": "soft_pretzel", "score": 120,
+            "coins_earned": 10, "completed": True, "stars": 3,
+        })
+        assert r2.json()["stars"] == {"1": 3}
+
+        # Re-do level 1 with 1 star -> should NOT downgrade
+        r3 = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 1, "dish_id": "soft_pretzel", "score": 50,
+            "coins_earned": 5, "completed": True, "stars": 1,
+        })
+        assert r3.json()["stars"] == {"1": 3}
+
+        # Complete level 2 with 2 stars -> dict now has both
+        r4 = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 2, "dish_id": "happy_cakes", "score": 200,
+            "coins_earned": 15, "completed": True, "stars": 2,
+        })
+        stars = r4.json()["stars"]
+        assert stars["1"] == 3 and stars["2"] == 2
+
+    def test_stars_zero_not_stored(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_StarsZero"}).json()["id"]
+        r = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 1, "dish_id": "soft_pretzel", "score": 10,
+            "coins_earned": 1, "completed": True, "stars": 0,
+        })
+        assert r.status_code == 200
+        # No key for level 1 since stars <= 0
+        assert r.json()["stars"] == {}
+
+    def test_stars_ignored_when_not_completed(self, client):
+        pid = client.post(f"{API}/players", json={"username": "TEST_StarsFail"}).json()["id"]
+        r = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 1, "dish_id": "soft_pretzel", "score": 10,
+            "coins_earned": 1, "completed": False, "stars": 3,
+        })
+        assert r.status_code == 200
+        assert r.json()["stars"] == {}
+
+    def test_new_player_stars_default_empty(self, client):
+        p = client.post(f"{API}/players", json={"username": "TEST_StarsNew"}).json()
+        assert p["stars"] == {}
+        assert p["daily_streak"] == 0
+        assert p["last_reward_date"] is None

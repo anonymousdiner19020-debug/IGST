@@ -3,11 +3,11 @@ import { Image, StyleSheet, View } from "react-native";
 
 type Props = { size?: number };
 
-const SRC = require("../../assets/soft_pretzel.jpeg");
+const SRC = require("../../assets/roast_pork.jpeg");
 
-// Real photographic Philly soft pretzel. Rendered inside a circular white
-// chip so it looks clean and consistent on any background color.
-export function SoftPretzel({ size = 32 }: Props) {
+// Real photographic Philly roast pork sandwich. Rendered inside a circular
+// white chip so it looks clean and consistent on any background color.
+export function RoastPork({ size = 32 }: Props) {
   return (
     <View
       style={[
@@ -15,11 +15,7 @@ export function SoftPretzel({ size = 32 }: Props) {
         { width: size, height: size, borderRadius: size / 2 },
       ]}
     >
-      <Image
-        source={SRC}
-        style={{ width: size * 0.96, height: size * 0.96 }}
-        resizeMode="contain"
-      />
+      <Image source={SRC} style={{ width: size, height: size }} resizeMode="cover" />
     </View>
   );
 }
@@ -33,4 +29,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SoftPretzel;
+export default RoastPork;

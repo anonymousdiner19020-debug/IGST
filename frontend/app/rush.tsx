@@ -15,6 +15,7 @@ import {
 import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
+import DishIcon from "@/src/components/DishIcon";
 
 const RUSH_PATIENCE_MS = 9000;
 const MAX_MISSES = 3;
@@ -230,9 +231,10 @@ export default function Rush() {
             </View>
             <Text style={styles.customerAvatar}>{customer.avatar}</Text>
             <View style={styles.ticket} testID="rush-ticket">
-              <Text style={styles.ticketTitle}>
-                {customer.dish.emoji} {customer.dish.name}
-              </Text>
+              <View style={styles.ticketTitleRow}>
+                <DishIcon id={customer.dish.id} emoji={customer.dish.emoji} size={22} />
+                <Text style={styles.ticketTitle}>{customer.dish.name}</Text>
+              </View>
               <View style={styles.ticketDivider} />
               {customer.wanted.map((w) => (
                 <View key={w} style={styles.ticketRow}>
@@ -264,7 +266,7 @@ export default function Rush() {
 
           <View style={styles.plateZone}>
             <View style={styles.plate}>
-              <Text style={styles.plateBase}>{customer.dish.emoji}</Text>
+              <DishIcon id={customer.dish.id} emoji={customer.dish.emoji} size={40} />
               {plate.length === 0 ? (
                 <Text style={styles.plateHint}>Build the order fast!</Text>
               ) : (
@@ -428,6 +430,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   ticketTitle: { fontSize: 18, fontWeight: "900", color: colors.surfaceInverse, textAlign: "center" },
+  ticketTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs },
   ticketDivider: { height: 2, backgroundColor: colors.divider, marginVertical: spacing.sm },
   ticketRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: 3 },
   ticketPlus: { fontSize: 14, fontWeight: "900", color: colors.success, width: 24 },

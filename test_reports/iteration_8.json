@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 8 (daily-reward + level stars + first-time tutorial + sparkle burst + unified icons). Backend: 58/59 pytest green — added TestDailyReward (4 tests: status shape+cycle==DAILY_REWARDS, claim grants coins/bells+increments streak+persists, second same-day claim -> HTTP 400 + status not claimable, 404s) and TestLevelStars (4 tests: stores best-of stars per level dict, 0 not stored, ignored when not completed, defaults empty for new player + daily_streak=0/last_reward_date=null). The one pre-existing failure (TestWeeklyLeaderboard::test_complete_level_updates_weekly_max) is unrelated to iter-8 and caused by preview-env leaderboard pollution — the seeded player falls outside the top-20 rows. Iter-6/7 regressions all green: player CRUD, complete-level unlock chain (soft_pretzel -> happy_cakes), spend-bells, upgrades (grill/pantry/plates/holding), coin-packs, bell-packs, RevenueCat webhook (coins+bells, idempotent, unknown/ignored). Frontend (mobile 390x844): (1) fresh onboarding via username-input + create-player-button lands on home-screen with bell-balance + coin-balance; the LOVE sculpture (red LO/VE with tilted O), Liberty Bell PNG chip, and Independence Hall/pretzel iconography all render (see /tmp/home_i8.png). (2) Opening level-1 (Soft Pretzel) shows tutorial-overlay with all 3 numbered steps (Swap tiles / Collect items / Serve orders) — tutorial-got-it dismisses it, and revisiting level-1 (via back to level-map -> level-1) does NOT re-show it (AsyncStorage flag_tutorial_pretzel gate works). Game screen renders board and all 5 base-recipe goals: recipe-dough, recipe-salt, recipe-cheese_sauce, recipe-mustard, recipe-pizza_sauce. (3) cooking-result stars-row correctly renders 3 gold ★ for stars=3, 1 gold + 2 dim for stars=1, and is HIDDEN on failure (completed=0, stars=0) — LEVEL FAILED path unaffected. unlock-banner shows 'NEXT UP 🧁 Happy Cakes'. (4) After POSTing complete-level {level:1, stars:3} the level-map redraws Soft Pretzel node with ★★★ under the label and a ✓ done state, and Happy Cakes (Lvl 2) becomes unlocked with an empty (dim) star row — matches the design (see /tmp/levelmap_stars.png). (5) Shop daily-reward-card shows Daily Reward header, '🔥 0 day streak', +25 🪙 reward, and a 7-dot cycle (bells icons on days 3/5/7); tapping claim-reward-button increases coins 100 -> 125, flips button to disabled 'Come back tomorrow ✓', updates streak text to '🔥 1 day streak', and a second click is inert (button disabled). No React Native red screen, no PAGEERROR events. Only expected RN-web deprecation warnings (shadow*/textShadow*/Image.style.resizeMode). Deprecated packages detected: none. SafeAreaView issues detected: none. Sparkle-burst overlay (testID='sparkle-burst', pointerEvents='none') is code-verified: trigger fires exactly when perfect===true in serve.tsx:222 via setSparkle((s)=>s+1). Full serve loop end-to-end was already validated in iter-7 and remains unchanged.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/weekly-leaderboard", "issue": "Pre-existing/environmental: test_complete_level_updates_weekly_max fails because the preview DB has >20 TEST_ players with weekly scores > 300, so the freshly-seeded player is pushed out of the returned top-20. Not a code bug in iter-8; consider (a) capping leaderboard by player_id list in tests, (b) or bumping to top-500 in the endpoint."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: fix pre-existing TestWeeklyLeaderboard::test_complete_level_updates_weekly_max flake by asserting via a filter (e.g., fetch player directly) instead of scanning the top-20 leaderboard rows, or clean out TEST_* players between preview runs.",
+    "Optional: set REVENUECAT_WEBHOOK_AUTH before production so the webhook rejects unauth calls (still open from iter-7)."
+  ],
+  "critical_code_review_comments": [
+    "server.py daily-reward: DAILY_REWARDS is a 7-item cycle indexed by `(max(1, streak) - 1) % 7`; claim increments streak only when today - last_reward_date == 1 day, else resets to 1 — matches PRD 'daily reward streak' semantics.",
+    "server.py claim-daily-reward is idempotent per UTC date via the `last == today` check and returns HTTP 400 on second same-day call, verified by TestDailyReward::test_second_claim_same_day_returns_400.",
+    "server.py complete-level correctly stores BEST stars per level: `stars[key] = max(int(stars.get(key, 0)), int(result.stars))` and only when `result.completed and result.stars > 0` — verified across up/down/zero/failed cases in TestLevelStars.",
+    "player_public exposes both `stars` (dict) and `daily_streak`/`last_reward_date`, so the level-map and shop can render off a single GET /players/{id} without extra endpoints — good, and confirmed by iteration_8 UI test.",
+    "frontend/app/game.tsx tutorial gate uses an AsyncStorage flag (`flag_tutorial_pretzel`) — confirmed via UI test that returning to level-1 does not re-show the overlay. testID='tutorial-overlay' + testID='tutorial-got-it' present.",
+    "frontend/app/cooking-result.tsx renders stars-row only when `stars > 0`, so failed levels don't show a bogus 0-star row — this matches the design decision and was verified.",
+    "frontend/src/components/SparkleBurst.tsx is a pointerEvents='none' animated overlay driven by a numeric `trigger` prop, and serve.tsx increments it exclusively inside the `if (perfect)` branch (line 222) — no leaks on failed serves."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (appended TestDailyReward and TestLevelStars classes plus DAILY_REWARDS_EXPECTED constant — 8 new tests, all passing)"
+  ],
+  "success_rate": {
+    "backend": "98% (58/59 pytest) — 8 new iter-8 tests all pass; 1 pre-existing unrelated weekly-leaderboard flake caused by preview DB pollution",
+    "frontend": "100% of iter-8 tested flows (onboarding, LOVE + Liberty Bell + Soft Pretzel icons on home, first-time tutorial + no-reappear, 5-goal recipe render on game, cooking-result stars-row 3/1/hidden, level-map stars persistence + next-level unlock, Shop daily-reward-card claim 100->125 with disabled 'Come back tomorrow')"
+  },
+  "seed_data_creation": "Pytest seeded disposable TEST_Daily*, TEST_Stars* players. Playwright created TEST_UI_I8, TEST_UI_I8_SHOP, TEST_UI_I8_STARS players. No cleanup endpoint; TEST_ prefix keeps them identifiable.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend URL: https://cooking-combo-philly.preview.emergentagent.com/api. Iter-8 endpoints: GET /api/players/{id}/daily-reward -> {claimable, streak, next_streak, reward:{coins,bells,day}, cycle:[7 items]}. POST /api/players/{id}/claim-daily-reward -> 200 {reward, streak, player} once per UTC day, else 400 'Already claimed today'. POST /api/players/{id}/complete-level now accepts stars: int (0-3); server stores max-of per level in player.stars dict keyed by str(level), only when completed=true AND stars>0. GET /api/players/{id} exposes stars, daily_streak, last_reward_date. Frontend: shop daily-reward-card (testID='daily-reward-card') + claim-reward-button; cooking-result stars-row (testID='stars-row'); tutorial-overlay + tutorial-got-it on first Soft Pretzel visit (AsyncStorage flag_tutorial_pretzel); sparkle-burst overlay (testID='sparkle-burst', pointerEvents='none') triggered only on perfect serve. Backend tests file: /app/backend/tests/backend_test.py (67 tests, xdist-parallel compatible)."
+}

@@ -146,3 +146,89 @@ test_plan:
 agent_communication:
     - agent: "main"
       message: "Synced backend catalog to 5-ingredient recipes (was stale 2-item). Please retest: (1) backend /api/dishes returns 5-key recipes for all 7 dishes and level-complete/currency flows still work; (2) frontend match phase collects all 5 base ingredients and transitions to serve counter, serve->result flow works. Anonymous UUID player (no auth). Backend URL from EXPO_PUBLIC_BACKEND_URL."
+
+## ---- Iteration 8: 4 new features + icon updates ----
+backend:
+  - task: "Daily reward streak endpoints"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Added GET /players/{id}/daily-reward (status + 7-day cycle) and POST /players/{id}/claim-daily-reward (idempotent per UTC day, streak increments if consecutive day else resets). Curl verified: claim grants day-1 25 coins, second claim same day returns 400, streak tracked."
+  - task: "Level star ratings storage"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "LevelResult gains stars (0-3). complete-level stores best stars per level in player.stars dict. Curl verified stars={'1':3} after completing level 1 with stars=3."
+
+frontend:
+  - task: "Combo celebration sparkle burst"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/components/SparkleBurst.tsx, frontend/app/serve.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "SparkleBurst animated overlay (ring + radiating sparkles + PERFECT! text) fires on each perfect serve via sparkle state counter in serve.tsx."
+  - task: "Star rating display (result + level map)"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/cooking-result.tsx, frontend/app/level-map.tsx, frontend/app/serve.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "serve computes stars (all-perfect=3, >=60% =2, any win=1), passes to backend + result screen. cooking-result shows 3-star row; level-map shows earned stars under each unlocked node."
+  - task: "First-time pretzel tutorial"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/game.tsx, frontend/src/storage.ts"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "3-step tutorial overlay shows only on soft_pretzel first play, dismissed via flagStorage (AsyncStorage flag_tutorial_pretzel)."
+  - task: "Daily reward card in shop"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/shop.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Shop shows Daily Reward card with streak, 7-day cycle dots, and CLAIM button. Requires onboarded player. Backend verified via curl."
+  - task: "Unified icons (pretzel photo, liberty bell PNG, LOVE sculpture)"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/components/SoftPretzel.tsx, LibertyBell.tsx, LandmarkIcons.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "SoftPretzel now renders real pretzel photo in white circular chip (used via DishIcon everywhere incl serve/rush ticket+plate). LibertyBell renders transparent PNG everywhere. LoveStatue redrawn as red stacked LO/VE with tilted O + blue depth + black base."
+
+agent_communication:
+    - agent: "main"
+      message: "Iteration 8: implemented 4 features (combo sparkle burst, level star ratings, first-time pretzel tutorial, daily reward streak in shop) + unified 3 icons (pretzel photo, liberty bell PNG, LOVE sculpture). Please test both backend (daily-reward status/claim idempotency + streak, complete-level stars persistence) and frontend flows: onboard a player, play soft_pretzel (tutorial overlay appears + dismiss), match 5 ingredients -> serve counter -> perfect serve shows sparkle burst -> cooking-result shows star rating -> level-map shows earned stars; shop shows Daily Reward card and CLAIM grants coins then disables. Anonymous UUID player (create via username input on home). Backend URL from EXPO_PUBLIC_BACKEND_URL."

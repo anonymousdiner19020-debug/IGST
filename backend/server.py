@@ -122,6 +122,7 @@ class LevelResult(BaseModel):
     coins_earned: int
     bells_earned: int = 0
     completed: bool  # True if order fulfilled
+    stars: int = 0  # 0-3 rating for this attempt
 
 
 class PurchaseRequest(BaseModel):
@@ -146,6 +147,9 @@ def player_public(doc: dict) -> dict:
         "pantry": doc.get("pantry", {}),
         "crown": doc.get("crown", False),
         "champion_weeks": doc.get("champion_weeks", []),
+        "stars": doc.get("stars", {}),
+        "daily_streak": doc.get("daily_streak", 0),
+        "last_reward_date": doc.get("last_reward_date"),
         "created_at": doc.get("created_at", ""),
     }
 
@@ -162,6 +166,28 @@ def current_week_key() -> str:
     now = datetime.now(timezone.utc)
     iso = now.isocalendar()
     return f"{iso[0]}-W{iso[1]:02d}"
+
+
+def today_iso() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+# 7-day daily login reward cycle. Streak day = ((streak - 1) % 7).
+DAILY_REWARDS = [
+    {"coins": 25, "bells": 0},
+    {"coins": 40, "bells": 0},
+    {"coins": 60, "bells": 1},
+    {"coins": 80, "bells": 0},
+    {"coins": 100, "bells": 1},
+    {"coins": 120, "bells": 0},
+    {"coins": 150, "bells": 2},
+]
+
+
+def daily_reward_for(streak: int) -> dict:
+    idx = (max(1, streak) - 1) % len(DAILY_REWARDS)
+    r = DAILY_REWARDS[idx]
+    return {"coins": r["coins"], "bells": r["bells"], "day": idx + 1}
 
 
 def next_monday_iso() -> str:
@@ -252,6 +278,9 @@ async def create_player(payload: PlayerCreate):
         "pantry": {},
         "crown": False,
         "champion_weeks": [],
+        "stars": {},
+        "daily_streak": 0,
+        "last_reward_date": None,
         "weekly": {"week": current_week_key(), "score": 0},
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -297,6 +326,13 @@ async def complete_level(player_id: str, result: LevelResult):
         "unlocked_dishes": unlocked,
         "current_level": current_level,
     }
+
+    # Best star rating (0-3) per level.
+    if result.completed and result.stars > 0:
+        stars = dict(doc.get("stars", {}))
+        key = str(result.level)
+        stars[key] = max(int(stars.get(key, 0)), int(result.stars))
+        update["stars"] = stars
 
     # Weekly tournament score (resets each ISO week)
     wk = current_week_key()
@@ -577,6 +613,65 @@ async def spend_bells(player_id: str, payload: SpendBells):
     await db.players.update_one({"id": player_id}, {"$set": {"bells": new_bells}})
     doc["bells"] = new_bells
     return player_public(doc)
+
+
+@api_router.get("/players/{player_id}/daily-reward")
+async def daily_reward_status(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    today = today_iso()
+    last = doc.get("last_reward_date")
+    streak = doc.get("daily_streak", 0)
+    claimable = last != today
+    # Prospective streak if they claim now (streak breaks unless claimed yesterday).
+    if last is None:
+        next_streak = 1
+    else:
+        last_date = datetime.fromisoformat(last).date()
+        today_date = datetime.now(timezone.utc).date()
+        gap = (today_date - last_date).days
+        if gap == 0:
+            next_streak = streak  # already claimed today
+        elif gap == 1:
+            next_streak = streak + 1
+        else:
+            next_streak = 1
+    reward = daily_reward_for(next_streak if claimable else max(1, streak))
+    return {
+        "claimable": claimable,
+        "streak": streak,
+        "next_streak": next_streak,
+        "reward": reward,
+        "cycle": DAILY_REWARDS,
+    }
+
+
+@api_router.post("/players/{player_id}/claim-daily-reward")
+async def claim_daily_reward(player_id: str):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    today = today_iso()
+    last = doc.get("last_reward_date")
+    if last == today:
+        raise HTTPException(status_code=400, detail="Already claimed today")
+    streak = doc.get("daily_streak", 0)
+    if last is None:
+        new_streak = 1
+    else:
+        gap = (datetime.now(timezone.utc).date() - datetime.fromisoformat(last).date()).days
+        new_streak = streak + 1 if gap == 1 else 1
+    reward = daily_reward_for(new_streak)
+    await db.players.update_one(
+        {"id": player_id},
+        {
+            "$inc": {"coins": reward["coins"], "bells": reward["bells"]},
+            "$set": {"daily_streak": new_streak, "last_reward_date": today},
+        },
+    )
+    updated = await db.players.find_one({"id": player_id}, {"_id": 0})
+    return {"reward": reward, "streak": new_streak, "player": player_public(updated)}
 
 
 @api_router.post("/revenuecat/webhook")

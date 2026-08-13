@@ -16,6 +16,8 @@ import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import LibertyBell from "@/src/components/LibertyBell";
+import DishIcon from "@/src/components/DishIcon";
+import SparkleBurst from "@/src/components/SparkleBurst";
 
 type Customer = {
   avatar: string;
@@ -98,6 +100,7 @@ export default function Serve() {
   const [pantry, setPantry] = useState<Record<string, number>>({});
   const [pantryLevel, setPantryLevel] = useState(0);
   const [jackpot, setJackpot] = useState<number | null>(null);
+  const [sparkle, setSparkle] = useState(0);
   const patienceRef = useRef<any>(null);
   const startRef = useRef<number>(Date.now());
 
@@ -161,7 +164,7 @@ export default function Serve() {
   };
 
   // Tap a stored pantry item: instantly place it and consume one from storage.
-  const usePantry = (t: string) => {
+  const takeFromPantry = (t: string) => {
     if (finished) return;
     if ((pantry[t] || 0) <= 0) return;
     sound.play("pop");
@@ -216,6 +219,7 @@ export default function Serve() {
       const dailyMult = isDaily ? 2 : 1;
       const tip = Math.round(base * mult * dailyMult);
       setStreak(newStreak);
+      setSparkle((s) => s + 1);
       sound.play("serve");
       sound.play("coin");
       try {
@@ -263,6 +267,9 @@ export default function Serve() {
     if (finished) return;
     setFinished(true);
     const completed = served > 0;
+    const total = customers.length;
+    // Stars reward speed + combos: all-perfect = 3, most-perfect = 2, any win = 1.
+    const stars = served >= total ? 3 : served >= Math.ceil(total * 0.6) ? 2 : served >= 1 ? 1 : 0;
     const id = await playerStorage.get();
     if (id) {
       // Carry leftover toppings into the pantry (backend caps by pantry level).
@@ -283,6 +290,7 @@ export default function Serve() {
           coins_earned: totalCoins,
           bells_earned: totalBells,
           completed: served >= Math.ceil(customers.length / 2),
+          stars,
         });
       } catch {}
     }
@@ -297,6 +305,7 @@ export default function Serve() {
         level: String(levelNum),
         served: String(served),
         total: String(customers.length),
+        stars: String(stars),
         nextLevel: String(levelNum + 1),
       },
     });
@@ -344,9 +353,10 @@ export default function Serve() {
         </View>
         <Text style={styles.customerAvatar}>{current.avatar}</Text>
         <View style={styles.ticket} testID="order-ticket">
-          <Text style={styles.ticketTitle}>
-            {dish.emoji} {dish.name}
-          </Text>
+          <View style={styles.ticketTitleRow}>
+            <DishIcon id={dish.id} emoji={dish.emoji} size={24} />
+            <Text style={styles.ticketTitle}>{dish.name}</Text>
+          </View>
           <View style={styles.ticketDivider} />
           {current.wanted.map((w) => (
             <View key={w} style={styles.ticketRow} testID={`want-${w}`}>
@@ -397,7 +407,7 @@ export default function Serve() {
       <View style={styles.plateZone}>
         <Text style={styles.plateLabel}>YOUR PLATE</Text>
         <View style={styles.plate} testID="plate">
-          <Text style={styles.plateBase}>{dish.emoji}</Text>
+          <DishIcon id={dish.id} emoji={dish.emoji} size={40} />
           {plate.length === 0 ? (
             <Text style={styles.plateHint}>Tap toppings below to build the order</Text>
           ) : (
@@ -423,7 +433,7 @@ export default function Serve() {
                 <Pressable
                   key={t}
                   testID={`pantry-${t}`}
-                  onPress={() => usePantry(t)}
+                  onPress={() => takeFromPantry(t)}
                   style={({ pressed }) => [styles.pantryChip, pressed && { transform: [{ scale: 0.93 }] }]}
                 >
                   <Text style={styles.pantryEmoji}>{INGREDIENTS[t]?.emoji}</Text>
@@ -479,6 +489,8 @@ export default function Serve() {
           <Text style={styles.serveBtnText}>SERVE 🍽</Text>
         </Pressable>
       </View>
+
+      <SparkleBurst trigger={sparkle} />
 
       {jackpot != null && (
         <View style={styles.jackpotOverlay} pointerEvents="none" testID="jackpot-popup">
@@ -563,6 +575,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   ticketTitle: { fontSize: 18, fontWeight: "900", color: colors.surfaceInverse, textAlign: "center" },
+  ticketTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xs },
   ticketDivider: { height: 2, backgroundColor: colors.divider, marginVertical: spacing.sm },
   ticketRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: 3 },
   ticketPlus: { fontSize: 14, fontWeight: "900", color: colors.success, width: 24 },

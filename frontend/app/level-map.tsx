@@ -92,6 +92,21 @@ export default function LevelMap() {
                 >
                   {dish.name}
                 </Text>
+                {unlocked && (
+                  <View style={styles.starRow}>
+                    {[1, 2, 3].map((n) => {
+                      const earned = player?.stars?.[String(dish.unlock_level)] ?? 0;
+                      return (
+                        <Text
+                          key={n}
+                          style={[styles.miniStar, n <= earned ? styles.miniStarOn : styles.miniStarOff]}
+                        >
+                          ★
+                        </Text>
+                      );
+                    })}
+                  </View>
+                )}
                 {done && (
                   <View style={styles.doneBadge}>
                     <Text style={styles.doneBadgeText}>✓</Text>
@@ -182,6 +197,10 @@ const styles = StyleSheet.create({
   nodeEmoji: { fontSize: 44 },
   nodeLevel: { fontSize: 12, fontWeight: "900", color: colors.surfaceInverse, letterSpacing: 1 },
   nodeName: { fontSize: 15, fontWeight: "800", color: colors.surfaceInverse },
+  starRow: { flexDirection: "row", gap: 2, marginTop: 2 },
+  miniStar: { fontSize: 15 },
+  miniStarOn: { color: "#FFC93C" },
+  miniStarOff: { color: "rgba(0,0,0,0.18)" },
   doneBadge: {
     position: "absolute",
     top: -8,

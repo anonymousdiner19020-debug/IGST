@@ -12,7 +12,7 @@ import DishIcon from "@/src/components/DishIcon";
 
 export default function CookingResult() {
   const router = useRouter();
-  const { completed, coins, bells, score, dishId, nextLevel, level, served, total } =
+  const { completed, coins, bells, score, dishId, nextLevel, level, served, total, stars } =
     useLocalSearchParams<{
       completed: string;
       coins: string;
@@ -23,6 +23,7 @@ export default function CookingResult() {
       level: string;
       served: string;
       total: string;
+      stars: string;
     }>();
   const dish = FALLBACK_DISHES.find((d) => d.id === dishId) || FALLBACK_DISHES[0];
   const win = completed === "1";
@@ -30,6 +31,7 @@ export default function CookingResult() {
   const nextDish = FALLBACK_DISHES.find((d) => d.unlock_level === nextIdx);
   const bellsEarned = parseInt(bells || "0", 10);
   const retryLevel = parseInt(level || "1", 10);
+  const starCount = Math.max(0, Math.min(3, parseInt(stars || "0", 10)));
 
   const [myBells, setMyBells] = useState<number | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -82,6 +84,18 @@ export default function CookingResult() {
             <DishIcon id={dish.id} emoji={dish.emoji} size={56} />
           </View>
           <Text style={styles.dishName}>{dish.name}</Text>
+          {win && (
+            <View style={styles.starsRow} testID="stars-row">
+              {[1, 2, 3].map((n) => (
+                <Text
+                  key={n}
+                  style={[styles.star, n <= starCount ? styles.starOn : styles.starOff]}
+                >
+                  ★
+                </Text>
+              ))}
+            </View>
+          )}
           <Text style={styles.dishMsg}>
             {win
               ? `Served ${served || 0}/${total || 0} customers!`
@@ -236,6 +250,10 @@ const styles = StyleSheet.create({
   },
   dishEmoji: { fontSize: 56 },
   dishName: { fontSize: 22, fontWeight: "900", color: colors.surfaceInverse },
+  starsRow: { flexDirection: "row", gap: spacing.xs, marginTop: 2 },
+  star: { fontSize: 34, textShadowColor: "rgba(0,0,0,0.15)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
+  starOn: { color: "#FFC93C" },
+  starOff: { color: colors.surfaceTertiary },
   dishMsg: { fontSize: 14, color: colors.surfaceInverse, opacity: 0.6, fontWeight: "700" },
   statsRow: {
     flexDirection: "row",
