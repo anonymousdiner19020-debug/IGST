@@ -181,7 +181,7 @@ export default function Game() {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         } catch {}
         // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 260));
         current = collapseAndRefill(current, matched, palette);
         setGrid(current);
         setFlashCells(new Set());
@@ -286,6 +286,11 @@ export default function Game() {
                     ]}
                   >
                     <IngredientIcon id={cell} emoji={ing?.emoji} size={TILE * 0.82} />
+                    {isFlash && (
+                      <View style={styles.burstOverlay} pointerEvents="none">
+                        <Text style={[styles.burstStar, { fontSize: TILE * 0.55 }]}>✨</Text>
+                      </View>
+                    )}
                   </Pressable>
                 );
               })}
@@ -436,7 +441,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tileSelected: { borderWidth: 3, borderColor: colors.brand, borderRadius: radius.md, transform: [{ scale: 1.12 }] },
-  tileFlash: { opacity: 0.3, transform: [{ scale: 0.82 }] },
+  tileFlash: {
+    transform: [{ scale: 1.22 }],
+    backgroundColor: "rgba(255, 209, 102, 0.55)",
+    borderRadius: radius.md,
+  },
+  burstOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  burstStar: { textAlign: "center" },
   orderPanel: {
     marginTop: "auto",
     backgroundColor: colors.surface,
