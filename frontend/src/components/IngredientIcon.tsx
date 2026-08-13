@@ -5,7 +5,7 @@ import SoftPretzel from "./SoftPretzel";
 import CinnamonSticks from "./CinnamonSticks";
 import MustardBottle from "./MustardBottle";
 import PhotoIngredient from "./PhotoIngredient";
-import { KetchupBottle, FriedEgg, Scrapple, PorkRoll, Donut, SeasoningShaker, SaltPepperShaker } from "./FoodIcons";
+import { KetchupBottle, FriedEgg, Scrapple, PorkRoll, Donut, SeasoningShaker, SaltPepperShaker, OilVinegar } from "./FoodIcons";
 
 const CHEESE_SAUCE = require("../../assets/cheese_sauce.jpg");
 const AMERICAN_CHEESE = require("../../assets/american_cheese.jpeg");
@@ -49,6 +49,7 @@ export function IngredientIcon({ id, emoji, size = 24, style }: Props) {
   if (id === "sprinkles") return <PhotoIngredient size={size} src={SPRINKLES} />;
   if (id === "rootbeer") return <PhotoIngredient size={size} src={ROOTBEER} />;
   if (id === "mayo") return <PhotoIngredient size={size} src={MAYO} />;
+  if (id === "oil") return <OilVinegar size={size} />;
   if (id === "vanilla_donut") return <Donut size={size} glaze="#EFDDB0" />;
   if (id === "chocolate_donut") return <Donut size={size} glaze="#6B4226" />;
   if (id === "strawberry_donut") return <Donut size={size} glaze="#F2A0B4" sprinkles />;

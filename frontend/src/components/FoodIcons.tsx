@@ -65,7 +65,32 @@ export function PorkRoll({ size = 24 }: Props) {
   );
 }
 
-// Twin salt & pepper shakers.
+// Oil & vinegar cruet bottle for hoagies.
+export function OilVinegar({ size = 24 }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      {/* cork/cap */}
+      <Rect x={27} y={5} width={10} height={7} rx={2} fill="#8A5A2B" stroke="#5E3C18" strokeWidth={1.2} />
+      {/* long neck */}
+      <Rect x={29} y={11} width={6} height={12} fill="#CFE8C2" stroke="#8FB98A" strokeWidth={1.2} />
+      {/* body */}
+      <Path
+        d="M23 23 L41 23 L44 40 Q46 56 32 57 Q18 56 20 40 Z"
+        fill="#DCEBCB"
+        stroke="#8FB98A"
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+      {/* oil fill (amber-green) */}
+      <Path d="M22 38 Q22 54 32 55 Q42 54 42 38 Z" fill="#C7B24A" opacity={0.85} />
+      {/* vinegar band */}
+      <Rect x={21} y={44} width={22} height={5} fill="#8E4B2E" opacity={0.5} />
+      {/* highlight */}
+      <Path d="M26 26 Q24 40 27 52" stroke="#F3F8ED" strokeWidth={2.5} fill="none" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export function SaltPepperShaker({ size = 24 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64">
