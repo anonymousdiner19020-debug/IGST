@@ -7,6 +7,7 @@ const URLS = {
   coin: "https://actions.google.com/sounds/v1/cartoon/pop.ogg",
   serve: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
   error: "https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg",
+  cheer: "https://actions.google.com/sounds/v1/human_voices/crowd_cheering.ogg",
 } as const;
 
 type Key = keyof typeof URLS;

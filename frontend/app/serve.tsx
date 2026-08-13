@@ -20,6 +20,7 @@ import LibertyBell from "@/src/components/LibertyBell";
 import DishIcon from "@/src/components/DishIcon";
 import IngredientIcon from "@/src/components/IngredientIcon";
 import SparkleBurst from "@/src/components/SparkleBurst";
+import FanJersey from "@/src/components/FanJersey";
 
 type Customer = {
   avatar: string;
@@ -47,12 +48,20 @@ function pickChant(team: string): string {
 
 const FAN_TAGS = ["Philly fan!", "It's a Philly thing!", "Philly proud!", "Repping Philly!"];
 
-function buildCustomers(dish: Dish, toppings: string[], count: number): Customer[] {
+// Official team colors + a jersey number for each Philly team.
+const TEAM_STYLE: Record<string, { color: string; number: string }> = {
+  "🦅": { color: "#004C54", number: "9" },
+  "⚾": { color: "#E81828", number: "3" },
+  "🏀": { color: "#006BB6", number: "21" },
+  "🏒": { color: "#F74902", number: "88" },
+};
+
+function buildCustomers(dish: Dish, toppings: string[], count: number, allFans = false): Customer[] {
   const filteredDish = { ...dish, topping_options: toppings };
   const list: Customer[] = [];
   for (let i = 0; i < count; i++) {
     const order = generateCustomerOrder(filteredDish);
-    const isFan = Math.random() < 0.25;
+    const isFan = allFans || Math.random() < 0.25;
     list.push({
       avatar: CUSTOMER_AVATARS[Math.floor(Math.random() * CUSTOMER_AVATARS.length)],
       wanted: order.wanted,
@@ -106,9 +115,12 @@ export default function Serve() {
 
   const [extraServings, setExtraServings] = useState(0);
 
+  // ~20% of rounds are a "Fan Rush" — a whole wave of Philly fans, double tips.
+  const fanRush = useMemo(() => Math.random() < 0.2, []);
+
   const customers = useMemo(
-    () => buildCustomers(dish, toppings, dish.customers_per_level + extraServings),
-    [dish, toppings, extraServings]
+    () => buildCustomers(dish, toppings, dish.customers_per_level + extraServings, fanRush),
+    [dish, toppings, extraServings, fanRush]
   );
 
   const [idx, setIdx] = useState(0);
@@ -260,7 +272,8 @@ export default function Serve() {
       const newStreak = streak + 1;
       const mult = 1 + streak * 0.5; // multiplier from CURRENT streak before increment
       const dailyMult = isDaily ? 2 : 1;
-      const tip = Math.round(base * mult * dailyMult);
+      const rushMult = fanRush ? 2 : 1; // Fan Rush doubles all tips
+      const tip = Math.round(base * mult * dailyMult * rushMult);
       setStreak(newStreak);
       setSparkle((s) => s + 1);
       sound.play("serve");
@@ -281,6 +294,7 @@ export default function Serve() {
         fanBonus = 25 * fs;
         const streakTag = fs >= 2 ? `  🔥 ${fs} fans!` : "";
         setChant(pickChant(current.fan) + streakTag);
+        sound.play("cheer");
         setTimeout(() => setChant(null), 1500);
       } else {
         fanStreakRef.current = 0;
@@ -420,13 +434,19 @@ export default function Serve() {
           <Text style={styles.moodBubble} testID="customer-mood">{mood}</Text>
           {current.fan && (
             <View style={styles.fanBadge} testID="fan-badge">
-              <Text style={styles.fanJersey}>👕</Text>
-              <Text style={styles.fanTeam}>{current.fan}</Text>
+              <FanJersey
+                size={30}
+                color={TEAM_STYLE[current.fan]?.color}
+                number={TEAM_STYLE[current.fan]?.number}
+              />
             </View>
           )}
         </View>
         {current.fan && (
-          <View style={styles.fanTag} testID="fan-tag">
+          <View
+            style={[styles.fanTag, { backgroundColor: TEAM_STYLE[current.fan]?.color || colors.brand }]}
+            testID="fan-tag"
+          >
             <Text style={styles.fanTagText}>{current.fan} {current.tag || "Philly fan!"}</Text>
           </View>
         )}
@@ -570,6 +590,12 @@ export default function Serve() {
 
       <SparkleBurst trigger={sparkle} />
 
+      {fanRush && (
+        <View style={styles.rushBanner} pointerEvents="none" testID="fan-rush-banner">
+          <Text style={styles.rushText}>🎉 FAN RUSH — DOUBLE TIPS! 🎉</Text>
+        </View>
+      )}
+
       {chant && (
         <View style={styles.chantBubble} pointerEvents="none" testID="fan-chant">
           <Text style={styles.chantText}>{chant}</Text>
@@ -683,6 +709,17 @@ const styles = StyleSheet.create({
     borderColor: colors.surfaceInverse,
   },
   fanTagText: { fontSize: 12, fontWeight: "900", color: colors.onBrand },
+  rushBanner: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#E4002B",
+    paddingVertical: spacing.xs,
+    alignItems: "center",
+    zIndex: 80,
+  },
+  rushText: { fontSize: 14, fontWeight: "900", color: "#FFFFFF", letterSpacing: 0.5 },
   chantBubble: {
     position: "absolute",
     top: "26%",
