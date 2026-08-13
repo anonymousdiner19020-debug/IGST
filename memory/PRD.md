@@ -37,3 +37,6 @@ Onboarding, Home (daily special banner, tappable coin chip → coin store, Rush/
 - 4 features shipped & tested (iteration_8): combo sparkle burst on perfect serve, level star ratings (1-3, stored per level in player.stars), first-time Soft Pretzel tutorial (AsyncStorage flag_tutorial_pretzel), daily reward streak in Shop (7-day cycle, GET/POST /api/players/{id}/daily-reward[-claim], UTC-day idempotent).
 - Real-image icons unified app-wide via DishIcon/component swap: soft_pretzel photo (assets/soft_pretzel.jpeg), roast_pork photo (assets/roast_pork.jpeg), Liberty Bell PNG (assets/liberty_bell.png), Rocky statue line-art (assets/rocky_statue.jpeg), City Hall/William Penn photo (assets/cityhall_penn.webp) — all in circular white chips. LOVE sculpture redrawn as red stacked LO/VE with tilted O + blue depth + black base (View/Text, no SVG).
 - Backend DISH_CATALOG recipe field synced to 5 base ingredients per level (matches frontend FALLBACK_DISHES).
+
+- Water Ice icon = real striped-cup photo (assets/water_ice.png) via DishIcon/WaterIce component.
+- customers_per_level set to 10 for all 7 dishes (dishes.ts). Serve completion threshold = served >= ceil(customers/2).

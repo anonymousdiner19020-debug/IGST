@@ -4,6 +4,7 @@ import { Text, TextStyle } from "react-native";
 import Cheesesteak from "./Cheesesteak";
 import SoftPretzel from "./SoftPretzel";
 import RoastPork from "./RoastPork";
+import WaterIce from "./WaterIce";
 
 type Props = {
   id?: string;
@@ -17,6 +18,7 @@ export function DishIcon({ id, emoji, size = 32, style }: Props) {
   if (id === "cheesesteak") return <Cheesesteak size={size} />;
   if (id === "soft_pretzel") return <SoftPretzel size={size} />;
   if (id === "roast_pork") return <RoastPork size={size} />;
+  if (id === "water_ice") return <WaterIce size={size} />;
   return <Text style={[{ fontSize: size * 0.92 }, style]}>{emoji}</Text>;
 }
 

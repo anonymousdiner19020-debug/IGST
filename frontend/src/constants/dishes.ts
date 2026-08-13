@@ -83,7 +83,7 @@ export const FALLBACK_DISHES: Dish[] = [
     verb: "twist",
     reward_coins: 40,
     moves: 30,
-    customers_per_level: 3,
+    customers_per_level: 10,
   },
   {
     id: "happy_cakes",
@@ -95,7 +95,7 @@ export const FALLBACK_DISHES: Dish[] = [
     verb: "box",
     reward_coins: 55,
     moves: 30,
-    customers_per_level: 3,
+    customers_per_level: 10,
   },
   {
     id: "water_ice",
@@ -107,7 +107,7 @@ export const FALLBACK_DISHES: Dish[] = [
     verb: "scoop",
     reward_coins: 65,
     moves: 30,
-    customers_per_level: 3,
+    customers_per_level: 10,
   },
   {
     id: "american_hoagie",
@@ -119,7 +119,7 @@ export const FALLBACK_DISHES: Dish[] = [
     verb: "build",
     reward_coins: 80,
     moves: 32,
-    customers_per_level: 4,
+    customers_per_level: 10,
   },
   {
     id: "italian_hoagie",
@@ -131,7 +131,7 @@ export const FALLBACK_DISHES: Dish[] = [
     verb: "build",
     reward_coins: 95,
     moves: 32,
-    customers_per_level: 4,
+    customers_per_level: 10,
   },
   {
     id: "cheesesteak",
@@ -143,7 +143,7 @@ export const FALLBACK_DISHES: Dish[] = [
     verb: "grill",
     reward_coins: 110,
     moves: 32,
-    customers_per_level: 4,
+    customers_per_level: 10,
   },
   {
     id: "roast_pork",
@@ -155,7 +155,7 @@ export const FALLBACK_DISHES: Dish[] = [
     verb: "roast",
     reward_coins: 130,
     moves: 34,
-    customers_per_level: 5,
+    customers_per_level: 10,
   },
 ];
 
