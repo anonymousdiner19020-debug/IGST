@@ -38,6 +38,16 @@ DISH_CATALOG = [
      "recipe": {"steak": 2, "roll": 2, "onion": 2, "american": 2, "mushroom": 2}, "reward_coins": 110, "moves": 32},
     {"id": "roast_pork", "name": "Roast Pork", "emoji": "🥓", "unlock_level": 7,
      "recipe": {"pork": 2, "roll": 2, "broccoli": 2, "spinach": 2, "provolone": 2}, "reward_coins": 130, "moves": 34},
+    {"id": "scrapple_ec", "name": "Scrapple, Egg & Cheese", "emoji": "🍳", "unlock_level": 8,
+     "recipe": {"scrapple": 2, "egg": 2, "american": 2, "long_roll": 2, "round_roll": 2}, "reward_coins": 150, "moves": 34},
+    {"id": "seasoned_fries", "name": "Seasoned Fries", "emoji": "🍟", "unlock_level": 9,
+     "recipe": {"potato": 2, "small_cup": 2, "seasoning": 2, "american_melt": 2, "cheddar_melt": 2}, "reward_coins": 165, "moves": 34},
+    {"id": "tomato_pie", "name": "Tomato Pie", "emoji": "🍕", "unlock_level": 10,
+     "recipe": {"dough": 2, "tomato": 2, "olive_oil": 2, "pepperoni": 2, "basil": 2}, "reward_coins": 180, "moves": 36},
+    {"id": "porkroll_ec", "name": "Pork Roll, Egg & Cheese", "emoji": "🥪", "unlock_level": 11,
+     "recipe": {"porkroll": 2, "egg": 2, "cheese": 2, "round_roll": 2, "long_roll": 2}, "reward_coins": 195, "moves": 36},
+    {"id": "donuts", "name": "Donuts", "emoji": "🍩", "unlock_level": 12,
+     "recipe": {"vanilla_donut": 2, "chocolate_donut": 2, "strawberry_donut": 2, "sprinkles": 2}, "reward_coins": 210, "moves": 36},
 ]
 
 SHOP_ITEMS = [

@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 10 backend+frontend review completed. Backend: GET /api/dishes returns exactly 12 dishes with unlock_level 1..12 in the expected order [soft_pretzel, happy_cakes, water_ice, american_hoagie, italian_hoagie, cheesesteak, roast_pork, scrapple_ec, seasoned_fries, tomato_pie, porkroll_ec, donuts]; every dish has 5 base-recipe ingredients except donuts which has 4 (vanilla_donut, chocolate_donut, strawberry_donut, sprinkles). New full-chain unlock test (TestCatalog.test_complete_level_unlock_chain_all_12) sequentially completes levels 1..12 and confirms each next dish is appended to unlocked_dishes and current_level advances to 12 (capped at catalog length). Regression: 59/60 pytest tests pass, all iteration 4-9 endpoints (stars persistence, daily-reward, spend-bells, upgrades, coin/bell packs, RevenueCat webhook idempotency) still green. Frontend (mobile viewport 390x844): (1) Level Map screen renders 12 nodes — Lvl 1 Soft Pretzel unlocked, Lvl 2..12 locked with lock icon (screenshot /tmp/level_map_i10.png shows Lvl 1..5 in view, scroll extends to 12). (2) Deep-linked /game?dishId=tomato_pie&level=10 renders all 5 base-recipe chips (dough/tomato/olive_oil/pepperoni/basil) and the board contains ONLY those 5 tile kinds — no pepperoni-only or topping-only leaks. (3) Deep-linked /game?dishId=donuts&level=12 renders all 4 base recipe chips and the board contains ONLY the 4 donut tiles (vanilla/chocolate/strawberry donut + sprinkles). (4) Mustard renders as the custom MustardBottle SVG everywhere on Soft Pretzel screen: recipe-mustard chip has an inline <svg>, 10 SVGs with the distinctive #FBB315/#F2A20C bottle fill are rendered across chip/board/tray, and zero 🟨 yellow-square emoji characters appear in the DOM. (5) Serve trays for all 5 new dishes match serveOptions(dish) = dedupe(base ∪ toppings) − CARRIERS: scrapple_ec=[scrapple,egg,american,salt_pepper,ketchup] (long_roll+round_roll excluded), seasoned_fries=[potato,seasoning,american_melt,cheddar_melt] (small_cup excluded), tomato_pie=[tomato,olive_oil,pepperoni,basil] (dough excluded), porkroll_ec=[porkroll,egg,cheese,salt_pepper] (round_roll+long_roll excluded), donuts=[vanilla_donut,chocolate_donut,strawberry_donut,sprinkles] (no carriers). Zero carrier leakage across all 5 dishes. (6) Donuts serve flow: tapping tray items builds YOUR PLATE, SERVE button is present and pressing it advances customer counter (1/10 → 2/10) — order can be built and SERVED for coins. No React Native red screens, no PAGEERROR. Only benign warnings: 'shadow*/textShadow* deprecated' and 'Image.style.resizeMode deprecated' (RN Web platform notices, not blocking). Deprecated packages detected: none in files_of_reference. SafeAreaView issues: none.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/weekly-leaderboard", "issue": "test_complete_level_updates_weekly_max is flaky in shared test DB — leaderboard is truncated to top 20 by weekly_score and accumulated TEST_* players from prior iterations can push a new player with score 300 out of the top 20. Endpoint itself is correct; test isolation is the issue. Consider clearing TEST_* players between suites or filtering out TEST_* usernames in the assertion."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional, pre-existing) Make TestWeeklyLeaderboard.test_complete_level_updates_weekly_max robust to accumulated TEST_ players — either seed a fresh DB, or search the full player list ordered by weekly_score for our pid instead of relying on the truncated top-20 leaderboard slice."
+  ],
+  "critical_code_review_comments": [
+    "server.py DISH_CATALOG (lines 26-51): 12 dishes with correct unlock_level 1..12 and reward_coins scaling 40→210. Donuts recipe intentionally has 4 keys (vanilla_donut/chocolate_donut/strawberry_donut/sprinkles) — verified via API and frontend chips.",
+    "server.py complete-level (line 322-329): if next_dish exists AND result.completed, appends to unlocked_dishes and increments current_level up to len(DISH_CATALOG)=12. Chain test 1→2→3→...→12 verified in TestCatalog.test_complete_level_unlock_chain_all_12; completing level 12 does NOT push current_level to 13 (capped correctly).",
+    "dishes.ts CARRIERS set (line 251) now = {dough, roll, cup, long_roll, round_roll, small_cup}. serveOptions(dish) filters these out; confirmed live across all 5 new dishes — no carrier ever appears as a tray-* testID.",
+    "IngredientIcon.tsx does id-based dispatch: dough→SoftPretzel<Image>, cinnamon_sauce→CinnamonSticks<Svg>, mustard→MustardBottle<Svg>, else emoji <Text>. Verified: on Soft Pretzel screen there are 10 SVGs with the MustardBottle fill (#FBB315/#F2A20C) covering chip+board tiles+tray option, and the DOM contains zero 🟨 characters (the previous placeholder emoji is fully replaced).",
+    "MustardBottle.tsx (33 lines) is a clean self-contained SVG using react-native-svg primitives (Path/Rect) with nozzle+cap+body+highlight+label — renders crisply at both 24px chip size and larger tile sizes.",
+    "game.tsx buildPalette(baseKeys) restricts the match-3 palette to Object.keys(dish.base_recipe) only — tomato_pie board shows only [dough,tomato,olive_oil,pepperoni,basil] tiles (5 kinds) and donuts board shows only [vanilla_donut,chocolate_donut,strawberry_donut,sprinkles] (4 kinds). No topping tile leaks onto the board — matches the 'board = base ingredients only' spec.",
+    "serve.tsx toppings param fallback: when a serve URL lacks a toppings param it correctly falls back to serveOptions(dish); confirmed by direct deep-links producing the expected tray composition for all 5 new dishes."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (updated TestCatalog.test_dishes for 12 dishes + donuts 4-ingredient exception; added TestCatalog.test_complete_level_unlock_chain_all_12 that walks levels 1..12 and verifies current_level cap)"
+  ],
+  "success_rate": {
+    "backend": "98% — 59/60 pytest tests pass; the 1 failure (test_complete_level_updates_weekly_max) is a pre-existing test-isolation flake unrelated to iteration 10 (leaderboard truncation vs. accumulated TEST_ players)",
+    "frontend": "100% — all 7 iteration-10 requested flows verified: 12-dish catalog, level-map renders 12 nodes, new-level boards restricted to base ingredients only (tomato_pie 5 & donuts 4), mustard is a custom SVG (10 SVGs, 0 emoji leaks), serve trays for all 5 new dishes exclude carriers (long_roll/round_roll/small_cup/dough), and donuts SERVE flow advances the customer counter"
+  },
+  "seed_data_creation": "Created disposable players via API (TEST_UnlockChain for the 12-level unlock chain test) and via UI (TEST_I10 through onboarding). All prefixed TEST_ for future cleanup.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iter-10 adds 5 dishes (levels 8-12) to DISH_CATALOG in server.py and to FALLBACK_DISHES in frontend/src/constants/dishes.ts. New INGREDIENTS keys: scrapple, egg, long_roll, round_roll, salt_pepper, ketchup, porkroll, potato, small_cup, seasoning, american_melt, cheddar_melt, olive_oil, basil, vanilla_donut, chocolate_donut, strawberry_donut. CARRIERS expanded to {dough, roll, cup, long_roll, round_roll, small_cup} — serveOptions() filters these out. Mustard now uses MustardBottle SVG via IngredientIcon (id==='mustard' branch). Deep-link patterns confirmed: /game?dishId=<id>&level=<n> and /serve?dishId=<id>&level=<n>&inventory=<json>&movesLeft=<n>&daily=0. Screenshots at /tmp/level_map_i10.png, /tmp/tomato_pie_board.png, /tmp/pretzel_mustard.png, /tmp/donuts_board.png, /tmp/donuts_serve.png. Board-tile testIDs are NOT of the form tile-<ingredient>-r-c — the browser evaluate() by that pattern returned []; visual verification via screenshots was used instead. If future iterations need programmatic tile counting, ask main agent to expose data-kind or testID like tile-<ingredient>."
+}

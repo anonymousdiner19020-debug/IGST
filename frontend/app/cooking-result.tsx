@@ -12,7 +12,7 @@ import DishIcon from "@/src/components/DishIcon";
 
 export default function CookingResult() {
   const router = useRouter();
-  const { completed, coins, bells, score, dishId, nextLevel, level, served, total, stars } =
+  const { completed, coins, bells, score, dishId, nextLevel, level, served, total, stars, perfectBonus } =
     useLocalSearchParams<{
       completed: string;
       coins: string;
@@ -24,6 +24,7 @@ export default function CookingResult() {
       served: string;
       total: string;
       stars: string;
+      perfectBonus: string;
     }>();
   const dish = FALLBACK_DISHES.find((d) => d.id === dishId) || FALLBACK_DISHES[0];
   const win = completed === "1";
@@ -32,6 +33,7 @@ export default function CookingResult() {
   const bellsEarned = parseInt(bells || "0", 10);
   const retryLevel = parseInt(level || "1", 10);
   const starCount = Math.max(0, Math.min(3, parseInt(stars || "0", 10)));
+  const perfectBonusCoins = parseInt(perfectBonus || "0", 10);
 
   const [myBells, setMyBells] = useState<number | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -107,6 +109,13 @@ export default function CookingResult() {
             <Stat label="BELLS" value={`+${bellsEarned}`} emoji="" bell tone="tertiary" testID="bells-earned" />
             <Stat label="SCORE" value={score} emoji="⭐" tone="secondary" testID="score-earned" />
           </View>
+
+          {win && perfectBonusCoins > 0 && (
+            <View style={styles.perfectBanner} testID="perfect-bonus">
+              <Text style={styles.perfectText}>🏆 PERFECT RUN! +{perfectBonusCoins} 🪙</Text>
+              <Text style={styles.perfectSub}>Served all {total} with no misses</Text>
+            </View>
+          )}
 
           {win && nextDish && (
             <View style={styles.unlockBanner} testID="unlock-banner">
@@ -254,6 +263,18 @@ const styles = StyleSheet.create({
   star: { fontSize: 34, textShadowColor: "rgba(0,0,0,0.15)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
   starOn: { color: "#FFC93C" },
   starOff: { color: colors.surfaceTertiary },
+  perfectBanner: {
+    backgroundColor: "#FFF6D8",
+    borderWidth: 2,
+    borderColor: "#F0B429",
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    alignItems: "center",
+    marginTop: spacing.sm,
+  },
+  perfectText: { fontSize: 16, fontWeight: "900", color: "#8A5A00" },
+  perfectSub: { fontSize: 12, fontWeight: "700", color: "#8A5A00", opacity: 0.8, marginTop: 2 },
   dishMsg: { fontSize: 14, color: colors.surfaceInverse, opacity: 0.6, fontWeight: "700" },
   statsRow: {
     flexDirection: "row",

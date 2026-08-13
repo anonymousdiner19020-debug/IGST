@@ -31,19 +31,50 @@ class TestCatalog:
         r = client.get(f"{API}/dishes")
         assert r.status_code == 200
         dishes = r.json()["dishes"]
-        # Iteration 7: 7 dishes, each with a 5-ingredient base recipe, soft_pretzel is level 1
-        assert len(dishes) == 7
+        # Iteration 10: 12 dishes total. Donuts has 4 base ingredients; all others 5.
+        assert len(dishes) == 12
         for d in dishes:
             assert set(["id", "name", "emoji", "unlock_level", "recipe", "reward_coins", "moves"]).issubset(d)
-            assert len(d["recipe"]) == 5, f"{d['id']} recipe should have 5 base ingredients"
-        assert dishes[0]["id"] == "soft_pretzel"
-        # Verify all 7 dish ids in the expected unlock order
+            expected_len = 4 if d["id"] == "donuts" else 5
+            assert len(d["recipe"]) == expected_len, f"{d['id']} recipe should have {expected_len} base ingredients"
+        # Ordered unlock levels 1..12
+        assert [d["unlock_level"] for d in dishes] == list(range(1, 13))
         expected_ids = ["soft_pretzel", "happy_cakes", "water_ice", "american_hoagie",
-                        "italian_hoagie", "cheesesteak", "roast_pork"]
+                        "italian_hoagie", "cheesesteak", "roast_pork",
+                        "scrapple_ec", "seasoned_fries", "tomato_pie", "porkroll_ec", "donuts"]
         assert [d["id"] for d in dishes] == expected_ids
         # Soft Pretzel recipe must be exactly the frontend's 5 ingredients
-        pretzel = dishes[0]
-        assert set(pretzel["recipe"].keys()) == {"dough", "salt", "cheese_sauce", "mustard", "pizza_sauce"}
+        assert set(dishes[0]["recipe"].keys()) == {"dough", "salt", "cheese_sauce", "mustard", "pizza_sauce"}
+        # Donuts has these 4
+        donuts = next(d for d in dishes if d["id"] == "donuts")
+        assert set(donuts["recipe"].keys()) == {"vanilla_donut", "chocolate_donut", "strawberry_donut", "sprinkles"}
+
+    def test_complete_level_unlock_chain_all_12(self, client):
+        """Complete levels 1..11 sequentially and verify each next dish unlocks; current_level tops at 12."""
+        pid = client.post(f"{API}/players", json={"username": "TEST_UnlockChain"}).json()["id"]
+        catalog = client.get(f"{API}/dishes").json()["dishes"]
+        ids = [d["id"] for d in catalog]
+        for lvl in range(1, 12):
+            r = client.post(f"{API}/players/{pid}/complete-level", json={
+                "level": lvl, "dish_id": ids[lvl - 1], "score": 100 * lvl,
+                "coins_earned": 5, "completed": True,
+            })
+            assert r.status_code == 200, r.text
+            d = r.json()
+            expected_next = ids[lvl]  # the dish unlocked by completing lvl
+            assert expected_next in d["unlocked_dishes"], f"lvl {lvl} did not unlock {expected_next}: {d['unlocked_dishes']}"
+            assert d["current_level"] == lvl + 1
+        # After completing level 11, donuts should be unlocked and current_level = 12
+        final = client.get(f"{API}/players/{pid}").json()
+        assert "donuts" in final["unlocked_dishes"]
+        assert final["current_level"] == 12
+        # Completing level 12 should not exceed 12
+        r = client.post(f"{API}/players/{pid}/complete-level", json={
+            "level": 12, "dish_id": "donuts", "score": 1200,
+            "coins_earned": 210, "completed": True,
+        })
+        assert r.status_code == 200
+        assert r.json()["current_level"] == 12  # capped at catalog length
 
     def test_shop(self, client):
         r = client.get(f"{API}/shop")

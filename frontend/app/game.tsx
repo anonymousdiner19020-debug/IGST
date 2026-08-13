@@ -4,9 +4,10 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { FALLBACK_DISHES, INGREDIENTS } from "@/src/constants/dishes";
+import { FALLBACK_DISHES, INGREDIENTS, serveOptions } from "@/src/constants/dishes";
 import { api } from "@/src/api";
 import DishIcon from "@/src/components/DishIcon";
+import IngredientIcon from "@/src/components/IngredientIcon";
 import { playerStorage, flagStorage } from "@/src/storage";
 import {
   BOARD_SIZE,
@@ -25,13 +26,10 @@ const BOARD_MARGIN = spacing.lg;
 const BOARD_PADDING = spacing.sm;
 const MAX_TILES = 8;
 
-function buildPalette(baseKeys: string[], toppings: string[]): string[] {
-  const set: string[] = [...new Set(baseKeys)];
-  for (const t of toppings) {
-    if (set.length >= MAX_TILES) break;
-    if (!set.includes(t)) set.push(t);
-  }
-  return set;
+// The match board only uses the dish's base recipe ingredients — no extra
+// topping tiles. Toppings are handled entirely in the serving phase.
+function buildPalette(baseKeys: string[]): string[] {
+  return [...new Set(baseKeys)].slice(0, MAX_TILES);
 }
 
 export default function Game() {
@@ -50,11 +48,7 @@ export default function Game() {
   const levelNum = parseInt(level || "1", 10);
 
   const baseKeys = useMemo(() => Object.keys(dish.base_recipe), [dish]);
-  const palette = useMemo(() => buildPalette(baseKeys, dish.topping_options), [baseKeys, dish]);
-  const paletteToppings = useMemo(
-    () => palette.filter((p) => dish.topping_options.includes(p)),
-    [palette, dish]
-  );
+  const palette = useMemo(() => buildPalette(baseKeys), [baseKeys]);
 
   const [grid, setGrid] = useState<Cell[][]>(() => createBoard(palette));
   const [inventory, setInventory] = useState<Record<string, number>>({});
@@ -138,7 +132,7 @@ export default function Game() {
         level: String(levelNum),
         score: String(score),
         inventory: JSON.stringify(inventory),
-        toppings: JSON.stringify(paletteToppings),
+        toppings: JSON.stringify(serveOptions(dish)),
         movesLeft: String(moves),
         daily: isDaily ? "1" : "0",
       },
@@ -291,7 +285,7 @@ export default function Game() {
                       isFlash && styles.tileFlash,
                     ]}
                   >
-                    <Text style={{ fontSize: TILE * 0.55 }}>{ing?.emoji}</Text>
+                    <IngredientIcon id={cell} emoji={ing?.emoji} size={TILE * 0.62} />
                   </Pressable>
                 );
               })}
@@ -336,7 +330,7 @@ export default function Game() {
                   done && styles.recipeChipDone,
                 ]}
               >
-                <Text style={styles.recipeEmoji}>{info?.emoji || "🍽"}</Text>
+                <IngredientIcon id={ing} emoji={info?.emoji || "🍽"} size={22} />
                 <Text style={[styles.recipeCount, done && styles.recipeCountDone]}>
                   {have}/{need}
                 </Text>

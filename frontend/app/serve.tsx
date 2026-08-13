@@ -11,12 +11,14 @@ import {
   FALLBACK_DISHES,
   generateCustomerOrder,
   INGREDIENTS,
+  serveOptions,
 } from "@/src/constants/dishes";
 import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import LibertyBell from "@/src/components/LibertyBell";
 import DishIcon from "@/src/components/DishIcon";
+import IngredientIcon from "@/src/components/IngredientIcon";
 import SparkleBurst from "@/src/components/SparkleBurst";
 
 type Customer = {
@@ -62,9 +64,10 @@ export default function Serve() {
   const baseScore = parseInt(params.score || "0", 10);
   const toppings: string[] = useMemo(() => {
     try {
-      return JSON.parse(params.toppings || "[]");
+      const parsed = JSON.parse(params.toppings || "[]");
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : serveOptions(dish);
     } catch {
-      return dish.topping_options.slice(0, 5);
+      return serveOptions(dish);
     }
   }, [params.toppings, dish]);
 
@@ -101,12 +104,19 @@ export default function Serve() {
   const [pantryLevel, setPantryLevel] = useState(0);
   const [jackpot, setJackpot] = useState<number | null>(null);
   const [sparkle, setSparkle] = useState(0);
+  const [milestone, setMilestone] = useState<string | null>(null);
+  const missedRef = useRef(0);
   const patienceRef = useRef<any>(null);
   const startRef = useRef<number>(Date.now());
 
   const isDaily = params.daily === "1";
   const current = customers[idx];
   const pantryMaxed = pantryLevel >= 3;
+
+  // Later levels give customers less patience so 10 orders stays challenging.
+  const patienceMs = Math.max(7000, PATIENCE_MS - (levelNum - 1) * 1100);
+  // Customer mood reacts to how long they've been waiting.
+  const mood = patience > 0.6 ? "😀" : patience > 0.3 ? "😐" : "😠";
 
   // combo multiplier grows with consecutive perfect serves: 1x, 1.5x, 2x, 2.5x...
   const comboMult = 1 + streak * 0.5;
@@ -143,7 +153,7 @@ export default function Serve() {
     setPatience(1);
     patienceRef.current = setInterval(() => {
       const elapsed = Date.now() - startRef.current;
-      const remaining = Math.max(0, 1 - elapsed / PATIENCE_MS);
+      const remaining = Math.max(0, 1 - elapsed / patienceMs);
       setPatience(remaining);
       if (remaining <= 0) {
         clearInterval(patienceRef.current);
@@ -181,6 +191,16 @@ export default function Serve() {
       setBells((b) => b + earnedBells);
       setScore((s) => s + earnedScore);
       if (ok) setServedCount((c) => c + 1);
+      else missedRef.current += 1;
+      // Halfway cheer to keep momentum going.
+      const total = customers.length;
+      const half = Math.ceil(total / 2);
+      const newServed = servedCount + (ok ? 1 : 0);
+      if (ok && total >= 4 && newServed === half) {
+        setMilestone(`${newServed} of ${total} served!`);
+        sound.play("ding");
+        setTimeout(() => setMilestone(null), 1500);
+      }
       setPlate([]);
       if (patienceRef.current) clearInterval(patienceRef.current);
       setTimeout(() => {
@@ -266,8 +286,12 @@ export default function Serve() {
   const finishLevel = async (totalCoins: number, served: number, totalScore: number, totalBells: number) => {
     if (finished) return;
     setFinished(true);
-    const completed = served > 0;
     const total = customers.length;
+    // Perfect run bonus: served every customer with no misses.
+    const perfectRun = served >= total && missedRef.current === 0;
+    const perfectBonus = perfectRun ? total * 20 : 0;
+    const finalCoins = totalCoins + perfectBonus;
+    const completed = served > 0;
     // Stars reward speed + combos: all-perfect = 3, most-perfect = 2, any win = 1.
     const stars = served >= total ? 3 : served >= Math.ceil(total * 0.6) ? 2 : served >= 1 ? 1 : 0;
     const id = await playerStorage.get();
@@ -287,7 +311,7 @@ export default function Serve() {
           level: levelNum,
           dish_id: dish.id,
           score: totalScore,
-          coins_earned: totalCoins,
+          coins_earned: finalCoins,
           bells_earned: totalBells,
           completed: served >= Math.ceil(customers.length / 2),
           stars,
@@ -298,7 +322,7 @@ export default function Serve() {
       pathname: "/cooking-result",
       params: {
         completed: completed ? "1" : "0",
-        coins: String(totalCoins),
+        coins: String(finalCoins),
         bells: String(totalBells),
         score: String(totalScore),
         dishId: dish.id,
@@ -306,6 +330,7 @@ export default function Serve() {
         served: String(served),
         total: String(customers.length),
         stars: String(stars),
+        perfectBonus: String(perfectBonus),
         nextLevel: String(levelNum + 1),
       },
     });
@@ -351,7 +376,10 @@ export default function Serve() {
             testID="patience-bar"
           />
         </View>
-        <Text style={styles.customerAvatar}>{current.avatar}</Text>
+        <View style={styles.avatarWrap}>
+          <Text style={styles.customerAvatar}>{current.avatar}</Text>
+          <Text style={styles.moodBubble} testID="customer-mood">{mood}</Text>
+        </View>
         <View style={styles.ticket} testID="order-ticket">
           <View style={styles.ticketTitleRow}>
             <DishIcon id={dish.id} emoji={dish.emoji} size={24} />
@@ -362,7 +390,7 @@ export default function Serve() {
             <View key={w} style={styles.ticketRow} testID={`want-${w}`}>
               <Text style={styles.ticketPlus}>＋</Text>
               <Text style={styles.ticketItem}>{INGREDIENTS[w]?.label || w}</Text>
-              <Text style={styles.ticketEmoji}>{INGREDIENTS[w]?.emoji}</Text>
+              <IngredientIcon id={w} emoji={INGREDIENTS[w]?.emoji} size={22} />
             </View>
           ))}
           {current.forbidden.map((f) => (
@@ -371,7 +399,7 @@ export default function Serve() {
               <Text style={[styles.ticketItem, { color: colors.error }]}>
                 {INGREDIENTS[f]?.label || f}
               </Text>
-              <Text style={styles.ticketEmoji}>{INGREDIENTS[f]?.emoji}</Text>
+              <IngredientIcon id={f} emoji={INGREDIENTS[f]?.emoji} size={22} />
             </View>
           ))}
         </View>
@@ -414,7 +442,7 @@ export default function Serve() {
             <View style={styles.plateItems}>
               {plate.map((p) => (
                 <View key={p} style={styles.plateChip} testID={`plate-${p}`}>
-                  <Text style={styles.plateChipEmoji}>{INGREDIENTS[p]?.emoji}</Text>
+                  <IngredientIcon id={p} emoji={INGREDIENTS[p]?.emoji} size={22} />
                 </View>
               ))}
             </View>
@@ -436,7 +464,7 @@ export default function Serve() {
                   onPress={() => takeFromPantry(t)}
                   style={({ pressed }) => [styles.pantryChip, pressed && { transform: [{ scale: 0.93 }] }]}
                 >
-                  <Text style={styles.pantryEmoji}>{INGREDIENTS[t]?.emoji}</Text>
+                  <IngredientIcon id={t} emoji={INGREDIENTS[t]?.emoji} size={22} />
                   <View style={styles.pantryCount}>
                     <Text style={styles.pantryCountText}>{n}</Text>
                   </View>
@@ -467,7 +495,7 @@ export default function Serve() {
                   pressed && { transform: [{ scale: 0.93 }] },
                 ]}
               >
-                <Text style={styles.trayEmoji}>{info?.emoji}</Text>
+                <IngredientIcon id={t} emoji={info?.emoji} size={26} />
                 <Text style={styles.trayLabel} numberOfLines={1}>
                   {info?.label || t}
                 </Text>
@@ -491,6 +519,16 @@ export default function Serve() {
       </View>
 
       <SparkleBurst trigger={sparkle} />
+
+      {milestone && (
+        <View style={styles.milestoneOverlay} pointerEvents="none" testID="milestone-cheer">
+          <View style={styles.milestoneCard}>
+            <Text style={styles.milestoneEmoji}>🎉</Text>
+            <Text style={styles.milestoneText}>{milestone}</Text>
+            <Text style={styles.milestoneSub}>Keep it up!</Text>
+          </View>
+        </View>
+      )}
 
       {jackpot != null && (
         <View style={styles.jackpotOverlay} pointerEvents="none" testID="jackpot-popup">
@@ -563,6 +601,32 @@ const styles = StyleSheet.create({
   },
   patienceFill: { height: "100%", borderRadius: radius.pill },
   customerAvatar: { fontSize: 56 },
+  avatarWrap: { alignItems: "center", justifyContent: "center" },
+  moodBubble: {
+    position: "absolute",
+    top: -6,
+    right: -14,
+    fontSize: 26,
+  },
+  milestoneOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 60,
+  },
+  milestoneCard: {
+    backgroundColor: colors.success,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xxxl,
+    borderRadius: radius.lg,
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+    ...shadow.tier3,
+  },
+  milestoneEmoji: { fontSize: 40 },
+  milestoneText: { fontSize: 22, fontWeight: "900", color: "#FFFFFF", marginTop: 4 },
+  milestoneSub: { fontSize: 13, fontWeight: "700", color: "#FFFFFF", opacity: 0.9, marginTop: 2 },
   ticket: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,

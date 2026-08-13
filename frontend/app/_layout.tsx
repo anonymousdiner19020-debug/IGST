@@ -56,6 +56,7 @@ export default function RootLayout() {
           <Stack.Screen name="coin-store" />
           <Stack.Screen name="leaderboard" />
           <Stack.Screen name="profile" />
+          <Stack.Screen name="gallery" />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

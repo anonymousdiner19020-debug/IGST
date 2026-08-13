@@ -191,7 +191,7 @@ export default function Home() {
             >
               <DishIcon id={daily.dish_id} emoji={daily.emoji} size={40} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.dailyLabel}>⭐ TODAY'S SPECIAL</Text>
+                <Text style={styles.dailyLabel}>⭐ TODAY&apos;S SPECIAL</Text>
                 <Text style={styles.dailyName} numberOfLines={1}>
                   {daily.name}
                 </Text>
@@ -226,6 +226,12 @@ export default function Home() {
               emoji="🗺️"
               label="Levels"
               onPress={() => router.push("/level-map")}
+            />
+            <SecondaryButton
+              testID="gallery-button"
+              emoji="🏛️"
+              label="Badges"
+              onPress={() => router.push("/gallery")}
             />
           </View>
 

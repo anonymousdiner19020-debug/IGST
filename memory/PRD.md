@@ -40,3 +40,5 @@ Onboarding, Home (daily special banner, tappable coin chip → coin store, Rush/
 
 - Water Ice icon = real striped-cup photo (assets/water_ice.png) via DishIcon/WaterIce component.
 - customers_per_level set to 10 for all 7 dishes (dishes.ts). Serve completion threshold = served >= ceil(customers/2).
+
+- Photo icons wired via IngredientIcon: cheese_sauce, american(+american_melt), pizza_sauce (assets/*.jpg), plus mustard(SVG bottle) & cinnamon(SVG sticks). Levels 8-12 added (scrapple_ec, seasoned_fries, tomato_pie, porkroll_ec, donuts) in dishes.ts + backend catalog (12 dishes).

@@ -232,3 +232,65 @@ frontend:
 agent_communication:
     - agent: "main"
       message: "Iteration 8: implemented 4 features (combo sparkle burst, level star ratings, first-time pretzel tutorial, daily reward streak in shop) + unified 3 icons (pretzel photo, liberty bell PNG, LOVE sculpture). Please test both backend (daily-reward status/claim idempotency + streak, complete-level stars persistence) and frontend flows: onboard a player, play soft_pretzel (tutorial overlay appears + dismiss), match 5 ingredients -> serve counter -> perfect serve shows sparkle burst -> cooking-result shows star rating -> level-map shows earned stars; shop shows Daily Reward card and CLAIM grants coins then disables. Anonymous UUID player (create via username input on home). Backend URL from EXPO_PUBLIC_BACKEND_URL."
+
+## ---- Iteration 9: board/icons + 4 gameplay features ----
+frontend:
+  - task: "Board uses only base ingredients + pretzel photo tiles"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/game.tsx, frontend/src/components/IngredientIcon.tsx"
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "buildPalette now returns only base_recipe keys (no topping tiles). Dough tiles + recipe chip render real pretzel photo via IngredientIcon."
+  - task: "All ingredients available as serve options + cinnamon sticks icon"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/serve.tsx, frontend/src/constants/dishes.ts, frontend/src/components/CinnamonSticks.tsx"
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Added serveOptions(dish) = base keys + toppings minus bread/cup carriers. game.tsx passes it to serve; serve falls back to it when empty. Tray/ticket/plate use IngredientIcon (cinnamon_sauce -> CinnamonSticks SVG, dough -> pretzel photo)."
+  - task: "Progress milestone cheer + customer mood/anger + perfect-run bonus"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/serve.tsx, frontend/app/cooking-result.tsx"
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Halfway milestone overlay at ceil(total/2) perfect serves. Mood emoji (happy/neutral/angry) by patience. Patience shrinks per level (max(7000,15000-(lvl-1)*1100)). Perfect run (all served, 0 misses) adds total*20 coins, shown on cooking-result perfect-bonus banner."
+  - task: "Landmark unlock gallery"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/gallery.tsx, frontend/app/_layout.tsx, frontend/app/index.tsx"
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New /gallery screen: 4 landmark badges (LOVE, Liberty Bell, City Hall, Rocky) unlock by levels beaten (1/2/4/6). Home Badges button added."
+
+agent_communication:
+    - agent: "main"
+      message: "Iteration 9. Board now only shows 5 base ingredients (pretzel dough as photo). Serve tray shows ALL ingredients (base sauces + toppings, no bread carrier), cinnamon uses custom stick icon. Added milestone cheer, angry customer faces + faster patience on later levels, perfect-run coin bonus, and a Landmark Badges gallery. Please test frontend: (1) game board only has base ingredients and completes to serve; (2) serve tray lists all ingredients and orders are fulfillable; (3) serve a perfect run and confirm cooking-result shows Perfect Run bonus + stars; (4) /gallery renders 4 badges with lock states; (5) home Badges button navigates to gallery. Backend unchanged this iteration (perfect bonus is added client-side to coins_earned in existing complete-level). Anonymous UUID player via home onboarding."
+
+## ---- Iteration 10: levels 8-12 + mustard icon ----
+backend:
+  - task: "Levels 8-12 in DISH_CATALOG"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Added scrapple_ec, seasoned_fries, tomato_pie, porkroll_ec, donuts to DISH_CATALOG. /api/dishes returns 12 dishes. Level 8-12 unlock chain via complete-level should work (current_level increments, unlocked_dishes appends)."
+frontend:
+  - task: "Levels 8-12 dishes + mustard bottle icon"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/constants/dishes.ts, frontend/src/components/MustardBottle.tsx, frontend/src/components/IngredientIcon.tsx"
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Added 5 dishes to FALLBACK_DISHES with new ingredients (scrapple, egg, long_roll, round_roll, salt_pepper, ketchup, porkroll, potato, american_melt, cheddar_melt, small_cup, seasoning, olive_oil, basil, vanilla/chocolate/strawberry donut). CARRIERS extended with long_roll/round_roll/small_cup. Mustard now renders custom MustardBottle SVG via IngredientIcon (board tiles, recipe chips, serve tray/ticket/plate). Verified board mustard tiles + tomato_pie serve options render."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 10: added levels 8-12 (Scrapple E&C, Seasoned Fries, Tomato Pie, Pork Roll E&C, Donuts) with their ingredients, and replaced mustard emoji with a custom cartoon mustard-bottle SVG everywhere. Please test: (1) backend /api/dishes returns 12 dishes; complete-level unlock chain works up through level 12; (2) frontend level-map shows all 12 levels; (3) each new level's game board shows only its base ingredients and completes to serve; (4) each new level's serve tray shows all non-carrier ingredients and orders are fulfillable; (5) mustard renders as a bottle icon (not emoji) on board tiles, recipe chips and serve tray. Anonymous UUID player via home onboarding."

@@ -57,6 +57,31 @@ export const INGREDIENTS: Record<string, Ingredient> = {
   pork: { id: "pork", emoji: "🍖", color: "#B96A5C", label: "Roast Pork" },
   broccoli: { id: "broccoli", emoji: "🥦", color: "#4C956C", label: "Broccoli Rabe" },
   spinach: { id: "spinach", emoji: "🥬", color: "#4C956C", label: "Spinach" },
+
+  // Scrapple / Pork Roll breakfast
+  scrapple: { id: "scrapple", emoji: "🟫", color: "#7A4A2B", label: "Scrapple" },
+  egg: { id: "egg", emoji: "🍳", color: "#FFE7A0", label: "Egg" },
+  long_roll: { id: "long_roll", emoji: "🥖", color: "#D4A373", label: "Long Roll" },
+  round_roll: { id: "round_roll", emoji: "🍞", color: "#E4B980", label: "Round Roll" },
+  salt_pepper: { id: "salt_pepper", emoji: "🧂", color: "#C9C4B5", label: "Salt & Pepper" },
+  ketchup: { id: "ketchup", emoji: "🥫", color: "#C0392B", label: "Ketchup" },
+  porkroll: { id: "porkroll", emoji: "🥓", color: "#D98A8A", label: "Pork Roll" },
+
+  // Seasoned Fries
+  potato: { id: "potato", emoji: "🍟", color: "#F2C14E", label: "Fries" },
+  american_melt: { id: "american_melt", emoji: "🧀", color: "#FFCF48", label: "American" },
+  cheddar_melt: { id: "cheddar_melt", emoji: "🧀", color: "#E8871E", label: "Cheddar" },
+  small_cup: { id: "small_cup", emoji: "🥤", color: "#B8E0FF", label: "Cup" },
+  seasoning: { id: "seasoning", emoji: "🫙", color: "#B5651D", label: "Seasoning" },
+
+  // Tomato Pie
+  olive_oil: { id: "olive_oil", emoji: "🫒", color: "#7BA05B", label: "Olive Oil" },
+  basil: { id: "basil", emoji: "🌿", color: "#4C956C", label: "Basil" },
+
+  // Donuts
+  vanilla_donut: { id: "vanilla_donut", emoji: "🍩", color: "#F5E6C8", label: "Vanilla Donut" },
+  chocolate_donut: { id: "chocolate_donut", emoji: "🍩", color: "#6B4226", label: "Chocolate Donut" },
+  strawberry_donut: { id: "strawberry_donut", emoji: "🍩", color: "#F7A8B8", label: "Strawberry Donut" },
 };
 
 export type Dish = {
@@ -157,9 +182,80 @@ export const FALLBACK_DISHES: Dish[] = [
     moves: 34,
     customers_per_level: 10,
   },
+  {
+    id: "scrapple_ec",
+    name: "Scrapple, Egg & Cheese",
+    emoji: "🍳",
+    unlock_level: 8,
+    base_recipe: { scrapple: 2, egg: 2, american: 2, long_roll: 2, round_roll: 2 },
+    topping_options: ["salt_pepper", "ketchup"],
+    verb: "grill",
+    reward_coins: 150,
+    moves: 34,
+    customers_per_level: 10,
+  },
+  {
+    id: "seasoned_fries",
+    name: "Seasoned Fries",
+    emoji: "🍟",
+    unlock_level: 9,
+    base_recipe: { potato: 2, small_cup: 2, seasoning: 2, american_melt: 2, cheddar_melt: 2 },
+    topping_options: ["american_melt", "cheddar_melt", "seasoning"],
+    verb: "fry",
+    reward_coins: 165,
+    moves: 34,
+    customers_per_level: 10,
+  },
+  {
+    id: "tomato_pie",
+    name: "Tomato Pie",
+    emoji: "🍕",
+    unlock_level: 10,
+    base_recipe: { dough: 2, tomato: 2, olive_oil: 2, pepperoni: 2, basil: 2 },
+    topping_options: ["pepperoni", "basil", "olive_oil"],
+    verb: "bake",
+    reward_coins: 180,
+    moves: 36,
+    customers_per_level: 10,
+  },
+  {
+    id: "porkroll_ec",
+    name: "Pork Roll, Egg & Cheese",
+    emoji: "🥪",
+    unlock_level: 11,
+    base_recipe: { porkroll: 2, egg: 2, cheese: 2, round_roll: 2, long_roll: 2 },
+    topping_options: ["salt_pepper"],
+    verb: "grill",
+    reward_coins: 195,
+    moves: 36,
+    customers_per_level: 10,
+  },
+  {
+    id: "donuts",
+    name: "Donuts",
+    emoji: "🍩",
+    unlock_level: 12,
+    base_recipe: { vanilla_donut: 2, chocolate_donut: 2, strawberry_donut: 2, sprinkles: 2 },
+    topping_options: ["sprinkles"],
+    verb: "glaze",
+    reward_coins: 210,
+    moves: 36,
+    customers_per_level: 10,
+  },
 ];
 
 export const CUSTOMER_AVATARS = ["👩‍🦰", "🧑‍🦱", "👨‍🦳", "🧑‍🎤", "👵", "🧑‍🚒", "👷", "🧑‍🎓", "🧑‍🌾", "🧑‍🎨", "👨‍⚕️", "🧕"];
+
+// Bread/cup base carriers — collected in the match phase, not offered as a
+// tap-to-add serving option.
+const CARRIERS = new Set(["dough", "roll", "cup", "long_roll", "round_roll", "small_cup"]);
+
+// Every ingredient a customer can request in the serving phase: the dish's
+// flavour base items plus its toppings (minus the bread/cup carrier).
+export function serveOptions(dish: Dish): string[] {
+  const all = [...Object.keys(dish.base_recipe), ...dish.topping_options];
+  return [...new Set(all)].filter((id) => !CARRIERS.has(id));
+}
 
 export function generateCustomerOrder(dish: Dish, rand: () => number = Math.random): {
   wanted: string[];
