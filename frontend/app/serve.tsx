@@ -32,6 +32,12 @@ const PATIENCE_MS = 15000;
 
 // Philly sports teams — fans occasionally show up repping their colors.
 const PHILLY_TEAMS = ["🦅", "⚾", "🏀", "🏒"];
+const TEAM_CHANTS: Record<string, string> = {
+  "🦅": "Go Birds! 🦅",
+  "⚾": "Go Phils! ⚾",
+  "🏀": "Trust the Process! 🏀",
+  "🏒": "Let's Go Flyers! 🏒",
+};
 
 function buildCustomers(dish: Dish, toppings: string[], count: number): Customer[] {
   const filteredDish = { ...dish, topping_options: toppings };
@@ -111,6 +117,7 @@ export default function Serve() {
   const [jackpot, setJackpot] = useState<number | null>(null);
   const [sparkle, setSparkle] = useState(0);
   const [milestone, setMilestone] = useState<string | null>(null);
+  const [chant, setChant] = useState<string | null>(null);
   const missedRef = useRef(0);
   const patienceRef = useRef<any>(null);
   const startRef = useRef<number>(Date.now());
@@ -255,7 +262,14 @@ export default function Serve() {
       const dailyLabel = isDaily ? " ⭐2×" : "";
       // Liberty Bell tip: faster serve = more bells (1-3)
       const bellTip = patience > 0.66 ? 3 : patience > 0.33 ? 2 : 1;
-      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}` });
+      // Bonus coin tip + chant for perfectly serving a Philly sports fan.
+      const fanBonus = current.fan ? 25 : 0;
+      const fanLabel = fanBonus > 0 ? ` +${fanBonus} 🪙 fan tip` : "";
+      if (current.fan) {
+        setChant(TEAM_CHANTS[current.fan] || "Go Philly!");
+        setTimeout(() => setChant(null), 1400);
+      }
+      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}${fanLabel}` });
       // Streak jackpot at 2.5x multiplier or higher (4+ consecutive perfects)
       let jackpotBonus = 0;
       if (mult >= 2.5) {
@@ -267,7 +281,7 @@ export default function Serve() {
         } catch {}
         setTimeout(() => setJackpot(null), 1400);
       }
-      nextCustomer(tip + jackpotBonus, Math.round((100 + speedBonus) * mult), true, bellTip);
+      nextCustomer(tip + jackpotBonus + fanBonus, Math.round((100 + speedBonus) * mult), true, bellTip);
     } else {
       const partial = Math.max(0, current.wanted.length - missing.length - extra.length);
       const dailyMult = isDaily ? 2 : 1;
@@ -537,6 +551,12 @@ export default function Serve() {
 
       <SparkleBurst trigger={sparkle} />
 
+      {chant && (
+        <View style={styles.chantBubble} pointerEvents="none" testID="fan-chant">
+          <Text style={styles.chantText}>{chant}</Text>
+        </View>
+      )}
+
       {milestone && (
         <View style={styles.milestoneOverlay} pointerEvents="none" testID="milestone-cheer">
           <View style={styles.milestoneCard}>
@@ -644,6 +664,20 @@ const styles = StyleSheet.create({
     borderColor: colors.surfaceInverse,
   },
   fanTagText: { fontSize: 12, fontWeight: "900", color: colors.onBrand },
+  chantBubble: {
+    position: "absolute",
+    top: "26%",
+    alignSelf: "center",
+    backgroundColor: "#004C54",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.pill,
+    borderWidth: 3,
+    borderColor: "#A5ACAF",
+    zIndex: 70,
+    ...shadow.tier3,
+  },
+  chantText: { fontSize: 20, fontWeight: "900", color: "#FFFFFF" },
   milestoneOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",

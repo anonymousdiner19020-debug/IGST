@@ -46,7 +46,9 @@ export default function LevelMap() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.subtitle}>Cook every Philly classic</Text>
-        {FALLBACK_DISHES.map((dish, i) => {
+        {[...FALLBACK_DISHES]
+          .sort((a, b) => a.unlock_level - b.unlock_level)
+          .map((dish, i) => {
           const unlocked = dish.unlock_level <= currentLevel;
           const isCurrent = dish.unlock_level === currentLevel;
           const done = dish.unlock_level < currentLevel;

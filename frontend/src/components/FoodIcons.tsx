@@ -65,7 +65,43 @@ export function PorkRoll({ size = 24 }: Props) {
   );
 }
 
-// Glazed ring donut; glaze colour distinguishes the flavour.
+// Spice/seasoning shaker (distinct from the plain salt shaker).
+export function SeasoningShaker({ size = 24 }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      <Rect x={21} y={24} width={22} height={33} rx={6} fill="#C0491F" stroke="#7C2E12" strokeWidth={1.6} />
+      <Rect x={20} y={17} width={24} height={9} rx={3} fill="#8A3417" stroke="#5E2210" strokeWidth={1.4} />
+      <Circle cx={27} cy={21} r={1.4} fill="#3A160A" />
+      <Circle cx={32} cy={20} r={1.4} fill="#3A160A" />
+      <Circle cx={37} cy={21} r={1.4} fill="#3A160A" />
+      <Rect x={25} y={33} width={14} height={16} rx={2.5} fill="#FBF3DD" stroke="#7C2E12" strokeWidth={1.4} />
+      <Rect x={28} y={38} width={8} height={1.6} rx={0.8} fill="#C0491F" />
+      <Rect x={28.5} y={42} width={7} height={1.4} rx={0.7} fill="#C0491F" />
+    </Svg>
+  );
+}
+
+// Illustrated hoagie / sub sandwich for level-map cards.
+export function Hoagie({ size = 24 }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      {/* bottom roll */}
+      <Path d="M6 40 Q6 33 15 33 L49 33 Q58 33 58 40 Q58 47 49 47 L15 47 Q6 47 6 40 Z" fill="#E4B76F" stroke="#C08A3A" strokeWidth={1.4} />
+      {/* fillings */}
+      <Path d="M7 36 q5 4 10 0 q5 4 10 0 q5 4 10 0 q5 4 10 0 q4 3 6 0" stroke="#5FA85F" strokeWidth={4} fill="none" strokeLinecap="round" />
+      <Circle cx={18} cy={38} r={3} fill="#D9534F" />
+      <Circle cx={34} cy={39} r={3} fill="#D9534F" />
+      <Circle cx={48} cy={38} r={3} fill="#D9534F" />
+      <Path d="M9 40 q6 2 12 0 q6 2 12 0 q6 2 12 0 q4 1 6 0" stroke="#B96A5C" strokeWidth={3} fill="none" strokeLinecap="round" />
+      {/* top roll */}
+      <Path d="M9 34 Q10 24 32 24 Q54 24 55 34 Z" fill="#EEC98A" stroke="#C08A3A" strokeWidth={1.4} strokeLinejoin="round" />
+      <Circle cx={22} cy={30} r={1} fill="#C9A25E" />
+      <Circle cx={34} cy={29} r={1} fill="#C9A25E" />
+      <Circle cx={44} cy={30} r={1} fill="#C9A25E" />
+    </Svg>
+  );
+}
+
 export function Donut({ size = 24, glaze = "#F0DFB6", sprinkles = false }: Props & { glaze?: string; sprinkles?: boolean }) {
   const cx = 32;
   const cy = 32;

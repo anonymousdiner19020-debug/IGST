@@ -44,3 +44,5 @@ Onboarding, Home (daily special banner, tappable coin chip → coin store, Rush/
 - Photo icons wired via IngredientIcon: cheese_sauce, american(+american_melt), pizza_sauce (assets/*.jpg), plus mustard(SVG bottle) & cinnamon(SVG sticks). Levels 8-12 added (scrapple_ec, seasoned_fries, tomato_pie, porkroll_ec, donuts) in dishes.ts + backend catalog (12 dishes).
 
 - Icons: ketchup(KetchupBottle SVG), egg/scrapple/porkroll (FoodIcons SVG), donut flavors (Donut SVG w/ glaze color + sprinkles) wired via IngredientIcon; donuts dish icon in DishIcon. Level-map now shows dish icon on locked cards (dimmed + lock badge). Random ~25% Philly sports-fan customer (team emoji jersey badge + "Philly fan!" tag) in serve.tsx buildCustomers.
+
+- Level order changed: Donuts moved to Lvl 4; American Hoagie..Pork Roll shifted +1 (now 5..12). unlock_level updated in dishes.ts + server.py; level-map sorts by unlock_level. Backend unlock keyed on unlock_level so chain intact.
