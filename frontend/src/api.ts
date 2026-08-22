@@ -53,6 +53,7 @@ export type DailyGoalStatus = {
   completed: boolean;
   claimed: boolean;
   claimable: boolean;
+  streak: number;
 };
 
 export type DailySpecial = {
@@ -192,7 +193,18 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   claimDailyGoal: (id: string) =>
-    req<{ reward: number; player: PlayerDTO }>(`/players/${id}/claim-daily-goal`, {
-      method: "POST",
-    }),
+    req<{ reward: number; base_reward: number; streak_bonus: number; streak: number; player: PlayerDTO }>(
+      `/players/${id}/claim-daily-goal`,
+      {
+        method: "POST",
+      }
+    ),
+  jerseyMath: (id: string, payload: { correct: number; wrong: number }) =>
+    req<{ coins_awarded: number; correct: number; wrong: number; player: PlayerDTO }>(
+      `/players/${id}/jersey-math`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    ),
 };

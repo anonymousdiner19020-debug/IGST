@@ -31,6 +31,7 @@ type Customer = {
   rivalry?: string; // "whiz" or "provolone" cheesesteak mini-challenge
   special?: boolean; // surprise "special order" with a rare extra topping
   specialItem?: string; // the rare topping requested
+  vip?: boolean; // rare big-tipper: double tip but shorter patience
 };
 
 const PATIENCE_MS = 15000;
@@ -67,10 +68,12 @@ function buildCustomers(dish: Dish, toppings: string[], count: number, allFans =
   const filteredDish = { ...dish, topping_options: normalToppings };
   const list: Customer[] = [];
   for (let i = 0; i < count; i++) {
+    // ~10% of customers are rare VIP big-tippers (double tip, less patience).
+    const isVip = Math.random() < 0.1;
     // ~22% of customers place a surprise special order for a rare extra.
-    const wantSpecial = Math.random() < 0.22 && (dish.special_options || []).length > 0;
+    const wantSpecial = !isVip && Math.random() < 0.22 && (dish.special_options || []).length > 0;
     const order = generateCustomerOrder(filteredDish, Math.random, wantSpecial);
-    const isFan = allFans || Math.random() < 0.25;
+    const isFan = !isVip && (allFans || Math.random() < 0.25);
     // Cheesesteak rivalry: some customers demand exactly Whiz or Provolone
     // (and refuse the other) as a mini-challenge.
     let wanted = order.wanted;
@@ -93,6 +96,7 @@ function buildCustomers(dish: Dish, toppings: string[], count: number, allFans =
       rivalry,
       special: !!specialItem,
       specialItem,
+      vip: isVip,
     });
   }
   return list;
@@ -214,9 +218,11 @@ export default function Serve() {
     if (finished || !current) return;
     startRef.current = Date.now();
     setPatience(1);
+    // VIP big-tippers are impatient — they give ~40% less time.
+    const pMs = current.vip ? Math.round(patienceMs * 0.6) : patienceMs;
     patienceRef.current = setInterval(() => {
       const elapsed = Date.now() - startRef.current;
-      const remaining = Math.max(0, 1 - elapsed / patienceMs);
+      const remaining = Math.max(0, 1 - elapsed / pMs);
       setPatience(remaining);
       if (remaining <= 0) {
         clearInterval(patienceRef.current);
@@ -304,7 +310,8 @@ export default function Serve() {
       const mult = 1 + streak * 0.5; // multiplier from CURRENT streak before increment
       const dailyMult = isDaily ? 2 : 1;
       const rushMult = fanRush ? 2 : 1; // Fan Rush doubles all tips
-      const tip = Math.round(base * mult * dailyMult * rushMult);
+      const vipMult = current.vip ? 2 : 1; // VIP big-tipper pays double
+      const tip = Math.round(base * mult * dailyMult * rushMult * vipMult);
       setStreak(newStreak);
       setSparkle((s) => s + 1);
       sound.play("serve");
@@ -314,8 +321,9 @@ export default function Serve() {
       } catch {}
       const comboLabel = mult > 1 ? ` 🔥x${mult}` : "";
       const dailyLabel = isDaily ? " ⭐2×" : "";
-      // Liberty Bell tip: faster serve = more bells (1-3)
-      const bellTip = patience > 0.66 ? 3 : patience > 0.33 ? 2 : 1;
+      // Liberty Bell tip: faster serve = more bells (1-3), doubled for VIPs.
+      const bellTip = (patience > 0.66 ? 3 : patience > 0.33 ? 2 : 1) * vipMult;
+      const vipLabel = current.vip ? " 💎 VIP double tip!" : "";
       // Bonus coin tip + chant for perfectly serving Philly sports fans.
       // Consecutive perfect fan serves stack a growing streak bonus.
       let fanBonus = 0;
@@ -344,7 +352,7 @@ export default function Serve() {
         } catch {}
       }
       const specialLabel = specialBonus > 0 ? ` ⭐ +${specialBonus} 🪙 special!` : "";
-      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}${fanLabel}${specialLabel}` });
+      setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}${fanLabel}${specialLabel}${vipLabel}` });
       // Streak jackpot at 2.5x multiplier or higher (4+ consecutive perfects)
       let jackpotBonus = 0;
       if (mult >= 2.5) {
@@ -515,6 +523,11 @@ export default function Serve() {
           {current.special && (
             <View style={styles.specialTag} testID="special-tag">
               <Text style={styles.specialText}>⭐ SPECIAL ORDER • BONUS TIP!</Text>
+            </View>
+          )}
+          {current.vip && (
+            <View style={styles.vipTag} testID="vip-tag">
+              <Text style={styles.vipText}>💎 VIP • DOUBLE TIP • HURRY!</Text>
             </View>
           )}
           <View style={styles.ticketTitleRow}>
@@ -864,6 +877,17 @@ const styles = StyleSheet.create({
     borderColor: "#F0B429",
   },
   specialText: { fontSize: 11, fontWeight: "900", color: "#B7791F", letterSpacing: 0.3 },
+  vipTag: {
+    alignSelf: "center",
+    backgroundColor: "#EDE7FF",
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    marginBottom: spacing.xs,
+    borderWidth: 2,
+    borderColor: "#7C5CFF",
+  },
+  vipText: { fontSize: 11, fontWeight: "900", color: "#5B3FD1", letterSpacing: 0.3 },
   ticketRowSpecial: {
     backgroundColor: "#FFF8E1",
     borderRadius: radius.sm,

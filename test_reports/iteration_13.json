@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 13 both-tested: (A) VIP big-tipper customers on serve.tsx, (B) Daily-goal claim streak bonus (backend), (C) Home 🎁 reminder badge + 🔥 streak chip + coin delta on claim. BACKEND: created /app/backend/tests/test_streak_bonus.py (7 pytest tests) — 7/7 PASSED covering (i) GET /daily-goal exposes 'streak' field default 0, (ii) claim under target -> 400 'Goal not complete', (iii) first-ever claim returns {reward=base+20, base_reward, streak_bonus=20, streak=1, player} and player.coins += reward, (iv) second same-day claim -> 400 'Already claimed', (v) DB-seeded 4-streak + last_claim=yesterday -> new streak=5 bonus=100, (vi) streak capped at 7 -> bonus max 140 (streak=21 still gives +140), (vii) gap>1 day resets streak to 1 bonus 20. FRONTEND: Primed player via API to today's goal (special3, target 3, base 150) then loaded Home — CLAIM button + play-goal-badge (🎁) both visible; goal-streak chip absent (streak=0). Tapped claim-goal-button — transient '+170 🪙 claimed! (+20 🔥 streak)' text rendered, play-goal-badge disappeared, goal-streak chip '🔥 1-day streak' appeared, top-bar coin balance went 100 → 270 (matches base 150 + streak bonus 20 exactly). VIP customers: 2/20 reloads of /serve?dishId=american_hoagie showed vip-tag (~10% expected). Caught a VIP, measured patience-bar drain rate = 0.160/s vs expected VIP ~0.157/s (normal ~0.094/s at level 5) — CLEARLY faster. Perfect-serve feedback contained '💎 VIP double tip!' and tip was doubled (+194 🪙 with 6 🔔).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "index.tsx / serve.tsx styles", "issue": "Pre-existing: 'shadow*' and 'textShadow*' RN-Web props deprecated; migrate to boxShadow / textShadow. Non-blocking."},
+      {"component": "ImageBackground / Image", "issue": "Pre-existing: 'style.resizeMode' deprecated; use props.resizeMode."},
+      {"component": "serve.tsx overlays", "issue": "Pre-existing: 'props.pointerEvents' deprecated; use style.pointerEvents. Reference: /app/frontend/app/serve.tsx rushBanner/chantBubble/milestoneOverlay/jackpotOverlay."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_streak_bonus.py",
+    "/app/test_reports/pytest/pytest_iter13.xml"
+  ],
+  "action_items": [
+    "(Optional) Remove pre-existing RN-Web deprecation warnings (shadow*/textShadow*/resizeMode/pointerEvents).",
+    "(Optional) Consider adding a small 'streak' chip animation when it first appears post-claim to draw attention."
+  ],
+  "critical_code_review_comments": [
+    "server.py:770-784 claim_daily_goal streak logic is correct: streak+1 if goal_last_claim == yesterday_iso else reset to 1; bonus = min(streak,7)*20; single atomic update stamps goal_streak/goal_last_claim and $inc coins by total_reward.",
+    "server.py:786-792 response now includes reward, base_reward, streak_bonus, streak, player — matches PRD and frontend api.ts type.",
+    "_daily_goal_view returns 'streak' (from doc.goal_streak, default 0) so GET /daily-goal is complete.",
+    "serve.tsx:71-99 buildCustomers rolls isVip with p=0.1 BEFORE choosing fan/special (VIPs excluded from those); vip flag stored on Customer; patience effect (line 222) uses patienceMs*0.6 only when current.vip — verified 0.160/s vs ~0.094/s normal.",
+    "serve.tsx:313-326 handleServe perfect branch applies vipMult=2 to both coin tip and bell tip and appends '💎 VIP double tip!' to feedback text; non-VIP path is unaffected — verified in browser.",
+    "index.tsx:329-333 play-goal-badge only renders when goal?.claimable is truthy — verified appears when claimable, disappears after successful claim.",
+    "index.tsx:249-258 streak chip renders when goal.streak > 0 with '+X bonus today!' hint only when claimable — behavior consistent with spec.",
+    "index.tsx:78-89 handleClaimGoal correctly updates player from response, sets +reward claimed message with streak-bonus suffix, and re-fetches daily-goal to refresh streak chip."
+  ],
+  "updated_files": ["/app/backend/tests/test_streak_bonus.py"],
+  "success_rate": {"backend": "100% (7/7 pytest)", "frontend": "100% (VIP tag, VIP tip doubling, faster VIP patience, claim button, play-goal-badge, goal-streak chip, coin delta all verified)"},
+  "seed_data_creation": "Ephemeral TEST_ prefixed players created via POST /api/players. Multi-day/cap/reset tests DB-write goal_streak+goal_last_claim directly via motor to simulate prior claim days without waiting real time.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Today's daily goal (UTC) is 'Serve 3 Special Orders' (special3, metric special_served, target 3, base reward 150). AsyncStorage key on web is 'philly_fare_player_id'. To load Home with a primed player: run fetch inside page.evaluate() to create the player, POST progress to target, then localStorage.setItem BEFORE calling page.reload(). VIP rate is ~10% so allow ~15-25 reloads of /serve to observe. VIP patience drains 40% faster than normal (patienceMs*0.6).",
+  "rca_of_issue": "N/A — all three new features work as specified."
+}

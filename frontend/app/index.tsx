@@ -30,6 +30,7 @@ export default function Home() {
   const [daily, setDaily] = useState<DailySpecial | null>(null);
   const [goal, setGoal] = useState<DailyGoalStatus | null>(null);
   const [claimingGoal, setClaimingGoal] = useState(false);
+  const [claimMsg, setClaimMsg] = useState<string | null>(null);
   const [needsName, setNeedsName] = useState(false);
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(true);
@@ -76,6 +77,9 @@ export default function Home() {
     try {
       const res = await api.claimDailyGoal(id);
       setPlayer(res.player);
+      const bonusText = res.streak_bonus > 0 ? ` (+${res.streak_bonus} 🔥 streak)` : "";
+      setClaimMsg(`+${res.reward} 🪙 claimed!${bonusText}`);
+      setTimeout(() => setClaimMsg(null), 3500);
       const g = await api.getDailyGoal(id);
       setGoal(g);
     } catch {
@@ -242,6 +246,16 @@ export default function Home() {
                   <Text style={styles.goalRewardText}>+{goal.goal.reward} 🪙</Text>
                 </View>
               </View>
+              {goal.streak > 0 && (
+                <View style={styles.streakChip} testID="goal-streak">
+                  <Text style={styles.streakChipText}>
+                    🔥 {goal.streak}-day streak
+                    {goal.claimable
+                      ? `  •  +${Math.min(goal.streak + 1, 7) * 20} bonus today!`
+                      : ""}
+                  </Text>
+                </View>
+              )}
               <View style={styles.goalBarTrack}>
                 <View
                   style={[
@@ -264,7 +278,7 @@ export default function Home() {
                     <Text style={styles.goalClaimText}>{claimingGoal ? "..." : "CLAIM"}</Text>
                   </Pressable>
                 ) : goal.claimed ? (
-                  <Text style={styles.goalDone}>✓ Claimed</Text>
+                  <Text style={styles.goalDone}>{claimMsg || "✓ Claimed"}</Text>
                 ) : (
                   <Text style={styles.goalHint}>Keep serving!</Text>
                 )}
@@ -312,6 +326,11 @@ export default function Home() {
           >
             <Text style={styles.playCtaText}>PLAY</Text>
             <Text style={styles.playCtaSub}>Level {player?.current_level ?? 1}</Text>
+            {goal?.claimable && (
+              <View style={styles.playBadge} testID="play-goal-badge">
+                <Text style={styles.playBadgeText}>🎁</Text>
+              </View>
+            )}
           </Pressable>
         </View>
       </ImageBackground>
@@ -557,6 +576,31 @@ const styles = StyleSheet.create({
   goalClaimText: { fontSize: 13, fontWeight: "900", color: colors.onBrand, letterSpacing: 1 },
   goalDone: { fontSize: 13, fontWeight: "900", color: colors.success },
   goalHint: { fontSize: 12, fontWeight: "700", color: colors.surfaceTertiary },
+  streakChip: {
+    alignSelf: "flex-start",
+    backgroundColor: "#FFE8CC",
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    borderWidth: 1.5,
+    borderColor: "#F59E0B",
+  },
+  streakChipText: { fontSize: 12, fontWeight: "900", color: "#B45309" },
+  playBadge: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    minWidth: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.error,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.surface,
+    paddingHorizontal: 4,
+  },
+  playBadgeText: { fontSize: 15, fontWeight: "900", color: colors.onBrand },
   secondaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",

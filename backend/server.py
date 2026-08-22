@@ -8,7 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 ROOT_DIR = Path(__file__).parent
@@ -725,6 +725,7 @@ def _daily_goal_view(doc: dict) -> dict:
         "completed": completed,
         "claimed": claimed,
         "claimable": completed and not claimed,
+        "streak": int(doc.get("goal_streak", 0)),
     }
 
 
@@ -766,13 +767,43 @@ async def claim_daily_goal(player_id: str):
         raise HTTPException(status_code=400, detail="Goal not complete")
     if dg.get("claimed"):
         raise HTTPException(status_code=400, detail="Already claimed")
+    # Consecutive-day claim streak: +1 if claimed yesterday, else reset to 1.
+    yesterday = (datetime.fromisoformat(today) - timedelta(days=1)).date().isoformat()
+    prev_streak = int(doc.get("goal_streak", 0))
+    last_claim = doc.get("goal_last_claim")
+    streak = prev_streak + 1 if last_claim == yesterday else 1
+    streak_bonus = min(streak, 7) * 20  # +20 per day, capped at +140 (7 days)
+    total_reward = goal["reward"] + streak_bonus
     dg["claimed"] = True
     await db.players.update_one(
         {"id": player_id},
-        {"$inc": {"coins": goal["reward"]}, "$set": {"daily_goal": dg}},
+        {
+            "$inc": {"coins": total_reward},
+            "$set": {"daily_goal": dg, "goal_streak": streak, "goal_last_claim": today},
+        },
     )
     updated = await db.players.find_one({"id": player_id}, {"_id": 0})
-    return {"reward": goal["reward"], "player": player_public(updated)}
+    return {
+        "reward": total_reward,
+        "base_reward": goal["reward"],
+        "streak_bonus": streak_bonus,
+        "streak": streak,
+        "player": player_public(updated),
+    }
+
+
+@api_router.post("/players/{player_id}/jersey-math")
+async def jersey_math_reward(player_id: str, payload: dict = Body(...)):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    correct = max(0, min(10, int(payload.get("correct", 0) or 0)))
+    wrong = max(0, min(10, int(payload.get("wrong", 0) or 0)))
+    # More than 3 wrong: flat 10-coin consolation. Otherwise 10 coins per correct.
+    coins_awarded = 10 if wrong > 3 else 10 * correct
+    await db.players.update_one({"id": player_id}, {"$inc": {"coins": coins_awarded}})
+    updated = await db.players.find_one({"id": player_id}, {"_id": 0})
+    return {"coins_awarded": coins_awarded, "correct": correct, "wrong": wrong, "player": player_public(updated)}
 
 
 @api_router.post("/revenuecat/webhook")

@@ -34,6 +34,9 @@ export default function CookingResult() {
   const retryLevel = parseInt(level || "1", 10);
   const starCount = Math.max(0, Math.min(3, parseInt(stars || "0", 10)));
   const perfectBonusCoins = parseInt(perfectBonus || "0", 10);
+  // Bonus "Jersey Math" mini-game unlocks between levels 3 and 4.
+  const bonusAfterThis = win && retryLevel === 3;
+  const goNext = () => router.replace(bonusAfterThis ? "/jersey-math" : "/level-map");
 
   const [myBells, setMyBells] = useState<number | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -151,9 +154,16 @@ export default function CookingResult() {
             </Pressable>
           )}
 
+          {win && bonusAfterThis && (
+            <View style={styles.bonusBanner} testID="bonus-banner">
+              <Text style={styles.bonusText}>⚾ BONUS ROUND NEXT!</Text>
+              <Text style={styles.bonusSub}>Jersey Math — earn extra coins</Text>
+            </View>
+          )}
+
           <Pressable
             testID="continue-button"
-            onPress={() => router.replace("/level-map")}
+            onPress={goNext}
             style={({ pressed }) => [
               styles.cta,
               !win && styles.ctaGhost,
@@ -161,7 +171,7 @@ export default function CookingResult() {
             ]}
           >
             <Text style={[styles.ctaText, !win && styles.ctaGhostText]}>
-              {win ? "Continue" : "Back to Map"}
+              {win ? (bonusAfterThis ? "Bonus Round!" : "Continue") : "Back to Map"}
             </Text>
           </Pressable>
 
@@ -310,6 +320,18 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   unlockDish: { fontSize: 16, fontWeight: "900", color: colors.surfaceInverse, marginTop: 4 },
+  bonusBanner: {
+    width: "100%",
+    backgroundColor: "#FDE7EA",
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E81828",
+    marginTop: spacing.sm,
+  },
+  bonusText: { fontSize: 15, fontWeight: "900", color: "#B01020", letterSpacing: 1 },
+  bonusSub: { fontSize: 12, fontWeight: "700", color: "#B01020", opacity: 0.8, marginTop: 2 },
   retryBtn: {
     width: "100%",
     backgroundColor: colors.brandTertiary,

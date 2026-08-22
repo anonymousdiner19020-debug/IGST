@@ -367,3 +367,83 @@ frontend:
 agent_communication:
     - agent: "main"
       message: "Iteration 12. Test focus: (1) BACKEND daily-goal endpoints: GET returns today's goal+progress; POST daily-goal-progress only increments the active goal's metric and is a no-op after claim; claim grants reward once (idempotent, 400 when incomplete/already claimed); new UTC day resets progress. (2) FRONTEND special orders: on hoagie/other dishes, ~22% of serve customers show a gold '⭐ SPECIAL ORDER • BONUS TIP!' badge with a highlighted special item, tray includes the special extras as tappable buttons, and serving that order perfectly awards +50 (feedback shows '⭐ +50 🪙 special!'); normal (non-special) serving unaffected. (3) FRONTEND Daily Goal card on Home shows the challenge, progress bar, and after finishing a serve level the progress updates; when progress>=target a CLAIM button appears, claiming adds coins and shows '✓ Claimed'. Anonymous UUID player via home onboarding. Deep-link serve e.g. /serve?dishId=american_hoagie&level=5&score=100&inventory=%7B%7D&movesLeft=10&daily=0."
+
+## ---- Iteration 13: VIP customers + daily-goal streak bonus + Play-button reminder ----
+backend:
+  - task: "Daily Goal claim streak bonus"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "claim-daily-goal now tracks a consecutive-day claim streak (player.goal_streak, player.goal_last_claim). If last claim was yesterday -> streak+1, else reset to 1. streak_bonus = min(streak,7)*20 (cap +140) added on TOP of goal.reward. Response returns {reward(total), base_reward, streak_bonus, streak, player}. GET daily-goal now also returns 'streak'. Verified via curl: fresh claim -> streak 1, bonus 20, total = base+20; direct-DB set last_claim=yesterday & prev streak 4 -> claim returned streak 5, bonus 100, total 250; idempotency still returns 400 'Already claimed'."
+frontend:
+  - task: "VIP big-tipper customers"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/serve.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "~10% of serve customers are VIPs (isVip roll; VIP excludes fan/special to keep tips clear). VIP ticket shows '💎 VIP • DOUBLE TIP • HURRY!' badge. On perfect serve, tip AND bell tip are doubled (vipMult=2) and feedback appends '💎 VIP double tip!'. Patience timer for a VIP customer is ~40% shorter (pMs = patienceMs*0.6). Screenshot-verified VIP badge renders on american_hoagie serve."
+  - task: "Daily-goal streak chip + Play-button reminder badge"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/index.tsx, frontend/src/api.ts"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Home goal card shows a '🔥 N-day streak' chip when streak>0 (and '+X bonus today!' when claimable). Claiming shows a temporary '+reward 🪙 claimed! (+X 🔥 streak)' message. A small red 🎁 badge (testID play-goal-badge) appears on the Home PLAY button whenever goal.claimable is true (challenge complete & ready to claim). api.claimDailyGoal/getDailyGoal types updated with streak fields."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 13. Test focus: (1) BACKEND claim streak: first claim of the day => streak=1, streak_bonus=20, reward=base+20; a second claim same day => 400 'Already claimed'; GET daily-goal returns 'streak'. (Consecutive-day increment already curl+DB verified: last_claim yesterday bumps streak and streak_bonus=min(streak,7)*20.) Ensure claim still 400s when progress<target. (2) FRONTEND VIP: on a serve screen (e.g. /serve?dishId=american_hoagie&level=5&score=100&inventory=%7B%7D&movesLeft=10&daily=0) reload several times (~10% chance) to find a customer whose ticket shows the '💎 VIP • DOUBLE TIP • HURRY!' badge (testID vip-tag); serving that customer perfectly should double the tip and the feedback should include 'VIP double tip'. VIP patience bar drains noticeably faster. (3) FRONTEND Home: after pushing a player's daily-goal progress to >=target via backend, the Home card shows the CLAIM button, a '🔥 N-day streak' chip appears after claiming, and a 🎁 badge (testID play-goal-badge) shows on the PLAY button while claimable. Anonymous UUID player via onboarding."
+
+## ---- Iteration 14: Jersey Math bonus mini-game (between levels 3 & 4) ----
+backend:
+  - task: "Jersey Math reward endpoint"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "POST /api/players/{id}/jersey-math body {correct,wrong}. Reward rule: if wrong>3 => flat 10 coins; else => 10*correct. correct/wrong clamped 0..10. Adds coins to player, returns {coins_awarded,correct,wrong,player}. Curl-verified: correct=7,wrong=2 -> 70 (coins 100->170); correct=5,wrong=5 -> 10."
+frontend:
+  - task: "Jersey Math mini-game screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/jersey-math.tsx, frontend/app/_layout.tsx, frontend/src/api.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New route /jersey-math. 10 equations (+/- with small numbers), each shown as 'a op b = ?' on a card. 6 Phillies-red jerseys (FanJersey) each with a candidate number (one is the correct answer, 5 unique distractors 0-25). 10-second countdown timer bar per equation (testID timer-bar); timeout counts as wrong. Tapping testID jersey-<n> picks answer: correct flashes green + ✓ count, wrong flashes red + ✗ count, then auto-advances (~650ms). After all 10, calls api.jerseyMath and shows result screen (testID jersey-math-result) with coins awarded + correct/wrong, then Continue (testID jersey-math-continue) -> /level-map. Screenshot-verified equation card, timer, and 6 numbered jerseys render."
+  - task: "Trigger bonus round between levels 3 and 4"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/cooking-result.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "When a player WINS level 3 (retryLevel===3), cooking-result shows a '⚾ BONUS ROUND NEXT!' banner (testID bonus-banner) and the continue button label becomes 'Bonus Round!'; tapping it routes to /jersey-math instead of /level-map. Other levels continue straight to /level-map as before."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 14. NEW bonus mini-game 'Jersey Math' between levels 3 & 4. Test: (1) BACKEND POST /api/players/{id}/jersey-math with {correct,wrong}: wrong>3 => coins_awarded=10 (flat); wrong<=3 => coins_awarded=10*correct; player.coins increases by exactly coins_awarded; values clamp 0..10; 404 unknown player. (2) FRONTEND directly load /jersey-math: verify 10 questions total (counter 'N / 10'), each equation 'a +/- b = ?' with 6 tappable Phillies jerseys (testID jersey-<number>) one of which equals the answer; tapping the correct jersey increments ✓ and advances; tapping a wrong one increments ✗; a 10s timer (testID timer-bar) auto-advances as a wrong answer on timeout. After 10 questions the result screen (testID jersey-math-result) shows coins awarded and correct/wrong counts, and Continue (testID jersey-math-continue) goes to /level-map. You can compute expected coins from your ✓/✗ tally using the rule above. (3) TRIGGER: hard to reach via real play; verify by code/logic that winning level 3 routes cooking-result's continue to /jersey-math (bonus-banner shown). Anonymous UUID player via onboarding. NOTE for equation answers: the correct jersey number equals a+b or a-b shown on the card - read the equation card to pick."
