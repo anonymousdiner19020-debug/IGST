@@ -157,7 +157,7 @@ export default function CookingResult() {
           {win && bonusAfterThis && (
             <View style={styles.bonusBanner} testID="bonus-banner">
               <Text style={styles.bonusText}>⚾ BONUS ROUND NEXT!</Text>
-              <Text style={styles.bonusSub}>Jersey Math — earn extra coins</Text>
+              <Text style={styles.bonusSub}>Mini 1: Jersey Math — earn extra coins</Text>
             </View>
           )}
 

@@ -206,7 +206,7 @@ export default function JerseyMath() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚾ JERSEY MATH</Text>
+        <Text style={styles.headerTitle}>⚾ MINI 1</Text>
         <Text style={styles.headerSub}>Tap the jersey with the answer!</Text>
       </View>
 

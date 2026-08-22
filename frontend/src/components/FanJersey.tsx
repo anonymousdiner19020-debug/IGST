@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import Svg, { Circle, ClipPath, Defs, G, Line, Path, Text as SvgText } from "react-native-svg";
+import Svg, { ClipPath, Defs, G, Line, Path, Text as SvgText } from "react-native-svg";
 
 type Props = { size?: number; color?: string; number?: string; pinstripe?: boolean };
 
@@ -52,24 +52,19 @@ export function FanJersey({ size = 28, color = "#004C54", number = "1", pinstrip
         <Line x1={9} y1={21.5} x2={12.5} y2={31.5} stroke={color} strokeWidth={2.6} strokeLinecap="round" />
         <Line x1={55} y1={21.5} x2={51.5} y2={31.5} stroke={color} strokeWidth={2.6} strokeLinecap="round" />
 
-        {/* V-neck collar: red outer + blue inner trim */}
-        <Path d="M26 13 Q32 21 38 13" fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" />
-        <Path d="M27.5 13 Q32 19 36.5 13" fill="none" stroke={PHILS_BLUE} strokeWidth={1} strokeLinecap="round" />
+        {/* back crew collar: red trim with blue inner line */}
+        <Path d="M26 13 Q32 16.5 38 13" fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" />
+        <Path d="M27.5 13.6 Q32 15.6 36.5 13.6" fill="none" stroke={PHILS_BLUE} strokeWidth={0.9} strokeLinecap="round" />
 
-        {/* button placket + buttons above the number */}
-        <Line x1={32} y1={18} x2={32} y2={28} stroke={color} strokeWidth={0.8} opacity={0.7} />
-        <Circle cx={32} cy={21} r={0.9} fill={color} />
-        <Circle cx={32} cy={26} r={0.9} fill={color} />
-
-        {/* number in red with blue outline (Phillies style) */}
+        {/* big back number in red with blue outline (Phillies style) */}
         <SvgText
           x={32}
-          y={47}
-          fontSize={20}
+          y={46}
+          fontSize={26}
           fontWeight="bold"
           fill={color}
           stroke={PHILS_BLUE}
-          strokeWidth={0.7}
+          strokeWidth={0.8}
           textAnchor="middle"
         >
           {number}
