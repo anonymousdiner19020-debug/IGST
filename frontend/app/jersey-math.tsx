@@ -249,7 +249,7 @@ export default function JerseyMath() {
                 pressed && !lockedRef.current && { transform: [{ scale: 0.94 }] },
               ]}
             >
-              <FanJersey size={jerseySize} color={PHILLIES_RED} number={String(n)} />
+              <FanJersey size={jerseySize} color={PHILLIES_RED} number={String(n)} pinstripe />
             </Pressable>
           );
         })}
