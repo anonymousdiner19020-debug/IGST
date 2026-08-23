@@ -31,40 +31,41 @@ export function FanJersey({ size = 28, color = "#004C54", number = "1", pinstrip
           </ClipPath>
         </Defs>
 
-        {/* white fabric base */}
-        <Path d={LEFT_SLEEVE} fill="#FFFFFF" />
-        <Path d={RIGHT_SLEEVE} fill="#FFFFFF" />
-        <Path d={TORSO} fill="#FFFFFF" />
+        {/* Phillies-blue fabric base */}
+        <Path d={LEFT_SLEEVE} fill={PHILS_BLUE} />
+        <Path d={RIGHT_SLEEVE} fill={PHILS_BLUE} />
+        <Path d={TORSO} fill={PHILS_BLUE} />
 
-        {/* red pinstripes clipped to the fabric */}
+        {/* subtle darker pinstripes clipped to the fabric */}
         <G clipPath={`url(#${clipId})`}>
           {stripeXs.map((x) => (
-            <Line key={x} x1={x} y1={8} x2={x} y2={60} stroke={color} strokeWidth={1} opacity={0.9} />
+            <Line key={x} x1={x} y1={8} x2={x} y2={60} stroke="#1E3670" strokeWidth={0.8} opacity={0.6} />
           ))}
         </G>
 
-        {/* outlines over the stripes */}
-        <Path d={LEFT_SLEEVE} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
-        <Path d={RIGHT_SLEEVE} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
-        <Path d={TORSO} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
+        {/* white outlines over the fabric */}
+        <Path d={LEFT_SLEEVE} fill="none" stroke="#FFFFFF" strokeWidth={1.6} strokeLinejoin="round" />
+        <Path d={RIGHT_SLEEVE} fill="none" stroke="#FFFFFF" strokeWidth={1.6} strokeLinejoin="round" />
+        <Path d={TORSO} fill="none" stroke="#FFFFFF" strokeWidth={1.6} strokeLinejoin="round" />
 
         {/* red sleeve cuff bands */}
         <Line x1={9} y1={21.5} x2={12.5} y2={31.5} stroke={color} strokeWidth={2.6} strokeLinecap="round" />
         <Line x1={55} y1={21.5} x2={51.5} y2={31.5} stroke={color} strokeWidth={2.6} strokeLinecap="round" />
 
-        {/* back crew collar: red trim with blue inner line */}
+        {/* back crew collar: red trim with white inner line */}
         <Path d="M26 13 Q32 16.5 38 13" fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" />
-        <Path d="M27.5 13.6 Q32 15.6 36.5 13.6" fill="none" stroke={PHILS_BLUE} strokeWidth={0.9} strokeLinecap="round" />
+        <Path d="M27.5 13.6 Q32 15.6 36.5 13.6" fill="none" stroke="#FFFFFF" strokeWidth={0.9} strokeLinecap="round" />
 
-        {/* big back number in red with blue outline (Phillies style) */}
+        {/* big back number in red outlined in white (Phillies style) */}
         <SvgText
           x={32}
           y={46}
           fontSize={26}
           fontWeight="bold"
           fill={color}
-          stroke={PHILS_BLUE}
-          strokeWidth={0.8}
+          stroke="#FFFFFF"
+          strokeWidth={1.3}
+          paintOrder="stroke"
           textAnchor="middle"
         >
           {number}
