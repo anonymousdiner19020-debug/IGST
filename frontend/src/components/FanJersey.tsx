@@ -49,8 +49,8 @@ export function FanJersey({ size = 28, color = "#004C54", number = "1", pinstrip
         <Path d={TORSO} fill="none" stroke="#FFFFFF" strokeWidth={1.6} strokeLinejoin="round" />
 
         {/* red sleeve cuff bands */}
-        <Line x1={9} y1={21.5} x2={12.5} y2={31.5} stroke={color} strokeWidth={2.6} strokeLinecap="round" />
-        <Line x1={55} y1={21.5} x2={51.5} y2={31.5} stroke={color} strokeWidth={2.6} strokeLinecap="round" />
+        <Line x1={9} y1={21.5} x2={12.5} y2={31.5} stroke={color} strokeWidth={1.4} strokeLinecap="round" />
+        <Line x1={55} y1={21.5} x2={51.5} y2={31.5} stroke={color} strokeWidth={1.4} strokeLinecap="round" />
 
         {/* back crew collar: red trim with white inner line */}
         <Path d="M26 13 Q32 16.5 38 13" fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" />
