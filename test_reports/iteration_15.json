@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 15 — Mini 2 (Eagles Match) validated end-to-end. Backend POST /api/players/{id}/eagles-match: 9/9 pytest cases pass, including all six spec cases (True,0)->100, (True,1)->90, (True,3)->70, (True,4)->5, (False,0)->5, (False,2)->5. Misses clamped 0..20 (999->20 with True->5 consolation; -3->0 with True->100). Unknown player id returns 404. player.coins delta verified via GET on every case. Frontend /eagles-match rendered 20 tiles (testID tile-0..tile-19) face-down with eagle icons, '0 / 10 pairs' counter, ✗ misses counter, and testID timer-bar starting at 45s. Programmatic scan revealed each face-down tile flips to show a kelly-green JerseyBack with player NAME (e.g. TROTTER, CARMICHAEL, MCNABB, BROWN) above NUMBER (54, 17, 5, 99). MATCH mechanic verified: three accidental scan-pair matches during 0/1, 2/3... learning pass advanced the pairs counter to 3/10 while misses climbed to ✗ 7; a subsequent explicit match on two learned '54' tiles advanced pairs 3 -> 4. Timer expired -> testID eagles-match-result appeared showing '+5 🪙' (consolation, not completed) and pairs/misses stats. Backend GET confirmed player.coins went 100 -> 105 (delta=5). Continue (testID eagles-match-continue) navigated to /level-map. TRIGGER logic verified directly on cooking-result?level=6&completed=1: bonus-banner shows 'Mini 2: Eagles Match — earn extra coins', continue-button label is 'Bonus Round!', tapping it navigates to /eagles-match. Code review confirms level==3 -> /jersey-math, level==6 -> /eagles-match, other winning levels -> /level-map (cooking-result.tsx line 39).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "styles (multiple files)", "issue": "Web console warns 'shadow*' style props deprecated (use boxShadow) and 'textShadow*' deprecated (use textShadow). Pre-existing, not specific to eagles-match."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_eagles_match.py",
+    "/app/test_reports/pytest/pytest_iter15.xml"
+  ],
+  "action_items": [
+    "(Pre-existing / cross-app) Migrate shadow*, textShadow*, and Image style.resizeMode to their non-deprecated forms to clear React Native Web warnings.",
+    "(Nice-to-have) On /eagles-match, if playerStorage.get() returns no id, surface a small onboarding hint instead of silently rendering the game and awarding 0 coins on finish."
+  ],
+  "critical_code_review_comments": [
+    "eagles-match.tsx buildTiles() picks 10 unique roster entries and produces 20 shuffled tiles — spec matches.",
+    "handleFlip locks with busyRef during the 450ms match / 800ms mismatch window; missesRef mirrors miss state so the timer's finish() callback and win-path see fresh values (avoids stale-state React closure bug).",
+    "Timer interval clears in finish() and on unmount; finishedRef guards against double-post to /api/players/{id}/eagles-match if both timer and win-condition fire near-simultaneously.",
+    "Backend eagles_match_reward: completed==True AND misses<=3 -> 100-10*misses, else flat 5. Misses clamped max(0,min(20,int(...))). player_public() strips _id. Matches spec exactly.",
+    "cooking-result.tsx bonusRoute = win&&level===3 ? /jersey-math : win&&level===6 ? /eagles-match : null; bonusName correctly switches to 'Mini 2: Eagles Match' when level===6.",
+    "JerseyBack SVG renders body=kelly green (#128A3C default matches EAGLES_GREEN), white number outlined black, player name arched above the number — spec matches."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_eagles_match.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Created anonymous test players via POST /api/players (TEST_EM x1 module-scoped for backend suite, TEST_EMWeb x1 for frontend Playwright). No production data touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Mini 2 Eagles Match (iteration 15) is fully verified. Backend rule: completed && misses<=3 -> 100 - 10*misses; else flat 5; misses clamped 0..20; 404 on unknown player. Frontend testIDs: tile-0..tile-19, timer-bar, eagles-match-result, eagles-match-continue. Cooking-result exposes bonus-banner for level==3 (route /jersey-math) and level==6 (route /eagles-match). To exercise the game directly without home onboarding, POST /api/players then localStorage.setItem('philly_fare_player_id', playerId) before /eagles-match; alternatively deep-link cooking-result?completed=1&level=6&... to trigger the natural flow. Do NOT retest Jersey Math (iter 14), daily goal, VIP/streak, or special orders — already passed."
+}

@@ -35,8 +35,11 @@ export default function CookingResult() {
   const starCount = Math.max(0, Math.min(3, parseInt(stars || "0", 10)));
   const perfectBonusCoins = parseInt(perfectBonus || "0", 10);
   // Bonus "Jersey Math" mini-game unlocks between levels 3 and 4.
-  const bonusAfterThis = win && retryLevel === 3;
-  const goNext = () => router.replace(bonusAfterThis ? "/jersey-math" : "/level-map");
+  // Bonus mini-games: Mini 1 (Jersey Math) after level 3, Mini 2 (Eagles Match) after level 6.
+  const bonusRoute = win && retryLevel === 3 ? "/jersey-math" : win && retryLevel === 6 ? "/eagles-match" : null;
+  const bonusAfterThis = !!bonusRoute;
+  const bonusName = retryLevel === 6 ? "Mini 2: Eagles Match" : "Mini 1: Jersey Math";
+  const goNext = () => router.replace(bonusRoute ?? "/level-map");
 
   const [myBells, setMyBells] = useState<number | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -157,7 +160,7 @@ export default function CookingResult() {
           {win && bonusAfterThis && (
             <View style={styles.bonusBanner} testID="bonus-banner">
               <Text style={styles.bonusText}>⚾ BONUS ROUND NEXT!</Text>
-              <Text style={styles.bonusSub}>Mini 1: Jersey Math — earn extra coins</Text>
+              <Text style={styles.bonusSub}>{bonusName} — earn extra coins</Text>
             </View>
           )}
 

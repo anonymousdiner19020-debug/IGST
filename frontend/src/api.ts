@@ -207,4 +207,12 @@ export const api = {
         body: JSON.stringify(payload),
       }
     ),
+  eaglesMatch: (id: string, payload: { completed: boolean; misses: number }) =>
+    req<{ coins_awarded: number; completed: boolean; misses: number; player: PlayerDTO }>(
+      `/players/${id}/eagles-match`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    ),
 };

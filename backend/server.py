@@ -806,6 +806,24 @@ async def jersey_math_reward(player_id: str, payload: dict = Body(...)):
     return {"coins_awarded": coins_awarded, "correct": correct, "wrong": wrong, "player": player_public(updated)}
 
 
+@api_router.post("/players/{player_id}/eagles-match")
+async def eagles_match_reward(player_id: str, payload: dict = Body(...)):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    completed = bool(payload.get("completed", False))
+    misses = max(0, min(20, int(payload.get("misses", 0) or 0)))
+    # All 10 pairs matched with 3 or fewer misses: 100 - 10 per miss.
+    # More than 3 misses, or ran out of time (not completed): 5-coin consolation.
+    if completed and misses <= 3:
+        coins_awarded = 100 - 10 * misses
+    else:
+        coins_awarded = 5
+    await db.players.update_one({"id": player_id}, {"$inc": {"coins": coins_awarded}})
+    updated = await db.players.find_one({"id": player_id}, {"_id": 0})
+    return {"coins_awarded": coins_awarded, "completed": completed, "misses": misses, "player": player_public(updated)}
+
+
 @api_router.post("/revenuecat/webhook")
 async def revenuecat_webhook(request: Request, authorization: str | None = Header(default=None)):
     expected = os.environ.get("REVENUECAT_WEBHOOK_AUTH")

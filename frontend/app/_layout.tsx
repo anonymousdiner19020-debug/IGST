@@ -58,6 +58,7 @@ export default function RootLayout() {
           <Stack.Screen name="profile" />
           <Stack.Screen name="gallery" />
           <Stack.Screen name="jersey-math" />
+          <Stack.Screen name="eagles-match" />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

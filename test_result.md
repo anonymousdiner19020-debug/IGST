@@ -447,3 +447,43 @@ frontend:
 agent_communication:
     - agent: "main"
       message: "Iteration 14. NEW bonus mini-game 'Jersey Math' between levels 3 & 4. Test: (1) BACKEND POST /api/players/{id}/jersey-math with {correct,wrong}: wrong>3 => coins_awarded=10 (flat); wrong<=3 => coins_awarded=10*correct; player.coins increases by exactly coins_awarded; values clamp 0..10; 404 unknown player. (2) FRONTEND directly load /jersey-math: verify 10 questions total (counter 'N / 10'), each equation 'a +/- b = ?' with 6 tappable Phillies jerseys (testID jersey-<number>) one of which equals the answer; tapping the correct jersey increments ✓ and advances; tapping a wrong one increments ✗; a 10s timer (testID timer-bar) auto-advances as a wrong answer on timeout. After 10 questions the result screen (testID jersey-math-result) shows coins awarded and correct/wrong counts, and Continue (testID jersey-math-continue) goes to /level-map. You can compute expected coins from your ✓/✗ tally using the rule above. (3) TRIGGER: hard to reach via real play; verify by code/logic that winning level 3 routes cooking-result's continue to /jersey-math (bonus-banner shown). Anonymous UUID player via onboarding. NOTE for equation answers: the correct jersey number equals a+b or a-b shown on the card - read the equation card to pick."
+
+## ---- Iteration 15: Mini 2 - Eagles jersey memory match (after Level 6) ----
+backend:
+  - task: "Eagles Match reward endpoint"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "POST /api/players/{id}/eagles-match body {completed:bool, misses:int}. Rule: if completed AND misses<=3 => coins=100-10*misses; else (misses>3 OR not completed) => 5 (consolation). misses clamped 0..20. Adds coins, returns {coins_awarded,completed,misses,player}. Curl-verified: {true,0}->100, {true,3}->70, {true,4}->5, {false,1}->5. 404 unknown player."
+frontend:
+  - task: "Mini 2 Eagles memory match screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/eagles-match.tsx, frontend/src/components/JerseyBack.tsx, frontend/app/_layout.tsx, frontend/src/api.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New route /eagles-match. 20 face-down tiles (testID tile-<0..19>) = 10 pairs randomly drawn from a 30-player Eagles roster (number:name). Kelly-green (#128A3C) jersey BACKS (JerseyBack component) show player NAME above a big white number outlined black. 45s countdown (testID timer-bar). Tap a tile to flip; flip a second: if same number -> stays matched (pairs counter increments); else misses++ and both flip back after ~800ms (busy-locked during eval). Win when all 10 pairs matched -> finish(completed=true). Timeout -> finish(completed=false). On finish calls api.eaglesMatch and shows result screen (testID eagles-match-result) with coins + pairs/misses, Continue (testID eagles-match-continue) -> /level-map. Screenshot-verified: header 'MINI 2', 4x5 grid, flipping tile-0 revealed CARTER #98 green jersey."
+  - task: "Trigger Mini 2 after Level 6"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/cooking-result.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "cooking-result bonusRoute: win && retryLevel===3 -> /jersey-math (Mini 1); win && retryLevel===6 -> /eagles-match (Mini 2); else /level-map. Banner shows bonusName ('Mini 2: Eagles Match' for level 6)."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 15. NEW Mini 2 (Eagles memory match) after Level 6. Test: (1) BACKEND POST /api/players/{id}/eagles-match {completed,misses}: completed && misses<=3 => coins=100-10*misses; else => 5; player.coins += coins_awarded; misses clamp; 404 unknown. Cases: {true,0}=100,{true,1}=90,{true,3}=70,{true,4}=5,{false,0}=5. (2) FRONTEND load /eagles-match directly: 20 tiles (testID tile-0..tile-19) start face-down (🦅), 'N / 10 pairs' counter, 45s timer (testID timer-bar). Tap tile-0 to flip and reveal a kelly-green jersey with a name+number. Matching flow: tap two tiles; matching numbers stay revealed and increment the pairs counter; non-matching increments ✗ misses and both flip back. IMPORTANT: to find a matching pair you may flip tiles one at a time to learn which number each holds (note: after a non-match they flip back). Verify that matching two tiles of the SAME number keeps them matched. You do NOT need to complete all 10 (that's slow); verify the match/miss mechanic, the counter, and that when the timer expires the result screen (testID eagles-match-result) appears and Continue (testID eagles-match-continue) -> /level-map. (3) TRIGGER (code-level ok): winning level 6 routes cooking-result continue to /eagles-match with banner 'Mini 2: Eagles Match'. Anonymous UUID player via onboarding. Prior mini-game (Jersey Math/Mini 1) and other features already passed - no retest needed."
