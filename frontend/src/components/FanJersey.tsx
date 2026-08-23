@@ -59,7 +59,7 @@ export function FanJersey({ size = 28, color = "#004C54", number = "1", pinstrip
         {/* big back number in red outlined in white (Phillies style) */}
         <SvgText
           x={32}
-          y={44}
+          y={41}
           fontSize={17}
           fontWeight="bold"
           fill={color}
@@ -67,6 +67,7 @@ export function FanJersey({ size = 28, color = "#004C54", number = "1", pinstrip
           strokeWidth={1}
           paintOrder="stroke"
           textAnchor="middle"
+          alignmentBaseline="middle"
         >
           {number}
         </SvgText>
