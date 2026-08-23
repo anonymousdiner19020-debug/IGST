@@ -10,7 +10,7 @@ const TEE_PATH =
 const TORSO = "M21 13 L43 13 L43 55 Q43 58 40 58 L24 58 Q21 58 21 55 Z";
 const LEFT_SLEEVE = "M22 13 L7 21 L11 32 L23 25 Z";
 const RIGHT_SLEEVE = "M42 13 L57 21 L53 32 L41 25 Z";
-const PHILS_BLUE = "#284898";
+const PHILS_BLUE = "#79BDEE";
 
 // A sports jersey. Default: solid team color with a white number.
 // pinstripe=true: realistic white Phillies-style jersey with red pinstripes.
@@ -39,7 +39,7 @@ export function FanJersey({ size = 28, color = "#004C54", number = "1", pinstrip
         {/* subtle darker pinstripes clipped to the fabric */}
         <G clipPath={`url(#${clipId})`}>
           {stripeXs.map((x) => (
-            <Line key={x} x1={x} y1={8} x2={x} y2={60} stroke="#1E3670" strokeWidth={0.8} opacity={0.6} />
+            <Line key={x} x1={x} y1={8} x2={x} y2={60} stroke="#5AA0D6" strokeWidth={0.8} opacity={0.6} />
           ))}
         </G>
 
