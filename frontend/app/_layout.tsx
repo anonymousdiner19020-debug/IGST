@@ -59,6 +59,7 @@ export default function RootLayout() {
           <Stack.Screen name="gallery" />
           <Stack.Screen name="jersey-math" />
           <Stack.Screen name="eagles-match" />
+          <Stack.Screen name="eagles-flip" />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

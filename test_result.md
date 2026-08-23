@@ -448,6 +448,34 @@ agent_communication:
     - agent: "main"
       message: "Iteration 14. NEW bonus mini-game 'Jersey Math' between levels 3 & 4. Test: (1) BACKEND POST /api/players/{id}/jersey-math with {correct,wrong}: wrong>3 => coins_awarded=10 (flat); wrong<=3 => coins_awarded=10*correct; player.coins increases by exactly coins_awarded; values clamp 0..10; 404 unknown player. (2) FRONTEND directly load /jersey-math: verify 10 questions total (counter 'N / 10'), each equation 'a +/- b = ?' with 6 tappable Phillies jerseys (testID jersey-<number>) one of which equals the answer; tapping the correct jersey increments ✓ and advances; tapping a wrong one increments ✗; a 10s timer (testID timer-bar) auto-advances as a wrong answer on timeout. After 10 questions the result screen (testID jersey-math-result) shows coins awarded and correct/wrong counts, and Continue (testID jersey-math-continue) goes to /level-map. You can compute expected coins from your ✓/✗ tally using the rule above. (3) TRIGGER: hard to reach via real play; verify by code/logic that winning level 3 routes cooking-result's continue to /jersey-math (bonus-banner shown). Anonymous UUID player via onboarding. NOTE for equation answers: the correct jersey number equals a+b or a-b shown on the card - read the equation card to pick."
 
+## ---- Iteration 16: Mini 2 changed to all-showing match; new Mini 7 flip game after L12 ----
+frontend:
+  - task: "Mini 2 is now an all-jerseys-showing match game (NOT flip/memory)"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/eagles-match.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "BUGFIX per user: Mini 2 must NOT be a flip/memory game. Rewrote /eagles-match so all 20 jersey tiles (testID tile-0..19) are ALWAYS face-up showing name+number. Tap one tile to select (gold highlight); tap a second: same number => both matched (green, ✓, disabled) and pairs counter++; different number => misses++ (both flash red ~0.55s, busy-locked, then deselect). 45s timer, same reward endpoint. Win at 10 pairs => finish(completed=true); timeout => finish(completed=false). Screenshot-verified: 20 face-up jerseys with duplicate numbers visible."
+  - task: "Mini 7 Eagles FLIP & match memory game after Level 12"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/eagles-flip.tsx, frontend/app/_layout.tsx, frontend/app/cooking-result.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New /eagles-flip (Mini 7, header 'MINI 7'): the flip/memory version (tiles start face-down 🦅, flip up to 2, match same number => stays; mismatch => misses++ and flip back after 800ms). Uses same api.eaglesMatch reward endpoint and rule. Triggered when winning Level 12 (cooking-result bonusRoute retryLevel===12 -> /eagles-flip, banner 'Mini 7: Flip & Match'). Mini 1 (L3)->/jersey-math, Mini 2 (L6)->/eagles-match, Mini 7 (L12)->/eagles-flip."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 16. Two things: (A) Mini 2 (/eagles-match) is now an ALL-JERSEYS-SHOWING match game (no flipping). Load /eagles-match: 20 tiles (testID tile-0..tile-19) all show a green Eagles jersey with name+number from the start. Tap two tiles with the SAME number -> they become matched (✓, disabled) and 'N / 10 pairs' increments; tap two with DIFFERENT numbers -> ✗ misses increments and they briefly flash red then reset. Since all numbers are visible you can deterministically pick two equal numbers. Verify: a correct match increments pairs and disables both tiles; a wrong match increments misses; 45s timer (testID timer-bar); on timeout result screen (testID eagles-match-result) shows and Continue (testID eagles-match-continue) -> /level-map. (B) NEW Mini 7 (/eagles-flip) is the FLIP/memory version, header 'MINI 7', tiles start face-down (🦅) and flip on tap; matching same number keeps them, mismatch flips back + misses++. Verify flip reveal, one match, one miss, timer, result screen (testID eagles-flip-result), Continue (testID eagles-flip-continue) -> /level-map. Both use backend POST /api/players/{id}/eagles-match already verified (completed&&misses<=3 => 100-10*misses else 5) - just confirm the finish call posts and result coins render. TRIGGER (code-level ok): L3->/jersey-math, L6->/eagles-match, L12->/eagles-flip. Anonymous UUID player via onboarding. Do NOT retest unrelated prior features."
+
 ## ---- Iteration 15: Mini 2 - Eagles jersey memory match (after Level 6) ----
 backend:
   - task: "Eagles Match reward endpoint"

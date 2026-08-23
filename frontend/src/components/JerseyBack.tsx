@@ -52,7 +52,7 @@ export function JerseyBack({
           strokeWidth={0.4}
           paintOrder="stroke"
           textAnchor="middle"
-          textLength={30}
+          textLength={19}
           lengthAdjust="spacingAndGlyphs"
         >
           {name.toUpperCase()}

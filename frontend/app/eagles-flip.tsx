@@ -19,7 +19,6 @@ const COLS = 4;
 type Player = { number: string; name: string };
 type Tile = { id: number; number: string; name: string };
 
-// Eagles roster (number: name) provided by the user.
 const ROSTER: Player[] = [
   { number: "1", name: "Hurts" },
   { number: "26", name: "Barkley" },
@@ -72,14 +71,13 @@ function buildTiles(): Tile[] {
   return shuffle(tiles).map((t, i) => ({ ...t, id: i }));
 }
 
-export default function EaglesMatch() {
+export default function EaglesFlip() {
   const router = useRouter();
   const { width } = useWindowDimensions();
 
   const tiles = useMemo(() => buildTiles(), []);
 
-  const [selected, setSelected] = useState<number | null>(null);
-  const [wrongPair, setWrongPair] = useState<number[]>([]);
+  const [flipped, setFlipped] = useState<number[]>([]);
   const [matched, setMatched] = useState<number[]>([]);
   const [misses, setMisses] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
@@ -113,36 +111,36 @@ export default function EaglesMatch() {
     }
   }, []);
 
-  const handleTap = (tile: Tile) => {
+  const handleFlip = (tile: Tile) => {
     if (busyRef.current || phase !== "play") return;
-    if (matched.includes(tile.id)) return;
+    if (matched.includes(tile.id) || flipped.includes(tile.id)) return;
 
-    if (selected === null) {
-      setSelected(tile.id);
+    if (flipped.length === 0) {
+      setFlipped([tile.id]);
       sound.play("ding");
       return;
     }
-    if (selected === tile.id) {
-      // tapping the same tile again deselects it
-      setSelected(null);
-      return;
-    }
 
-    const first = tiles[selected];
+    const firstId = flipped[0];
+    const first = tiles[firstId];
+    setFlipped([firstId, tile.id]);
+    busyRef.current = true;
+
     if (first.number === tile.number) {
-      // match!
       sound.play("serve");
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {}
-      const nextMatched = [...matched, selected, tile.id];
-      setMatched(nextMatched);
-      setSelected(null);
-      if (nextMatched.length >= PAIRS * 2) {
-        finish(true, missesRef.current);
-      }
+      setTimeout(() => {
+        const nextMatched = [...matched, firstId, tile.id];
+        setMatched(nextMatched);
+        setFlipped([]);
+        busyRef.current = false;
+        if (nextMatched.length >= PAIRS * 2) {
+          finish(true, missesRef.current);
+        }
+      }, 450);
     } else {
-      // mismatch
       const nextMisses = misses + 1;
       missesRef.current = nextMisses;
       setMisses(nextMisses);
@@ -150,17 +148,13 @@ export default function EaglesMatch() {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch {}
-      setWrongPair([selected, tile.id]);
-      busyRef.current = true;
       setTimeout(() => {
-        setWrongPair([]);
-        setSelected(null);
+        setFlipped([]);
         busyRef.current = false;
-      }, 550);
+      }, 800);
     }
   };
 
-  // countdown
   useEffect(() => {
     startRef.current = Date.now();
     timerRef.current = setInterval(() => {
@@ -180,7 +174,7 @@ export default function EaglesMatch() {
     const won = reward ? reward.completed && reward.misses <= 3 : false;
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <View style={styles.resultWrap} testID="eagles-match-result">
+        <View style={styles.resultWrap} testID="eagles-flip-result">
           <Text style={styles.resultEmoji}>🦅</Text>
           <Text style={[styles.resultTitle, { color: won ? EAGLES_GREEN : colors.error }]}>
             {won ? "FLY EAGLES FLY!" : "TOUGH BREAK!"}
@@ -208,7 +202,7 @@ export default function EaglesMatch() {
               : "More than 3 misses — 5-coin consolation. Try again!"}
           </Text>
           <Pressable
-            testID="eagles-match-continue"
+            testID="eagles-flip-continue"
             onPress={() => router.replace("/level-map")}
             style={({ pressed }) => [styles.continueBtn, pressed && { transform: [{ scale: 0.96 }] }]}
           >
@@ -225,8 +219,8 @@ export default function EaglesMatch() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🦅 MINI 2</Text>
-        <Text style={styles.headerSub}>Tap two jerseys with the same number!</Text>
+        <Text style={styles.headerTitle}>🦅 MINI 7</Text>
+        <Text style={styles.headerSub}>Flip & match the Eagles jerseys!</Text>
       </View>
 
       <View style={styles.topRow}>
@@ -246,27 +240,25 @@ export default function EaglesMatch() {
       <View style={styles.grid}>
         {tiles.map((t) => {
           const isMatched = matched.includes(t.id);
-          const isSelected = selected === t.id;
-          const isWrong = wrongPair.includes(t.id);
+          const isFlipped = flipped.includes(t.id) || isMatched;
           return (
             <Pressable
               key={t.id}
               testID={`tile-${t.id}`}
-              onPress={() => handleTap(t)}
-              disabled={isMatched}
+              onPress={() => handleFlip(t)}
               style={({ pressed }) => [
                 styles.tile,
                 { width: tileW, height: tileW * 1.1 },
                 isMatched && styles.tileMatched,
-                isSelected && styles.tileSelected,
-                isWrong && styles.tileWrong,
-                pressed && !isMatched && !busyRef.current && { transform: [{ scale: 0.95 }] },
+                !isFlipped && styles.tileBack,
+                pressed && !busyRef.current && !isFlipped && { transform: [{ scale: 0.95 }] },
               ]}
             >
-              <View style={isMatched && styles.matchedInner}>
+              {isFlipped ? (
                 <JerseyBack size={tileW * 0.86} body={EAGLES_GREEN} number={t.number} name={t.name} />
-              </View>
-              {isMatched && <Text style={styles.matchCheck}>✓</Text>}
+              ) : (
+                <Text style={styles.tileBackIcon}>🦅</Text>
+              )}
             </Pressable>
           );
         })}
@@ -330,16 +322,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
   },
-  tileSelected: { borderColor: colors.brand, backgroundColor: "#FFF6E0", borderWidth: 3 },
-  tileWrong: { borderColor: colors.error, backgroundColor: "#FDE8E8" },
+  tileBack: { backgroundColor: EAGLES_DARK, borderColor: EAGLES_GREEN },
   tileMatched: { borderColor: EAGLES_GREEN, backgroundColor: "#E7F6EC" },
-  matchedInner: { opacity: 0.35 },
-  matchCheck: {
-    position: "absolute",
-    fontSize: 30,
-    fontWeight: "900",
-    color: EAGLES_GREEN,
-  },
+  tileBackIcon: { fontSize: 30 },
   resultWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl, gap: spacing.md },
   resultEmoji: { fontSize: 56 },
   resultTitle: { fontSize: 24, fontWeight: "900", letterSpacing: 1 },

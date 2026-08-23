@@ -35,10 +35,22 @@ export default function CookingResult() {
   const starCount = Math.max(0, Math.min(3, parseInt(stars || "0", 10)));
   const perfectBonusCoins = parseInt(perfectBonus || "0", 10);
   // Bonus "Jersey Math" mini-game unlocks between levels 3 and 4.
-  // Bonus mini-games: Mini 1 (Jersey Math) after level 3, Mini 2 (Eagles Match) after level 6.
-  const bonusRoute = win && retryLevel === 3 ? "/jersey-math" : win && retryLevel === 6 ? "/eagles-match" : null;
+  // Bonus mini-games: Mini 1 (Jersey Math) after L3, Mini 2 (Eagles Match) after L6, Mini 7 (Eagles Flip) after L12.
+  const bonusRoute =
+    win && retryLevel === 3
+      ? "/jersey-math"
+      : win && retryLevel === 6
+      ? "/eagles-match"
+      : win && retryLevel === 12
+      ? "/eagles-flip"
+      : null;
   const bonusAfterThis = !!bonusRoute;
-  const bonusName = retryLevel === 6 ? "Mini 2: Eagles Match" : "Mini 1: Jersey Math";
+  const bonusName =
+    retryLevel === 12
+      ? "Mini 7: Flip & Match"
+      : retryLevel === 6
+      ? "Mini 2: Eagles Match"
+      : "Mini 1: Jersey Math";
   const goNext = () => router.replace(bonusRoute ?? "/level-map");
 
   const [myBells, setMyBells] = useState<number | null>(null);

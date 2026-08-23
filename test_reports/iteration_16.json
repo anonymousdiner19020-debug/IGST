@@ -1,0 +1,29 @@
+{
+  "summary": "Iteration 16 frontend-only verification of Mini 2 rewrite (all-showing straight match at /eagles-match) and Mini 7 (flip/memory at /eagles-flip). BOTH PASS. Mini 2: all 20 tiles are face-up showing green Eagles jerseys with player name + number, tapping two matching numbers increments the pairs counter (0→1) and greys+checkmarks the matched pair (disabled from further taps), tapping two different numbers increments the ✗ misses counter (0→1), 45s timer-bar renders, on timeout eagles-match-result appears with coins+pairs+misses and eagles-match-continue navigates to /level-map. Mini 7: all 20 tiles start face-down showing 🦅 eagle icons (header 'MINI 7'), tapping flips to reveal jersey, a mismatched pair flips back after ~0.8s and increments misses, a matching pair stays revealed and increments pairs, 45s timer-bar renders, on timeout eagles-flip-result + eagles-flip-continue -> /level-map. Trigger routing verified via code review in cooking-result.tsx: win+level 3 -> /jersey-math, level 6 -> /eagles-match, level 12 -> /eagles-flip, others -> /level-map. bonusName banner correctly reads 'Mini 7: Flip & Match' at level 12. Routes eagles-match & eagles-flip both registered in _layout.tsx. NOTE: Because tests hit the mini routes directly (bypassing home onboarding), playerStorage id was null so api.eaglesMatch was never called and the result pill showed +0 coins instead of the 5-coin consolation; this is the coded null-id fallback (line 102-105 of both files) not a bug. Backend reward endpoint was already validated 9/9 in iteration 15. No deprecated Expo packages, SafeAreaView, or red-screen issues detected in the two files under test.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_16.json"
+  ],
+  "action_items": [
+    "No action required for Mini 2 / Mini 7 mechanics — both work per spec.",
+    "OPTIONAL: If a full end-to-end trigger test is desired (Level 6 cooking win -> /eagles-match, Level 12 win -> /eagles-flip) the main agent can self-verify by playing through cooking, since the routing logic in cooking-result.tsx (lines 39-53) is straightforward and correct."
+  ],
+  "critical_code_review_comments": [
+    "eagles-match.tsx and eagles-flip.tsx contain a duplicated ROSTER (30 entries) and identical shuffle/buildTiles helpers — consider extracting into src/data/eaglesRoster.ts to remove duplication (~60 lines).",
+    "Both files also duplicate the styles block (headers, pills, timer track, result screen) — a shared style module or component would reduce ~90 lines of duplicated CSS.",
+    "Neither file is over 700 lines (eagles-match=380, eagles-flip=365) so file-size rule is fine."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Mini 2 (/eagles-match) is the straight all-face-up match game; Mini 7 (/eagles-flip) is the flip/memory game. Both use testIDs tile-0..tile-19, timer-bar, eagles-match-result/eagles-match-continue and eagles-flip-result/eagles-flip-continue. Timer is 45s and result screen only appears after all 10 pairs matched OR timer hits 0. Direct navigation to the mini routes without home onboarding leaves playerStorage null which causes the coin pill to display 0 (fallback in finish() when !id); to see real coin rewards, complete the home onboarding first.",
+  "rca_of_issue": "N/A — no bug found. Requested Mini 2 rewrite is functioning to spec."
+}
