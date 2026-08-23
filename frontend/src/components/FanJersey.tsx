@@ -67,7 +67,6 @@ export function FanJersey({ size = 28, color = "#004C54", number = "1", pinstrip
           strokeWidth={1}
           paintOrder="stroke"
           textAnchor="middle"
-          alignmentBaseline="middle"
         >
           {number}
         </SvgText>
