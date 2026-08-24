@@ -1,53 +1,112 @@
-import React from "react";
-import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
+import React, { useRef } from "react";
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  G,
+  Line,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+  Text as SvgText,
+} from "react-native-svg";
 
 type Props = { size?: number };
 
 const ORANGE = "#F74902";
-const BLACK = "#0E0E0E";
+const ORANGE_DK = "#C43800";
+const BLACK = "#141414";
 const WHITE = "#FFFFFF";
-const PADW = "#F3F3F3";
 
-// Front-facing Philadelphia Flyers goalie (shooter's perspective).
+// Detailed front-facing Philadelphia Flyers goalie (shooter's perspective).
 export function FlyersGoalie({ size = 90 }: Props) {
-  const h = size * 1.4;
-  return (
-    <Svg width={size} height={h} viewBox="0 0 100 140">
-      {/* stick along the ice */}
-      <Line x1={6} y1={128} x2={70} y2={122} stroke="#8A5A2B" strokeWidth={4} strokeLinecap="round" />
-      <Rect x={4} y={120} width={12} height={14} rx={2} fill="#8A5A2B" stroke={BLACK} strokeWidth={1.5} />
+  const h = size * 1.45;
+  const uid = useRef(`goalie_${Math.random().toString(36).slice(2, 8)}`).current;
+  const jGrad = `${uid}_j`;
+  const pGrad = `${uid}_p`;
 
-      {/* leg pads */}
-      <Rect x={26} y={72} width={20} height={58} rx={7} fill={PADW} stroke={BLACK} strokeWidth={2} />
-      <Rect x={54} y={72} width={20} height={58} rx={7} fill={PADW} stroke={BLACK} strokeWidth={2} />
-      {[86, 100, 114].map((y) => (
-        <G key={y}>
-          <Line x1={26} y1={y} x2={46} y2={y} stroke={ORANGE} strokeWidth={2} />
-          <Line x1={54} y1={y} x2={74} y2={y} stroke={ORANGE} strokeWidth={2} />
+  return (
+    <Svg width={size} height={h} viewBox="0 0 100 145">
+      <Defs>
+        <LinearGradient id={jGrad} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FF6A2A" />
+          <Stop offset="1" stopColor={ORANGE_DK} />
+        </LinearGradient>
+        <LinearGradient id={pGrad} x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0" stopColor="#FFFFFF" />
+          <Stop offset="0.5" stopColor="#F1F1F1" />
+          <Stop offset="1" stopColor="#D8D8D8" />
+        </LinearGradient>
+      </Defs>
+
+      {/* goalie stick: paddle + blade on the ice */}
+      <Path d="M20 70 L24 74 L20 128 L12 128 Z" fill="#B9791F" stroke={BLACK} strokeWidth={1.5} strokeLinejoin="round" />
+      <Rect x={6} y={126} width={30} height={9} rx={2} fill="#8A5A2B" stroke={BLACK} strokeWidth={1.5} />
+
+      {/* skates + blades */}
+      <Rect x={26} y={130} width={20} height={7} rx={2} fill={BLACK} />
+      <Rect x={54} y={130} width={20} height={7} rx={2} fill={BLACK} />
+      <Rect x={24} y={137} width={24} height={3} rx={1.5} fill="#AEB4BD" />
+      <Rect x={52} y={137} width={24} height={3} rx={1.5} fill="#AEB4BD" />
+
+      {/* leg pads with knee rolls */}
+      {[26, 54].map((x) => (
+        <G key={x}>
+          <Rect x={x} y={64} width={22} height={68} rx={9} fill={`url(#${pGrad})`} stroke={BLACK} strokeWidth={2} />
+          {/* vertical center channel */}
+          <Line x1={x + 11} y1={70} x2={x + 11} y2={128} stroke="#C9C9C9" strokeWidth={1.5} />
+          {/* knee rolls */}
+          {[78, 96, 114].map((y) => (
+            <Rect key={y} x={x + 2} y={y} width={18} height={9} rx={4} fill={WHITE} stroke="#C4C4C4" strokeWidth={1} />
+          ))}
+          {/* orange accent + strap */}
+          <Rect x={x} y={70} width={4} height={58} rx={2} fill={ORANGE} />
+          <Rect x={x + 18} y={70} width={4} height={58} rx={2} fill={ORANGE} />
         </G>
       ))}
-      {/* skates */}
-      <Rect x={24} y={128} width={24} height={8} rx={3} fill={BLACK} />
-      <Rect x={52} y={128} width={24} height={8} rx={3} fill={BLACK} />
 
-      {/* jersey torso */}
-      <Path d="M30 46 Q50 40 70 46 L74 78 Q50 84 26 78 Z" fill={ORANGE} stroke={BLACK} strokeWidth={2} strokeLinejoin="round" />
-      {/* shoulder caps */}
-      <Path d="M28 48 Q22 50 22 60 L30 60 Z" fill={BLACK} />
-      <Path d="M72 48 Q78 50 78 60 L70 60 Z" fill={BLACK} />
-      {/* white chest stripe + P */}
-      <Rect x={44} y={50} width={12} height={26} rx={2} fill={WHITE} opacity={0.9} />
+      {/* jersey / chest protector (bulky shoulders) */}
+      <Path
+        d="M24 52 Q22 44 32 42 Q50 37 68 42 Q78 44 76 52 L80 82 Q50 90 20 82 Z"
+        fill={`url(#${jGrad})`}
+        stroke={BLACK}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+      {/* black shoulder yoke */}
+      <Path d="M32 43 Q50 38 68 43 L64 52 Q50 48 36 52 Z" fill={BLACK} />
+      {/* white chest panel + number */}
+      <Path d="M40 54 L60 54 L58 78 L42 78 Z" fill={WHITE} opacity={0.95} />
+      <SvgText x={50} y={72} fontSize={14} fontWeight="bold" fill={ORANGE} textAnchor="middle">
+        35
+      </SvgText>
 
-      {/* catching glove (left) */}
-      <Circle cx={16} cy={64} r={11} fill={WHITE} stroke={BLACK} strokeWidth={2} />
-      <Circle cx={16} cy={64} r={4} fill={ORANGE} />
-      {/* blocker (right) */}
-      <Rect x={78} y={54} width={16} height={22} rx={3} fill={ORANGE} stroke={BLACK} strokeWidth={2} />
+      {/* left arm + trapper (catch glove) */}
+      <Path d="M24 56 Q12 58 10 70 L20 74 Q24 64 28 60 Z" fill={`url(#${jGrad})`} stroke={BLACK} strokeWidth={2} strokeLinejoin="round" />
+      <Ellipse cx={12} cy={72} rx={12} ry={13} fill={`url(#${pGrad})`} stroke={BLACK} strokeWidth={2} />
+      <Path d="M6 66 Q12 60 18 66" fill="none" stroke={ORANGE} strokeWidth={2.5} strokeLinecap="round" />
+      <Circle cx={12} cy={74} r={4} fill={ORANGE} />
+
+      {/* right arm + blocker */}
+      <Path d="M76 56 Q88 58 90 70 L80 74 Q76 64 72 60 Z" fill={`url(#${jGrad})`} stroke={BLACK} strokeWidth={2} strokeLinejoin="round" />
+      <Rect x={80} y={58} width={16} height={26} rx={4} fill={`url(#${jGrad})`} stroke={BLACK} strokeWidth={2} />
+      <Rect x={84} y={62} width={4} height={18} rx={2} fill={WHITE} />
+
+      {/* neck */}
+      <Rect x={44} y={38} width={12} height={8} fill={ORANGE_DK} />
 
       {/* mask / helmet */}
-      <Circle cx={50} cy={30} r={14} fill={WHITE} stroke={BLACK} strokeWidth={2} />
-      <Path d="M50 16 L50 44 M42 20 L42 40 M58 20 L58 40" stroke={ORANGE} strokeWidth={1.6} />
-      <Path d="M40 30 L60 30 M40 25 L60 25 M40 35 L60 35" stroke={BLACK} strokeWidth={1} opacity={0.5} />
+      <G>
+        <Path d="M36 26 Q36 10 50 10 Q64 10 64 26 L63 34 Q50 40 37 34 Z" fill={WHITE} stroke={BLACK} strokeWidth={2} strokeLinejoin="round" />
+        {/* orange crown swoosh */}
+        <Path d="M37 20 Q50 12 63 20 L61 25 Q50 19 39 25 Z" fill={ORANGE} />
+        {/* cage: vertical + horizontal bars */}
+        <Path d="M42 15 L42 37 M50 13 L50 39 M58 15 L58 37" stroke={BLACK} strokeWidth={1.4} />
+        <Path d="M38 22 L62 22 M37 28 L63 28 M39 34 L61 34" stroke={BLACK} strokeWidth={1.4} />
+        {/* chin */}
+        <Path d="M42 36 Q50 42 58 36" fill="none" stroke={BLACK} strokeWidth={2} />
+      </G>
     </Svg>
   );
 }
