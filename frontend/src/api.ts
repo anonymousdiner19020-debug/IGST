@@ -215,4 +215,12 @@ export const api = {
         body: JSON.stringify(payload),
       }
     ),
+  hockeyShootout: (id: string, payload: { goals: number }) =>
+    req<{ coins_awarded: number; goals: number; player: PlayerDTO }>(
+      `/players/${id}/hockey-shootout`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    ),
 };

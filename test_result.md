@@ -448,6 +448,46 @@ agent_communication:
     - agent: "main"
       message: "Iteration 14. NEW bonus mini-game 'Jersey Math' between levels 3 & 4. Test: (1) BACKEND POST /api/players/{id}/jersey-math with {correct,wrong}: wrong>3 => coins_awarded=10 (flat); wrong<=3 => coins_awarded=10*correct; player.coins increases by exactly coins_awarded; values clamp 0..10; 404 unknown player. (2) FRONTEND directly load /jersey-math: verify 10 questions total (counter 'N / 10'), each equation 'a +/- b = ?' with 6 tappable Phillies jerseys (testID jersey-<number>) one of which equals the answer; tapping the correct jersey increments ✓ and advances; tapping a wrong one increments ✗; a 10s timer (testID timer-bar) auto-advances as a wrong answer on timeout. After 10 questions the result screen (testID jersey-math-result) shows coins awarded and correct/wrong counts, and Continue (testID jersey-math-continue) goes to /level-map. You can compute expected coins from your ✓/✗ tally using the rule above. (3) TRIGGER: hard to reach via real play; verify by code/logic that winning level 3 routes cooking-result's continue to /jersey-math (bonus-banner shown). Anonymous UUID player via onboarding. NOTE for equation answers: the correct jersey number equals a+b or a-b shown on the card - read the equation card to pick."
 
+## ---- Iteration 17: Mini 3 - Hockey Shootout (after Level 8) ----
+backend:
+  - task: "Hockey Shootout reward endpoint"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "POST /api/players/{id}/hockey-shootout body {goals}. coins_awarded = 10*goals (no win/lose). goals clamped 0..10. Adds coins, returns {coins_awarded,goals,player}. Curl-verified: goals=6 -> 60 (coins 100->160), goals=0 -> 0. 404 unknown player."
+frontend:
+  - task: "Mini 3 Hockey Shootout screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/hockey-shootout.tsx, frontend/app/_layout.tsx, frontend/src/api.ts, frontend/app/cooking-result.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "New /hockey-shootout (Mini 3). Flyers-orange theme. A net at top with a Flyers goalie (orange pads, white helmet, 'P') that slides left-right continuously. A black puck at the bottom is dragged horizontally via PanResponder; releasing launches it straight up (Animated 500ms) at the net. On arrival: blocked if |puckX-goalieX| < (GW+PW)/2 => 'SAVE!'; else 'GOAL!' (+1 goal). 10 shots (testID counter 'Shot N / 10'). Each shot has a 5s timer (testID shot-timer); on timeout the puck auto-launches from its current spot. After 10 shots finish() posts api.hockeyShootout({goals}) and shows result (testID hockey-result) with goals X/10 and coins, Continue (testID hockey-continue) -> /level-map. No win/lose. Screenshot-verified: header, net, goalie, puck, 5s timer all render."
+  - task: "Trigger Mini 3 after Level 8"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/cooking-result.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "cooking-result bonusRoute: L3->/jersey-math, L6->/eagles-match, L8->/hockey-shootout (banner 'Mini 3: Hockey Shootout'), L12->/eagles-flip, else /level-map."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 17. NEW Mini 3 (Hockey Shootout) after Level 8. Test: (1) BACKEND POST /api/players/{id}/hockey-shootout {goals}: coins_awarded=10*goals, player.coins += that, goals clamp 0..10, 404 unknown. Cases {goals:6}=60,{0}=0,{10}=100,{15}=100(clamp). (2) FRONTEND load /hockey-shootout: shows 'Shot 1 / 10', a Flyers goalie that MOVES across the net, a draggable black puck at the bottom, and a 5-second per-shot timer (testID shot-timer) that counts down. DRAG the puck (it's an Animated.View with PanResponder — use mouse drag on the puck element, or drag by its position) left/right then RELEASE to launch it up at the net; a 'GOAL!' or 'SAVE!' flash appears and the goal counter (🥅 N) updates on a goal. Also verify: if you DON'T shoot within 5s the puck auto-launches (shot still counts). After 10 shots the result screen (testID hockey-result) shows 'GOALS X / 10' and coins, Continue (testID hockey-continue) -> /level-map. Because dragging an animated view in Playwright web can be tricky, it is acceptable to verify the auto-launch-on-timeout path advances shots to completion (wait through the 5s timers) and that the result screen + backend post occur; also verify at least one manual drag-release fires a shot if feasible. No win/lose. (3) TRIGGER (code-level ok): winning Level 8 routes to /hockey-shootout. Anonymous UUID player via onboarding. Do NOT retest earlier mini-games/levels."
+
 ## ---- Iteration 16: Mini 2 changed to all-showing match; new Mini 7 flip game after L12 ----
 frontend:
   - task: "Mini 2 is now an all-jerseys-showing match game (NOT flip/memory)"
