@@ -46,6 +46,8 @@ DISH_CATALOG = [
      "recipe": {"dough": 2, "tomato": 2, "olive_oil": 2, "pepperoni": 2, "basil": 2}, "reward_coins": 180, "moves": 36},
     {"id": "porkroll_ec", "name": "Pork Roll, Egg & Cheese", "emoji": "🥪", "unlock_level": 12,
      "recipe": {"porkroll": 2, "egg": 2, "cheese": 2, "round_roll": 2, "long_roll": 2}, "reward_coins": 195, "moves": 36},
+    {"id": "philly_candy", "name": "Philly Candy Box", "emoji": "🍬", "unlock_level": 13,
+     "recipe": {"good_and_plenty": 2, "peanut_chews": 2, "double_bubble": 2, "irish_potatoes": 2, "whitmans": 2}, "reward_coins": 220, "moves": 36},
     {"id": "donuts", "name": "Donuts", "emoji": "🍩", "unlock_level": 4,
      "recipe": {"vanilla_donut": 2, "chocolate_donut": 2, "strawberry_donut": 2, "sprinkles": 2}, "reward_coins": 210, "moves": 36},
 ]

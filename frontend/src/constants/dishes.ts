@@ -100,6 +100,18 @@ export const INGREDIENTS: Record<string, Ingredient> = {
   ranch: { id: "ranch", emoji: "🥛", color: "#F6F1E7", label: "Ranch" },
   extra_cheese: { id: "extra_cheese", emoji: "🧀", color: "#F4A261", label: "Extra Cheese" },
   hash_brown: { id: "hash_brown", emoji: "🥔", color: "#D2A24C", label: "Hash Browns" },
+
+  // Level 13 — Philly candy shop.
+  good_and_plenty: { id: "good_and_plenty", emoji: "🍬", color: "#E85B9A", label: "Good & Plenty" },
+  peanut_chews: { id: "peanut_chews", emoji: "🥜", color: "#6B4423", label: "Peanut Chews" },
+  double_bubble: { id: "double_bubble", emoji: "🫧", color: "#F48FB1", label: "Double Bubble" },
+  irish_potatoes: { id: "irish_potatoes", emoji: "🥔", color: "#D9A066", label: "Irish Potatoes" },
+  whitmans: { id: "whitmans", emoji: "🍫", color: "#4E2A1E", label: "Whitman's Chocolates" },
+  easter_eggs: { id: "easter_eggs", emoji: "🥚", color: "#8D5524", label: "Chocolate Easter Eggs" },
+  peeps: { id: "peeps", emoji: "🐣", color: "#F7D64A", label: "Marshmallow Peeps" },
+  candy_corn: { id: "candy_corn", emoji: "🌽", color: "#F5A623", label: "Candy Corn" },
+  mallo_cups: { id: "mallo_cups", emoji: "🧁", color: "#5B3A29", label: "Mallo Cups" },
+  peppermint_patties: { id: "peppermint_patties", emoji: "🌿", color: "#2E7D5B", label: "Peppermint Patties" },
 };
 
 export type Dish = {
@@ -257,6 +269,19 @@ export const FALLBACK_DISHES: Dish[] = [
     special_options: ["hot_sauce", "hash_brown"],
     verb: "grill",
     reward_coins: 195,
+    moves: 36,
+    customers_per_level: 10,
+  },
+  {
+    id: "philly_candy",
+    name: "Philly Candy Box",
+    emoji: "🍬",
+    unlock_level: 13,
+    base_recipe: { good_and_plenty: 2, peanut_chews: 2, double_bubble: 2, irish_potatoes: 2, whitmans: 2 },
+    topping_options: ["easter_eggs", "peeps", "candy_corn"],
+    special_options: ["mallo_cups", "peppermint_patties"],
+    verb: "box",
+    reward_coins: 220,
     moves: 36,
     customers_per_level: 10,
   },
