@@ -9,16 +9,17 @@ import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import FlyersGoalie from "@/src/components/FlyersGoalie";
+import HockeyRink from "@/src/components/HockeyRink";
 
 const FLYERS_ORANGE = "#F74902";
 const FLYERS_BLACK = "#111111";
 const SHOTS = 10;
 const SHOT_TIME = 5; // seconds to shoot each puck
 const PW = 34; // puck width
-const GW = 88; // goalie width
-const GH = 124; // goalie height
-const NET_TOP = 34;
-const NET_H = 150;
+const GW = 74; // goalie width
+const GH = 104; // goalie height
+const NET_TOP = 30;
+const GOAL_Y = 214; // goal line (puck target / goalie stance)
 const GOALIE_SPEED = 4.5;
 
 export default function HockeyShootout() {
@@ -27,6 +28,7 @@ export default function HockeyShootout() {
   const [field, setField] = useState({ w: 0, h: 0 });
   const [puckX, setPuckX] = useState(0);
   const [goalieX, setGoalieX] = useState(0);
+  const [net, setNet] = useState({ l: 0, r: 0 });
   const [phase, setPhase] = useState<"aim" | "shoot" | "done">("aim");
   const [shotsTaken, setShotsTaken] = useState(0);
   const [goals, setGoals] = useState(0);
@@ -175,8 +177,11 @@ export default function HockeyShootout() {
     if (fieldRef.current.w > 0) return; // init once
     fieldRef.current = { w: width, h: height };
     setField({ w: width, h: height });
-    boundsRef.current = { min: 16 + PW / 2, max: width - 16 - PW / 2 };
-    goalieBoundsRef.current = { min: 20 + GW / 2, max: width - 20 - GW / 2 };
+    const netL = Math.round(width * 0.24);
+    const netR = Math.round(width * 0.76);
+    setNet({ l: netL, r: netR });
+    boundsRef.current = { min: netL + PW / 2, max: netR - PW / 2 };
+    goalieBoundsRef.current = { min: netL + GW / 2, max: netR - GW / 2 };
     const cx = width / 2;
     puckXRef.current = cx;
     goalieXRef.current = cx;
@@ -212,7 +217,7 @@ export default function HockeyShootout() {
   }
 
   const puckStartTop = field.h > 0 ? field.h - 96 : 0;
-  const puckTargetTop = NET_TOP + NET_H - PW - 2;
+  const puckTargetTop = GOAL_Y - 34;
   const timeColor = timeLeft > 2.5 ? colors.success : timeLeft > 1 ? colors.warning : colors.error;
 
   return (
@@ -237,29 +242,44 @@ export default function HockeyShootout() {
       <Text style={[styles.timerLabel, { color: timeColor }]}>{Math.ceil(timeLeft)}s to shoot</Text>
 
       <View style={styles.field} onLayout={onFieldLayout}>
-        {/* net */}
-        <View style={[styles.net, { top: NET_TOP, height: NET_H, left: 16, right: 16 }]}>
-          <View style={styles.netMeshRow} />
-          <View style={styles.netMeshRow} />
-          <View style={styles.netMeshRow} />
-        </View>
+        {/* 3D perspective rink + net */}
+        {field.w > 0 && (
+          <HockeyRink w={field.w} h={field.h} netTop={NET_TOP} goalY={GOAL_Y} netL={net.l} netR={net.r} />
+        )}
 
-        {/* goal line */}
-        <View style={[styles.goalLine, { top: NET_TOP + NET_H }]} />
+        {/* goalie shadow */}
+        {field.w > 0 && (
+          <View style={[styles.shadowEllipse, { width: GW * 0.8, left: goalieX - (GW * 0.8) / 2, top: GOAL_Y - 12 }]} />
+        )}
 
         {/* goalie (full Flyers goalie, shooter's perspective) */}
         {field.w > 0 && (
-          <View
-            style={[
-              styles.goalie,
-              { width: GW, left: goalieX - GW / 2, top: NET_TOP + NET_H - GH - 2 },
-            ]}
-          >
+          <View style={[styles.goalie, { width: GW, left: goalieX - GW / 2, top: GOAL_Y - GH }]}>
             <FlyersGoalie size={GW} />
           </View>
         )}
 
-        {/* puck */}
+        {/* puck shadow (shrinks with depth) */}
+        {field.w > 0 && (
+          <Animated.View
+            style={[
+              styles.puckShadow,
+              {
+                width: PW,
+                height: PW * 0.4,
+                left: puckX - PW / 2,
+                top: puckStartTop + PW * 0.55,
+                opacity: puckAnim.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.12] }),
+                transform: [
+                  { translateY: puckAnim.interpolate({ inputRange: [0, 1], outputRange: [0, puckTargetTop - puckStartTop] }) },
+                  { scale: puckAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] }) },
+                ],
+              },
+            ]}
+          />
+        )}
+
+        {/* puck (scales down as it travels into the distance) */}
         {field.w > 0 && (
           <Animated.View
             {...pan.panHandlers}
@@ -271,12 +291,8 @@ export default function HockeyShootout() {
                 left: puckX - PW / 2,
                 top: puckStartTop,
                 transform: [
-                  {
-                    translateY: puckAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, puckTargetTop - puckStartTop],
-                    }),
-                  },
+                  { translateY: puckAnim.interpolate({ inputRange: [0, 1], outputRange: [0, puckTargetTop - puckStartTop] }) },
+                  { scale: puckAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.55] }) },
                 ],
               },
             ]}
@@ -344,43 +360,13 @@ const styles = StyleSheet.create({
   timerFill: { height: "100%", borderRadius: radius.pill },
   timerLabel: { textAlign: "center", fontSize: 12, fontWeight: "900", marginTop: 3 },
   field: { flex: 1, marginTop: spacing.sm, position: "relative", overflow: "hidden" },
-  net: {
+  goalie: { position: "absolute", alignItems: "center", justifyContent: "flex-start" },
+  shadowEllipse: {
     position: "absolute",
-    backgroundColor: "rgba(255,255,255,0.65)",
-    borderWidth: 5,
-    borderColor: "#C8102E",
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    justifyContent: "space-evenly",
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.28)",
   },
-  netMeshRow: { height: 1, backgroundColor: "rgba(0,0,0,0.12)" },
-  goalLine: { position: "absolute", left: 16, right: 16, height: 3, backgroundColor: "#C8102E" },
-  goalie: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  goalieHelmet: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: FLYERS_BLACK,
-  },
-  goaliePads: {
-    marginTop: -3,
-    width: GW - 6,
-    flex: 1,
-    borderRadius: 8,
-    backgroundColor: FLYERS_ORANGE,
-    borderWidth: 3,
-    borderColor: FLYERS_BLACK,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  goalieP: { color: "#FFFFFF", fontSize: 22, fontWeight: "900" },
   puck: {
     position: "absolute",
     backgroundColor: "#1A1A1A",
@@ -388,6 +374,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#000000",
     ...shadow.tier1,
+  },
+  puckShadow: {
+    position: "absolute",
+    backgroundColor: "#000000",
+    borderRadius: 999,
   },
   hint: { position: "absolute", fontSize: 14, fontWeight: "900", color: FLYERS_ORANGE },
   flashWrap: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
