@@ -22,6 +22,14 @@ import IngredientIcon from "@/src/components/IngredientIcon";
 import SparkleBurst from "@/src/components/SparkleBurst";
 import FanJersey from "@/src/components/FanJersey";
 
+// Jackpot slot badges — alternate between Philadelphia teams (color + icon,
+// not official logos). Eagles -> Phillies -> Flyers.
+const JACKPOT_TEAMS = [
+  { bg: "#004C54", icon: "🦅", name: "EAGLES" },
+  { bg: "#E81828", icon: "⚾", name: "PHILLIES" },
+  { bg: "#F74902", icon: "🏒", name: "FLYERS" },
+];
+
 type Customer = {
   avatar: string;
   wanted: string[];
@@ -165,6 +173,7 @@ export default function Serve() {
   const [pantry, setPantry] = useState<Record<string, number>>({});
   const [pantryLevel, setPantryLevel] = useState(0);
   const [jackpot, setJackpot] = useState<number | null>(null);
+  const [jackpotTeam, setJackpotTeam] = useState(0);
   const [sparkle, setSparkle] = useState(0);
   const [milestone, setMilestone] = useState<string | null>(null);
   const [chant, setChant] = useState<string | null>(null);
@@ -173,6 +182,8 @@ export default function Serve() {
   const perfectServesRef = useRef(0);
   const specialServedRef = useRef(0);
   const fansServedRef = useRef(0);
+  const celebFlipRef = useRef(false); // alternate PERFECT! vs HOT STREAK celebration
+  const jackpotTeamRef = useRef(0); // cycles Eagles -> Phillies -> Flyers badge
   const patienceRef = useRef<any>(null);
   const startRef = useRef<number>(Date.now());
 
@@ -313,7 +324,15 @@ export default function Serve() {
       const vipMult = current.vip ? 2 : 1; // VIP big-tipper pays double
       const tip = Math.round(base * mult * dailyMult * rushMult * vipMult);
       setStreak(newStreak);
-      setSparkle((s) => s + 1);
+      // Alternate celebrations: when a jackpot is eligible, show either the
+      // PERFECT! burst OR the HOT STREAK box (flip each time), never both.
+      const jackpotEligible = mult >= 2.5;
+      let showPerfect = true;
+      if (jackpotEligible) {
+        celebFlipRef.current = !celebFlipRef.current;
+        showPerfect = celebFlipRef.current;
+      }
+      if (showPerfect) setSparkle((s) => s + 1);
       sound.play("serve");
       sound.play("coin");
       try {
@@ -355,14 +374,19 @@ export default function Serve() {
       setFeedback({ ok: true, text: `Perfect! +${tip} 🪙 +${bellTip} 🔔${comboLabel}${dailyLabel}${fanLabel}${specialLabel}${vipLabel}` });
       // Streak jackpot at 2.5x multiplier or higher (4+ consecutive perfects)
       let jackpotBonus = 0;
-      if (mult >= 2.5) {
+      if (jackpotEligible) {
         jackpotBonus = 40 * streak;
-        setJackpot(jackpotBonus);
+        // Only show the HOT STREAK box on the turns we're not showing PERFECT!
+        if (!showPerfect) {
+          setJackpotTeam(jackpotTeamRef.current % 3);
+          jackpotTeamRef.current += 1;
+          setJackpot(jackpotBonus);
+          setTimeout(() => setJackpot(null), 1400);
+        }
         sound.play("coin");
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch {}
-        setTimeout(() => setJackpot(null), 1400);
       }
       nextCustomer(tip + jackpotBonus + fanBonus + specialBonus, Math.round((100 + speedBonus) * mult), true, bellTip);
     } else {
@@ -704,7 +728,16 @@ export default function Serve() {
       {jackpot != null && (
         <View style={styles.jackpotOverlay} pointerEvents="none" testID="jackpot-popup">
           <View style={styles.jackpotCard}>
-            <Text style={styles.jackpotEmoji}>🎰🔥</Text>
+            <View style={styles.jackpotSlots}>
+              {[0, 1, 2].map((i) => {
+                const team = JACKPOT_TEAMS[(jackpotTeam + i) % 3];
+                return (
+                  <View key={i} style={[styles.jackpotBadge, { backgroundColor: team.bg }]}>
+                    <Text style={styles.jackpotBadgeIcon}>{team.icon}</Text>
+                  </View>
+                );
+              })}
+            </View>
             <Text style={styles.jackpotTitle}>HOT STREAK JACKPOT!</Text>
             <Text style={styles.jackpotAmount}>+{jackpot} 🪙</Text>
           </View>
@@ -1016,7 +1049,17 @@ const styles = StyleSheet.create({
     borderColor: colors.brand,
     ...shadow.tier3,
   },
-  jackpotEmoji: { fontSize: 44 },
+  jackpotSlots: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.xs },
+  jackpotBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+  },
+  jackpotBadgeIcon: { fontSize: 24 },
   jackpotTitle: { fontSize: 18, fontWeight: "900", color: "#FFFFFF", letterSpacing: 1 },
   jackpotAmount: { fontSize: 30, fontWeight: "900", color: colors.brand },
   tray: {
