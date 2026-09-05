@@ -7,6 +7,7 @@ const LOGOS: Record<string, any> = {
   eagles: require("../../assets/eagles_logo.webp"),
   phillies: require("../../assets/phillies_logo.png"),
   flyers: require("../../assets/flyers_logo.png"),
+  sixers: require("../../assets/sixers_logo.png"),
 };
 
 // Renders a Philadelphia team logo image, with an emoji fallback for teams
