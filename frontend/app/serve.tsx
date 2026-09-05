@@ -20,14 +20,13 @@ import LibertyBell from "@/src/components/LibertyBell";
 import DishIcon from "@/src/components/DishIcon";
 import IngredientIcon from "@/src/components/IngredientIcon";
 import SparkleBurst from "@/src/components/SparkleBurst";
-import FanJersey from "@/src/components/FanJersey";
+import TeamLogo from "@/src/components/TeamLogo";
 
-// Jackpot slot badges — alternate between Philadelphia teams (color + icon,
-// not official logos). Eagles -> Phillies -> Flyers.
-const JACKPOT_TEAMS = [
-  { bg: "#004C54", icon: "🦅", name: "EAGLES" },
-  { bg: "#E81828", icon: "⚾", name: "PHILLIES" },
-  { bg: "#F74902", icon: "🏒", name: "FLYERS" },
+// Jackpot slot badges — alternate between Philadelphia team logos.
+const JACKPOT_TEAMS: { code: string; name: string }[] = [
+  { code: "eagles", name: "EAGLES" },
+  { code: "phillies", name: "PHILLIES" },
+  { code: "flyers", name: "FLYERS" },
 ];
 
 type Customer = {
@@ -520,11 +519,7 @@ export default function Serve() {
           <Text style={styles.moodBubble} testID="customer-mood">{mood}</Text>
           {current.fan && (
             <View style={styles.fanBadge} testID="fan-badge">
-              <FanJersey
-                size={30}
-                color={TEAM_STYLE[current.fan]?.color}
-                number={TEAM_STYLE[current.fan]?.number}
-              />
+              <TeamLogo code={TEAM_STYLE[current.fan]?.code} size={34} fallback={current.fan} />
             </View>
           )}
         </View>
@@ -732,8 +727,8 @@ export default function Serve() {
               {[0, 1, 2].map((i) => {
                 const team = JACKPOT_TEAMS[(jackpotTeam + i) % 3];
                 return (
-                  <View key={i} style={[styles.jackpotBadge, { backgroundColor: team.bg }]}>
-                    <Text style={styles.jackpotBadgeIcon}>{team.icon}</Text>
+                  <View key={i} style={styles.jackpotBadge}>
+                    <TeamLogo code={team.code} size={44} />
                   </View>
                 );
               })}
@@ -1060,6 +1055,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
   },
   jackpotBadgeIcon: { fontSize: 24 },
+  jackpotBadgeImg: { width: 32, height: 32 },
   jackpotTitle: { fontSize: 18, fontWeight: "900", color: "#FFFFFF", letterSpacing: 1 },
   jackpotAmount: { fontSize: 30, fontWeight: "900", color: colors.brand },
   tray: {

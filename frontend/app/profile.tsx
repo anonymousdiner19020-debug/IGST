@@ -16,6 +16,7 @@ import { playerStorage } from "@/src/storage";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import LibertyBell from "@/src/components/LibertyBell";
 import DishIcon from "@/src/components/DishIcon";
+import TeamLogo from "@/src/components/TeamLogo";
 
 export default function Profile() {
   const router = useRouter();
@@ -93,14 +94,15 @@ export default function Profile() {
             const entries = Object.entries(fs);
             if (entries.length === 0) return null;
             const teams: Record<string, string> = {
-              eagles: "🦅 Eagles",
-              phillies: "⚾ Phillies",
-              sixers: "🏀 Sixers",
-              flyers: "🏒 Flyers",
+              eagles: "Eagles",
+              phillies: "Phillies",
+              sixers: "Sixers",
+              flyers: "Flyers",
             };
             const [topCode, topCount] = entries.sort((a, b) => b[1] - a[1])[0];
             const total = entries.reduce((s, [, v]) => s + v, 0);
             const isSuperfan = topCount >= 25;
+            const teamName = teams[topCode] || topCode;
             return (
               <View
                 style={[styles.fanStatCard, isSuperfan && styles.superfanCard]}
@@ -112,13 +114,16 @@ export default function Profile() {
                   </View>
                 )}
                 <Text style={styles.fanStatLabel}>YOUR TEAM</Text>
-                <Text style={styles.fanStatTeam}>{teams[topCode] || topCode} superfan</Text>
+                <View style={styles.fanStatTeamRow}>
+                  <TeamLogo code={topCode} size={30} />
+                  <Text style={styles.fanStatTeam}>{teamName} superfan</Text>
+                </View>
                 <Text style={styles.fanStatSub}>
-                  Served {topCount} {teams[topCode]?.split(" ")[1] || ""} fans · {total} Philly fans total
+                  Served {topCount} {teamName} fans · {total} Philly fans total
                 </Text>
                 {!isSuperfan && (
                   <Text style={styles.superfanHint}>
-                    {25 - topCount} more {teams[topCode]?.split(" ")[1] || ""} fans to unlock the Superfan badge!
+                    {25 - topCount} more {teamName} fans to unlock the Superfan badge!
                   </Text>
                 )}
               </View>
@@ -240,6 +245,7 @@ const styles = StyleSheet.create({
     borderColor: colors.brandSecondary,
   },
   fanStatLabel: { fontSize: 11, fontWeight: "800", color: colors.onSurface, opacity: 0.6, letterSpacing: 1 },
+  fanStatTeamRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
   fanStatTeam: { fontSize: 18, fontWeight: "900", color: colors.surfaceInverse, marginTop: 2 },
   fanStatSub: { fontSize: 12, fontWeight: "600", color: colors.onSurface, opacity: 0.8, marginTop: 2, textAlign: "center" },
   superfanCard: { borderColor: "#F0B429", borderWidth: 3, backgroundColor: "#FFF9E9" },
