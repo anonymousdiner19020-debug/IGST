@@ -62,6 +62,7 @@ export function SparkleBurst({ trigger }: Props) {
           {
             opacity: pop,
             transform: [
+              { translateY: 160 },
               { scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1.15] }) },
             ],
           },
