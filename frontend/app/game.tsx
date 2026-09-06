@@ -285,10 +285,10 @@ export default function Game() {
                       isFlash && styles.tileFlash,
                     ]}
                   >
-                    <IngredientIcon id={cell} emoji={ing?.emoji} size={TILE * 0.6} />
+                    <IngredientIcon id={cell} emoji={ing?.emoji} size={TILE * 0.55} />
                     <Text
-                      style={[styles.tileLabel, { fontSize: Math.max(6, TILE * 0.16) }]}
-                      numberOfLines={1}
+                      style={[styles.tileLabel, { fontSize: Math.max(6, TILE * 0.15) }]}
+                      numberOfLines={2}
                     >
                       {ing?.label || cell}
                     </Text>
@@ -451,7 +451,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.surfaceInverse,
     textAlign: "center",
-    maxWidth: "98%",
+    maxWidth: "100%",
+    lineHeight: 10,
   },
   tileSelected: { borderWidth: 3, borderColor: colors.brand, borderRadius: radius.md, transform: [{ scale: 1.12 }] },
   tileFlash: {
