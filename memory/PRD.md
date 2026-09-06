@@ -59,3 +59,14 @@ Onboarding, Home (daily special banner, tappable coin chip → coin store, Rush/
   - Jersey Math bonus mini-game (frontend/app/jersey-math.tsx, route in _layout.tsx): after winning Level 3 (cooking-result routes continue -> /jersey-math when retryLevel===3, shows bonus-banner). 10 equations (+/- small numbers) "a op b = ?" with 6 Phillies-red FanJersey options (one correct + 5 distractors 0-25); 10s countdown per equation, timeout=wrong. Reward via POST /players/{id}/jersey-math {correct,wrong}: wrong>3 => flat 10 coins; else 10*correct. Result -> Continue -> /level-map.
 
 - Update (Jun 2026) — Mini 2: Eagles jersey memory match (frontend/app/eagles-match.tsx, src/components/JerseyBack.tsx, route in _layout.tsx): appears after winning Level 6 (cooking-result routes -> /eagles-match). 20 tiles = 10 pairs from a 30-player Eagles roster (number:name, in-file ROSTER). Kelly-green (#128A3C) JerseyBack shows player NAME above big white number outlined black. 45s timer. Flip two tiles; same number = matched pair; different = miss (+1) and flip back. Reward via POST /players/{id}/eagles-match {completed,misses}: completed && misses<=3 => 100-10*misses; else (misses>3 OR timeout) => 5 coins. Mini 1 (jersey-math) after Level 3 uses Phillies powder-blue (#79BDEE) FanJersey backs with red numbers outlined white.
+
+## Update (session): Mini 4 + content/UX changes
+- Mini 4 "76ers Word Search" (route /word-search): 12x12 grid, 5 random surnames from a 16-name Sixers pool, horizontal/vertical/diagonal placement, no timer, 100 coins for finding all 5. Backend: POST /api/players/{id}/word-search. Unlocks after Level 10 (cooking-result routing). 76ers colors (#006BB6 blue, #ED174C red, #002B5C navy).
+- New serving levels: 15 Sweet Treats Box, 16 Fruit Pierogies, 17 Candy Shop. Philly Candy Box (13) now uses only Peanut Chews/Irish Potatoes/Whitmans/Peeps/Candy Corn.
+- Pork Roll Egg & Cheese (12): bread removed; base = porkroll, egg, cheese, ketchup, hash_brown.
+- Long Hots ingredient recolored green (🫑). Icon consistency: rush.tsx now uses IngredientIcon (same icons as levels everywhere).
+- Match-3 board tiles show ingredient name under each icon (2 lines).
+- Serving screen: larger tray icons/squares (labels fit), 20s timer, 3.5s pause after correct serve. Fan Rush bar moved below top HUD.
+- Mini 2 fix: functional setMatched + refs so rapid taps never leave unmatched jerseys; timer 50s. Mini 7 timer 90s.
+- All mini-games (1,2,3,7 and new 4) show a shared HowToPlay overlay that pauses timers until dismissed.
+- Mini 3: goalie moves randomly; goal plays horn sound, save plays boo (native audio requires a build to fully verify).

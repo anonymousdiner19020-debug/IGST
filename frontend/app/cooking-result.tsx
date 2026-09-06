@@ -34,8 +34,8 @@ export default function CookingResult() {
   const retryLevel = parseInt(level || "1", 10);
   const starCount = Math.max(0, Math.min(3, parseInt(stars || "0", 10)));
   const perfectBonusCoins = parseInt(perfectBonus || "0", 10);
-  // Bonus "Jersey Math" mini-game unlocks between levels 3 and 4.
-  // Bonus mini-games: Mini 1 (Jersey Math) L3, Mini 3 (Hockey) L8, Mini 2 (Eagles Match) L6, Mini 7 (Eagles Flip) L12.
+  // Bonus mini-games: Mini 1 (Jersey Math) L3, Mini 2 (Eagles Match) L6, Mini 3 (Hockey) L8,
+  // Mini 4 (76ers Word Search) L10, Mini 7 (Eagles Flip) L12.
   const bonusRoute =
     win && retryLevel === 3
       ? "/jersey-math"
@@ -43,6 +43,8 @@ export default function CookingResult() {
       ? "/eagles-match"
       : win && retryLevel === 8
       ? "/hockey-shootout"
+      : win && retryLevel === 10
+      ? "/word-search"
       : win && retryLevel === 12
       ? "/eagles-flip"
       : null;
@@ -50,6 +52,8 @@ export default function CookingResult() {
   const bonusName =
     retryLevel === 12
       ? "Mini 7: Flip & Match"
+      : retryLevel === 10
+      ? "Mini 4: 76ers Word Search"
       : retryLevel === 8
       ? "Mini 3: Hockey Shootout"
       : retryLevel === 6

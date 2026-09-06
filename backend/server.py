@@ -846,6 +846,21 @@ async def hockey_shootout_reward(player_id: str, payload: dict = Body(...)):
     return {"coins_awarded": coins_awarded, "goals": goals, "player": player_public(updated)}
 
 
+@api_router.post("/players/{player_id}/word-search")
+async def word_search_reward(player_id: str, payload: dict = Body(...)):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    completed = bool(payload.get("completed", False))
+    found = max(0, min(5, int(payload.get("found", 0) or 0)))
+    # 100 coins for finding all 5 names. No timer, so it's all-or-nothing.
+    coins_awarded = 100 if completed else 0
+    if coins_awarded:
+        await db.players.update_one({"id": player_id}, {"$inc": {"coins": coins_awarded}})
+    updated = await db.players.find_one({"id": player_id}, {"_id": 0})
+    return {"coins_awarded": coins_awarded, "completed": completed, "found": found, "player": player_public(updated)}
+
+
 @api_router.post("/revenuecat/webhook")
 async def revenuecat_webhook(request: Request, authorization: str | None = Header(default=None)):
     expected = os.environ.get("REVENUECAT_WEBHOOK_AUTH")

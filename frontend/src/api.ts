@@ -223,4 +223,12 @@ export const api = {
         body: JSON.stringify(payload),
       }
     ),
+  wordSearch: (id: string, payload: { completed: boolean; found: number }) =>
+    req<{ coins_awarded: number; completed: boolean; found: number; player: PlayerDTO }>(
+      `/players/${id}/word-search`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    ),
 };
