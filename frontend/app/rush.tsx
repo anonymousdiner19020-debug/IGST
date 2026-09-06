@@ -16,6 +16,7 @@ import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import DishIcon from "@/src/components/DishIcon";
+import IngredientIcon from "@/src/components/IngredientIcon";
 
 const RUSH_PATIENCE_MS = 9000;
 const MAX_MISSES = 3;
@@ -240,7 +241,7 @@ export default function Rush() {
                 <View key={w} style={styles.ticketRow}>
                   <Text style={styles.ticketPlus}>＋</Text>
                   <Text style={styles.ticketItem}>{INGREDIENTS[w]?.label || w}</Text>
-                  <Text style={styles.ticketEmoji}>{INGREDIENTS[w]?.emoji}</Text>
+                  <IngredientIcon id={w} emoji={INGREDIENTS[w]?.emoji} size={24} />
                 </View>
               ))}
               {customer.forbidden.map((f) => (
@@ -249,7 +250,7 @@ export default function Rush() {
                   <Text style={[styles.ticketItem, { color: colors.error }]}>
                     {INGREDIENTS[f]?.label || f}
                   </Text>
-                  <Text style={styles.ticketEmoji}>{INGREDIENTS[f]?.emoji}</Text>
+                  <IngredientIcon id={f} emoji={INGREDIENTS[f]?.emoji} size={24} />
                 </View>
               ))}
             </View>
@@ -272,7 +273,7 @@ export default function Rush() {
               ) : (
                 plate.map((p) => (
                   <View key={p} style={styles.plateChip}>
-                    <Text style={styles.plateChipEmoji}>{INGREDIENTS[p]?.emoji}</Text>
+                    <IngredientIcon id={p} emoji={INGREDIENTS[p]?.emoji} size={26} />
                   </View>
                 ))
               )}
@@ -291,12 +292,11 @@ export default function Rush() {
                     onPress={() => toggleTopping(t)}
                     style={({ pressed }) => [
                       styles.trayItem,
-                      { backgroundColor: info?.color || colors.surfaceSecondary },
                       active && styles.trayItemActive,
                       pressed && { transform: [{ scale: 0.93 }] },
                     ]}
                   >
-                    <Text style={styles.trayEmoji}>{info?.emoji}</Text>
+                    <IngredientIcon id={t} emoji={info?.emoji} size={30} />
                     <Text style={styles.trayLabel} numberOfLines={1}>
                       {info?.label || t}
                     </Text>
@@ -497,12 +497,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: colors.surface,
     borderWidth: 3,
     borderColor: "rgba(0,0,0,0.12)",
     gap: 2,
   },
-  trayItemActive: { borderColor: colors.surfaceInverse, transform: [{ scale: 1.05 }] },
-  trayEmoji: { fontSize: 26 },
+  trayItemActive: { borderColor: colors.brand, transform: [{ scale: 1.05 }] },
   trayLabel: { fontSize: 9, fontWeight: "900", color: colors.surfaceInverse, textAlign: "center" },
   trayCheck: {
     position: "absolute",

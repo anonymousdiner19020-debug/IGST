@@ -45,7 +45,7 @@ DISH_CATALOG = [
     {"id": "tomato_pie", "name": "Tomato Pie", "emoji": "🍕", "unlock_level": 11,
      "recipe": {"dough": 2, "tomato": 2, "olive_oil": 2, "pepperoni": 2, "basil": 2}, "reward_coins": 180, "moves": 36},
     {"id": "porkroll_ec", "name": "Pork Roll, Egg & Cheese", "emoji": "🥪", "unlock_level": 12,
-     "recipe": {"porkroll": 2, "egg": 2, "cheese": 2, "round_roll": 2, "long_roll": 2}, "reward_coins": 195, "moves": 36},
+     "recipe": {"porkroll": 2, "egg": 2, "cheese": 2, "ketchup": 2, "hash_brown": 2}, "reward_coins": 195, "moves": 36},
     {"id": "philly_candy", "name": "Philly Candy Box", "emoji": "🍬", "unlock_level": 13,
      "recipe": {"peanut_chews": 2, "irish_potatoes": 2, "whitmans": 2, "peeps": 2, "candy_corn": 2}, "reward_coins": 220, "moves": 36},
     {"id": "pierogies", "name": "Pierogies", "emoji": "🥟", "unlock_level": 14,

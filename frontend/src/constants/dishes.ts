@@ -51,7 +51,7 @@ export const INGREDIENTS: Record<string, Ingredient> = {
   // Cheesesteak
   steak: { id: "steak", emoji: "🥩", color: "#C0392B", label: "Chopped Steak" },
   mushroom: { id: "mushroom", emoji: "🍄", color: "#B08968", label: "Mushrooms" },
-  hot_pepper: { id: "hot_pepper", emoji: "🌶️", color: "#E63946", label: "Long Hots" },
+  hot_pepper: { id: "hot_pepper", emoji: "🫑", color: "#3AA655", label: "Long Hots" },
   whiz: { id: "whiz", emoji: "🟡", color: "#FFD166", label: "Cheese Whiz" },
 
   // Roast Pork
@@ -282,9 +282,9 @@ export const FALLBACK_DISHES: Dish[] = [
     name: "Pork Roll, Egg & Cheese",
     emoji: "🥪",
     unlock_level: 12,
-    base_recipe: { porkroll: 2, egg: 2, cheese: 2, round_roll: 2, long_roll: 2 },
+    base_recipe: { porkroll: 2, egg: 2, cheese: 2, ketchup: 2, hash_brown: 2 },
     topping_options: ["salt_pepper"],
-    special_options: ["hot_sauce", "hash_brown"],
+    special_options: ["hot_sauce"],
     verb: "grill",
     reward_coins: 195,
     moves: 36,

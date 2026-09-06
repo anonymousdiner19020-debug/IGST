@@ -14,7 +14,7 @@ import HowToPlay from "@/src/components/HowToPlay";
 const EAGLES_GREEN = "#128A3C";
 const EAGLES_DARK = "#0A3D1F";
 const PAIRS = 10;
-const TIME_LIMIT = 45; // seconds
+const TIME_LIMIT = 90; // seconds
 const COLS = 4;
 
 type Player = { number: string; name: string };
@@ -275,7 +275,7 @@ export default function EaglesFlip() {
         steps={[
           "All tiles start face-down showing the Eagles logo.",
           "Flip two tiles to reveal their jerseys — remember the numbers!",
-          "Match all 10 pairs before the 45-second timer runs out.",
+          "Match all 10 pairs before the 90-second timer runs out.",
           "100 coins for a clean sweep — minus 10 for each wrong flip.",
         ]}
         onDismiss={() => setShowHelp(false)}
