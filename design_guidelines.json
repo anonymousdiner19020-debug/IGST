@@ -1,0 +1,170 @@
+{
+  "app_name": "Aura",
+  "personality": "8 Hand-Drawn / Journal",
+  "personality_one_liner": "A grounded, reflective, and emotionally safe space that feels like a handcrafted physical journal.",
+  "color": {
+    "surface": "#FDFBF7",
+    "onSurface": "#2D2B2A",
+    "surfaceSecondary": "#F4EFE6",
+    "onSurfaceSecondary": "#3F3C3A",
+    "surfaceTertiary": "#EAE4D9",
+    "onSurfaceTertiary": "#4F4C49",
+    "surfaceInverse": "#33312E",
+    "onSurfaceInverse": "#FDFBF7",
+    "brand": "#89937C",
+    "onBrand": "#FDFBF7",
+    "brandPrimary": "#77826B",
+    "onBrandPrimary": "#FDFBF7",
+    "brandSecondary": "#B5BCA9",
+    "onBrandSecondary": "#2D2B2A",
+    "brandTertiary": "#DCE0D5",
+    "onBrandTertiary": "#4F4C49",
+    "success": "#5D7052",
+    "onSuccess": "#FFFFFF",
+    "warning": "#C29243",
+    "onWarning": "#FFFFFF",
+    "error": "#B35D50",
+    "onError": "#FFFFFF",
+    "info": "#667C82",
+    "onInfo": "#FFFFFF",
+    "border": "#EAE4D9",
+    "borderStrong": "#CDC6BC",
+    "divider": "#EAE4D9",
+    "muted": "#88837E"
+  },
+  "typography": {
+    "displayFontFamily": "Fraunces",
+    "textFontFamily": "Plus Jakarta Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous, breathable rhythm. Whitespace is a restorative element. Never cram form inputs together; let each question breathe with xl or 2xl spacing.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": 0,
+  "navigation": "bottom_tabs",
+  "icon_set": "Feather",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use subtle glass over a translucent surface tint for the sticky bottom CTA area in the daily flow, allowing the scrolling text inputs to softly blur behind the 'Next' button."
+    ],
+    "dont's": [
+      "Do not use glass on form inputs, lists, or standard cards, as it breaks the physical paper-like aesthetic."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Today (Dashboard)",
+      "purpose": "A calming daily landing page highlighting the user's streak, an inspirational quote, and the entry point to their journaling flow.",
+      "states": {
+        "loading": "Soft pulsating skeleton for the quote card and streak tracker.",
+        "empty": "A greeting card prompting the user to begin their very first journal entry.",
+        "error": "Gentle error message 'Unable to load today's inspiration' with a subtle 'Try again' button."
+      },
+      "layout": "Hero image banner at top with gradient scrim overlay. Below it, an inspirational quote card overlapping the banner slightly. A large 'Begin Daily Check-in' card (surfaceSecondary) with an icon and soft right chevron. A 'Streak' widget row showing recent days as checkmarks or filled circles."
+    },
+    {
+      "name": "Daily Flow (Multi-Step Form)",
+      "purpose": "A guided, swipeable sequence of pages capturing the user's daily reflection, fitness, and goals.",
+      "states": {
+        "loading": "Spinner centered on a blank paper-like surface.",
+        "empty": "N/A - This is an input flow.",
+        "error": "Inline validation messages below specific unfilled or malformed inputs (if required)."
+      },
+      "layout": "Top: A subtle progress bar or dot indicator (Step 3 of 11) and a 'Save & Close' subtle button. Middle: Scrollable content containing one major prompt (e.g., 'Blessings') at a time with xl spacing between fields. Bottom: Sticky 'Next' button in a glass-backed container above the keyboard."
+    },
+    {
+      "name": "Calendar",
+      "purpose": "A visual month view displaying colored streaks for days logged.",
+      "states": {
+        "loading": "Empty calendar grid with a gentle loading spinner.",
+        "empty": "Calendar grid with no active streaks, showing an empty state illustration below.",
+        "error": "Error message with a retry button to fetch calendar data."
+      },
+      "layout": "Standard monthly grid. Days with completed logs have a brandPrimary background circle. Days missed are surfaceTertiary. Tapping a logged day triggers a bottom sheet (or navigates to DayDetail) displaying that day's answers."
+    },
+    {
+      "name": "Search",
+      "purpose": "Find specific past thoughts across timestamped journal entries.",
+      "states": {
+        "loading": "List skeletons.",
+        "empty": "Abstract line-art illustration 'Search your past reflections.'",
+        "error": "Message saying 'Search unavailable at the moment' with a retry button."
+      },
+      "layout": "Large search bar at the top (surfaceSecondary). Results are a vertical list of cards grouped by page-type (e.g., 'Blessings', 'Workout') and timestamp, showing a short snippet of the text."
+    },
+    {
+      "name": "Day Detail",
+      "purpose": "Read-only or editable view of all logged information from a specific past day.",
+      "states": {
+        "loading": "Skeleton text blocks.",
+        "empty": "Illustration 'No entries recorded for this day.'",
+        "error": "Retry fetching day's data."
+      },
+      "layout": "Scrollable list of distinct cards or sections. Each section corresponds to a step (e.g., 'Affirmations', 'Journal', 'Goals') containing the text entered."
+    }
+  ],
+  "images": {
+    "dashboard_hero": {
+      "url": "https://images.unsplash.com/photo-1490735891913-40897cdaafd1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHx3YXJtJTIwc3VucmlzZSUyMGFlc3RoZXRpYyUyMHNreXxlbnwwfHx8fDE3ODg3MTY0NjB8MA&ixlib=rb-4.1.0&q=85",
+      "dark": "https://images.unsplash.com/photo-1490735891913-40897cdaafd1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHx3YXJtJTIwc3VucmlzZSUyMGFlc3RoZXRpYyUyMHNreXxlbnwwfHx8fDE3ODg3MTY0NjB8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Warm pastel sunrise sky"
+    },
+    "empty_state_journal": {
+      "url": "https://images.unsplash.com/photo-1603950227760-e609ce8e15b4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAxODF8MHwxfHNlYXJjaHwxfHxhZXN0aGV0aWMlMjBibGFuayUyMGpvdXJuYWwlMjBhbmQlMjBjb2ZmZWUlMjBtb3JuaW5nfGVufDB8fHx8MTc4ODcxNjQ2MXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Aesthetic coffee and journal flat lay"
+    },
+    "paper_texture": {
+      "url": "https://images.unsplash.com/photo-1616410731303-6affae095a0a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGJlaWdlJTIwcGFwZXIlMjB0ZXh0dXJlfGVufDB8fHx8MTc4ODcxNjQ2OHww&ixlib=rb-4.1.0&q=85",
+      "alt": "Abstract beige paper texture background"
+    }
+  },
+  "haptics": {
+    "daily_flow_next_step": "light",
+    "affirmation_select": "medium",
+    "workout_chip_select": "light",
+    "day_calendar_tap": "selection"
+  },
+  "instructions_to_main_agent": [
+    "Implement a 'Hand-Drawn / Journal' aesthetic: generous whitespace (xl/2xl padding), irregular mixed radii (mix md and lg on cards), and a soft sage/beige palette. Avoid pure black and harsh shadows.",
+    "For the 'Daily Flow' multi-step sequence, use a state machine or sequential router. Each step (Pages 1-11) is its own functional component, rendered based on logic (Day 1, 7th day, etc.).",
+    "Page 4 (Affirmations) requires a card-based selection UI where users can tap one of 3 AI-generated cards. Ensure active selection uses brandPrimary background with a soft haptic.",
+    "Page 5 (Workout) should use a wrap layout with selectable pill/chip components (Cardio, Weights, Rest Day, Other), NOT standard form dropdowns.",
+    "Ensure 'KeyboardAvoidingView' is robustly implemented throughout the flow. The sticky 'Next' CTA must use absolute positioning with bottom spacing so it remains safely above the keyboard without obscuring the last input.",
+    "Calendar streaks: Implement a visual indicator on the month grid. Days with completed journal entries receive a solid brandPrimary circular background.",
+    "In the Search screen, use SectionList to group search hits by timestamp or page-type for better scanability.",
+    "All imagery with text overlays MUST use a vertical gradient scrim overlay (transparent to ~70% surfaceInverse) to guarantee WCAG readability.",
+    "Do NOT use heavy glassmorphism, heavy shadows, or default Material UI colors. The app should feel warm, physical, and intentional."
+  ]
+}
