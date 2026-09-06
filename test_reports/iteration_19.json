@@ -1,0 +1,31 @@
+{
+  "summary": "Mini 2 (/eagles-match) verified. The user-reported bug ('2 jerseys that didn't match') is FIXED. Board generation was inspected on 6 independent randomized reloads: every trial produced exactly 20 tiles = 10 distinct jersey numbers, each appearing exactly twice (counts=[2,2,2,2,2,2,2,2,2,2]). No leftover unpaired jerseys observed. Full play-through: dismissed 'How to Play' via testID=howto-got-it, matched all 10 pairs (8 sequential + last 2 rapid-fired with 4 consecutive clicks to stress-test the setMatched functional-update fix), pair counter incremented cleanly 1→8, then jumped to 10 after the rapid burst (no dropped pair). Result screen (testID=eagles-match-result) rendered 'FLY EAGLES FLY!', 10 PAIRS, 0 MISSES, Continue button (testID=eagles-match-continue) present and functional. Timer bar (testID=timer-bar) rendered at 50s. No pageerrors, no red screen, no crashes.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Deep-link to /eagles-match without prior onboarding", "issue": "playerStorage.get() returns null when the route is opened directly (no home-screen anonymous UUID created yet), so api.eaglesMatch is skipped and the result screen shows '+0 🪙' even after a clean 10/10 sweep. Not the reported bug — pre-existing behaviour — but user-visible if the game is deep-linked. Consider auto-creating an anonymous player on first mount of any mini-game route, or route users through onboarding.", "affected_testIDs": ["eagles-match-result"]}
+    ],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_19.json"],
+  "action_items": [
+    "No action required for the reported bug — the 'setMatched functional update + selectedRef + matchedCountRef' fix in eagles-match.tsx is verified working. Rapid taps do not drop a matched pair and the board is always 10 valid pairs of 20.",
+    "OPTIONAL: guarantee an anonymous player id exists on mini-game deep-link so the +100 coin reward is actually awarded (currently the +0 coin outcome happens if a user opens /eagles-match without visiting the home screen first)."
+  ],
+  "critical_code_review_comments": [
+    "eagles-match.tsx buildTiles() picks 10 distinct roster players via shuffle+slice(0,10) and duplicates each once — this guarantees exactly 10 pairs of 20 tiles with unique numbers. Verified empirically over 5 reloads.",
+    "handleTap uses selectedRef + functional setMatched((prev)=>...) so back-to-back matches cannot overwrite each other with a stale closure — verified with 4 rapid-consecutive clicks.",
+    "matchedCountRef is used to detect completion (>= PAIRS*2) instead of matched.length, which avoids the same stale-state race — correct.",
+    "phase==='done' branch renders '{reward.completed ? PAIRS : matched.length / 2}' — if the completion-time state batch hadn't flushed, matched.length could lag, but since reward.completed is true on a clean sweep the constant PAIRS is used. Safe.",
+    "Minor: on deep-link (no player id) result shows '+0 🪙' with title 'FLY EAGLES FLY!' — inconsistent copy but pre-existing."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only request)", "frontend": "100%"},
+  "seed_data_creation": "None. Anonymous, no auth. /eagles-match reached directly.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Mini 2 (/eagles-match) is fully green. buildTiles guarantees 10 valid pairs (verified across 6 randomized reloads). setMatched functional-update + selectedRef fix prevents rapid-tap loss of pairs. Only side note: deep-linking to the route without going through home first means playerStorage is empty and the coin reward call is skipped (result shows +0 🪙). Screenshots: /tmp/eagles_match_initial.png (board), /tmp/eagles_final.png (result). Test IDs referenced: howto-got-it, tile-0..tile-19, timer-bar, eagles-match-result, eagles-match-continue.",
+  "rca_of_issue": "RCA: User reported 'there were 2 jerseys that didn't match' in Mini 2. Root cause was in the previous handleTap: on a match it called setMatched([...matched, sel, tile.id]) using the state variable `matched` from the current closure. If two matches were resolved before React flushed the first setState, the second call would overwrite (drop) the first pair — leaving those 2 tiles visually unmatched with no partner still available. Fix (already applied in eagles-match.tsx before this test run): (a) replaced the array-literal setter with setMatched((prev) => prev.includes(tile.id) ? prev : [...prev, sel, tile.id]) so every update reads the freshest state; (b) added selectedRef to hold the first-selected tile id without depending on state batching; (c) added matchedCountRef so completion detection doesn't rely on matched.length. Reproduction of the fix: rapid-tapped the final two pairs (4 clicks with no waits) — counter jumped from 8 → 10 and the result screen showed 10 PAIRS 0 MISSES. Additionally, buildTiles picks 10 unique roster entries and duplicates each once, so the board itself always contains a valid solution (verified on 5 shuffles)."
+}

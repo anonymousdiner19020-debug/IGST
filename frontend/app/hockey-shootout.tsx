@@ -97,7 +97,7 @@ export default function HockeyShootout() {
       const blocked = Math.abs(puckXRef.current - goalieXRef.current) < (GW * 0.62 + PW) / 2;
       if (blocked) {
         setFlash("SAVE!");
-        sound.play("error");
+        sound.play("boo");
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         } catch {}
@@ -105,7 +105,7 @@ export default function HockeyShootout() {
         goalsRef.current += 1;
         setGoals(goalsRef.current);
         setFlash("GOAL!");
-        sound.play("serve");
+        sound.play("horn");
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch {}

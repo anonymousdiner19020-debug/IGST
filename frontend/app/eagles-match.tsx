@@ -93,6 +93,8 @@ export default function EaglesMatch() {
   const timerRef = useRef<any>(null);
   const finishedRef = useRef(false);
   const missesRef = useRef(0);
+  const selectedRef = useRef<number | null>(null);
+  const matchedCountRef = useRef(0);
 
   const tileW = Math.floor((width - spacing.lg * 2 - spacing.sm * (COLS - 1)) / COLS);
 
@@ -119,28 +121,32 @@ export default function EaglesMatch() {
     if (busyRef.current || phase !== "play") return;
     if (matched.includes(tile.id)) return;
 
-    if (selected === null) {
+    const sel = selectedRef.current;
+    if (sel === null) {
+      selectedRef.current = tile.id;
       setSelected(tile.id);
       sound.play("ding");
       return;
     }
-    if (selected === tile.id) {
+    if (sel === tile.id) {
       // tapping the same tile again deselects it
+      selectedRef.current = null;
       setSelected(null);
       return;
     }
 
-    const first = tiles[selected];
+    const first = tiles[sel];
     if (first.number === tile.number) {
-      // match!
+      // match! use a functional update so rapid taps never drop a prior pair
       sound.play("serve");
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {}
-      const nextMatched = [...matched, selected, tile.id];
-      setMatched(nextMatched);
+      selectedRef.current = null;
       setSelected(null);
-      if (nextMatched.length >= PAIRS * 2) {
+      setMatched((prev) => (prev.includes(tile.id) ? prev : [...prev, sel, tile.id]));
+      matchedCountRef.current += 2;
+      if (matchedCountRef.current >= PAIRS * 2) {
         finish(true, missesRef.current);
       }
     } else {
@@ -152,10 +158,11 @@ export default function EaglesMatch() {
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch {}
-      setWrongPair([selected, tile.id]);
+      setWrongPair([sel, tile.id]);
       busyRef.current = true;
       setTimeout(() => {
         setWrongPair([]);
+        selectedRef.current = null;
         setSelected(null);
         busyRef.current = false;
       }, 550);

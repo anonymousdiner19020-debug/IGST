@@ -91,6 +91,7 @@ export default function EaglesFlip() {
   const timerRef = useRef<any>(null);
   const finishedRef = useRef(false);
   const missesRef = useRef(0);
+  const matchedCountRef = useRef(0);
 
   const tileW = Math.floor((width - spacing.lg * 2 - spacing.sm * (COLS - 1)) / COLS);
 
@@ -134,11 +135,11 @@ export default function EaglesFlip() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {}
       setTimeout(() => {
-        const nextMatched = [...matched, firstId, tile.id];
-        setMatched(nextMatched);
+        setMatched((prev) => (prev.includes(tile.id) ? prev : [...prev, firstId, tile.id]));
+        matchedCountRef.current += 2;
         setFlipped([]);
         busyRef.current = false;
-        if (nextMatched.length >= PAIRS * 2) {
+        if (matchedCountRef.current >= PAIRS * 2) {
           finish(true, missesRef.current);
         }
       }, 450);

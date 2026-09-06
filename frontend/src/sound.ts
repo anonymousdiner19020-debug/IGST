@@ -8,6 +8,8 @@ const URLS = {
   serve: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
   error: "https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg",
   cheer: "https://actions.google.com/sounds/v1/human_voices/crowd_cheering.ogg",
+  horn: "https://actions.google.com/sounds/v1/transportation/air_horn_in_close_hall_series.ogg",
+  boo: "https://actions.google.com/sounds/v1/crowds/voices_angry.ogg",
 } as const;
 
 type Key = keyof typeof URLS;

@@ -555,3 +555,20 @@ frontend:
 agent_communication:
     - agent: "main"
       message: "Iteration 15. NEW Mini 2 (Eagles memory match) after Level 6. Test: (1) BACKEND POST /api/players/{id}/eagles-match {completed,misses}: completed && misses<=3 => coins=100-10*misses; else => 5; player.coins += coins_awarded; misses clamp; 404 unknown. Cases: {true,0}=100,{true,1}=90,{true,3}=70,{true,4}=5,{false,0}=5. (2) FRONTEND load /eagles-match directly: 20 tiles (testID tile-0..tile-19) start face-down (🦅), 'N / 10 pairs' counter, 45s timer (testID timer-bar). Tap tile-0 to flip and reveal a kelly-green jersey with a name+number. Matching flow: tap two tiles; matching numbers stay revealed and increment the pairs counter; non-matching increments ✗ misses and both flip back. IMPORTANT: to find a matching pair you may flip tiles one at a time to learn which number each holds (note: after a non-match they flip back). Verify that matching two tiles of the SAME number keeps them matched. You do NOT need to complete all 10 (that's slow); verify the match/miss mechanic, the counter, and that when the timer expires the result screen (testID eagles-match-result) appears and Continue (testID eagles-match-continue) -> /level-map. (3) TRIGGER (code-level ok): winning level 6 routes cooking-result continue to /eagles-match with banner 'Mini 2: Eagles Match'. Anonymous UUID player via onboarding. Prior mini-game (Jersey Math/Mini 1) and other features already passed - no retest needed."
+
+## ---- Iteration 18: Mini 2 unmatched-pair bug fix + Mini 3 sounds ----
+frontend:
+  - task: "Mini 2 Eagles Match - fix leftover unmatched jerseys"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/eagles-match.tsx, frontend/app/eagles-flip.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "USER BUG: 'there were 2 jerseys that didnt match' at end of Mini 2. Root cause: matched pairs stored via setMatched([...matched, a, b]) using a STALE `matched` closure; rapid taps could drop a previously matched pair, leaving 2 tiles unmatched with no valid partner. FIX: eagles-match.tsx now uses selectedRef (prevents double-select races), functional setMatched(prev => [...prev, sel, id]), and matchedCountRef for the win check. Same functional-update fix applied to eagles-flip.tsx (Mini 7). buildTiles is verified to always produce 10 valid pairs (10 distinct roster players x2, all unique numbers). Mini 2 is the ALL-VISIBLE match game (all 20 jerseys face-up, testID tile-0..19), NOT the flip game."
+agent_communication:
+    - agent: "main"
+      message: "Iteration 18. Test FRONTEND ONLY, Mini 2 (/eagles-match): all 20 jerseys are shown FACE-UP with visible numbers (testID tile-0..tile-19). Dismiss the 'How to Play' overlay first (testID howto-got-it). Then MATCH ALL 10 PAIRS by tapping two tiles with the SAME visible number. CRITICAL: verify that after matching all pairs there are NEVER 2 leftover jerseys that cannot be matched - every jersey must have exactly one same-number partner among the 20. Try tapping quickly to confirm no matched pair gets dropped. Pairs counter should reach 10/10 and the result screen (testID eagles-match-result) should appear with Continue (testID eagles-match-continue). Timer is now 50s. No backend changes in this iteration (eagles-match reward endpoint already passed)."

@@ -499,6 +499,12 @@ export default function Serve() {
         </View>
       </View>
 
+      {fanRush && (
+        <View style={styles.rushBanner} testID="fan-rush-banner">
+          <Text style={styles.rushText}>🎉 FAN RUSH — DOUBLE TIPS! 🎉</Text>
+        </View>
+      )}
+
       {/* Customer + order ticket */}
       <View style={styles.customerZone}>
         <View style={styles.patienceTrack}>
@@ -698,12 +704,6 @@ export default function Serve() {
 
       <SparkleBurst trigger={sparkle} />
 
-      {fanRush && (
-        <View style={styles.rushBanner} pointerEvents="none" testID="fan-rush-banner">
-          <Text style={styles.rushText}>🎉 FAN RUSH — DOUBLE TIPS! 🎉</Text>
-        </View>
-      )}
-
       {chant && (
         <View style={styles.chantBubble} pointerEvents="none" testID="fan-chant">
           <Text style={styles.chantText}>{chant}</Text>
@@ -827,14 +827,9 @@ const styles = StyleSheet.create({
   },
   fanTagText: { fontSize: 12, fontWeight: "900", color: colors.onBrand },
   rushBanner: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
     backgroundColor: "#E4002B",
     paddingVertical: spacing.xs,
     alignItems: "center",
-    zIndex: 80,
   },
   rushText: { fontSize: 14, fontWeight: "900", color: "#FFFFFF", letterSpacing: 0.5 },
   chantBubble: {
