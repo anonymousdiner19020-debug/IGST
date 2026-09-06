@@ -47,9 +47,11 @@ DISH_CATALOG = [
     {"id": "porkroll_ec", "name": "Pork Roll, Egg & Cheese", "emoji": "🥪", "unlock_level": 12,
      "recipe": {"porkroll": 2, "egg": 2, "cheese": 2, "round_roll": 2, "long_roll": 2}, "reward_coins": 195, "moves": 36},
     {"id": "philly_candy", "name": "Philly Candy Box", "emoji": "🍬", "unlock_level": 13,
-     "recipe": {"good_and_plenty": 2, "peanut_chews": 2, "double_bubble": 2, "irish_potatoes": 2, "whitmans": 2}, "reward_coins": 220, "moves": 36},
+     "recipe": {"peanut_chews": 2, "irish_potatoes": 2, "whitmans": 2, "peeps": 2, "candy_corn": 2}, "reward_coins": 220, "moves": 36},
     {"id": "pierogies", "name": "Pierogies", "emoji": "🥟", "unlock_level": 14,
      "recipe": {"potato_raw": 2, "onion": 2, "cheddar": 2, "steak": 2, "sauerkraut": 2}, "reward_coins": 235, "moves": 36},
+    {"id": "sweet_treats", "name": "Sweet Treats Box", "emoji": "🍭", "unlock_level": 15,
+     "recipe": {"good_and_plenty": 2, "double_bubble": 2, "easter_eggs": 2, "mallo_cups": 2, "peppermint_patties": 2}, "reward_coins": 245, "moves": 36},
     {"id": "donuts", "name": "Donuts", "emoji": "🍩", "unlock_level": 4,
      "recipe": {"vanilla_donut": 2, "chocolate_donut": 2, "strawberry_donut": 2, "sprinkles": 2}, "reward_coins": 210, "moves": 36},
 ]
