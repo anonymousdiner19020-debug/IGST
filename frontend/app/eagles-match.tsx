@@ -14,7 +14,7 @@ import HowToPlay from "@/src/components/HowToPlay";
 const EAGLES_GREEN = "#128A3C";
 const EAGLES_DARK = "#0A3D1F";
 const PAIRS = 10;
-const TIME_LIMIT = 45; // seconds
+const TIME_LIMIT = 50; // seconds
 const COLS = 4;
 
 type Player = { number: string; name: string };
@@ -282,7 +282,7 @@ export default function EaglesMatch() {
         steps={[
           "All 20 Eagles jerseys are shown face-up on the board.",
           "Tap two jerseys that share the same player number to match them.",
-          "Find all 10 pairs before the 45-second timer runs out.",
+          "Find all 10 pairs before the 50-second timer runs out.",
           "100 coins for a clean sweep — minus 10 for each wrong pair.",
         ]}
         onDismiss={() => setShowHelp(false)}
