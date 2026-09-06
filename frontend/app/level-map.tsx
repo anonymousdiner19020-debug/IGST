@@ -31,8 +31,8 @@ export default function LevelMap() {
   return (
     <View style={styles.container} testID="level-map-screen">
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable testID="back-home" onPress={() => router.back()} style={styles.iconBtn}>
-          <Text style={styles.iconBtnText}>‹</Text>
+        <Pressable testID="home-button" onPress={() => router.replace("/")} style={styles.iconBtn}>
+          <Text style={styles.iconBtnText}>🏠</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Level Map</Text>
         <View style={styles.coinChip}>
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  iconBtnText: { fontSize: 28, color: colors.surfaceInverse, fontWeight: "900", marginTop: -4 },
+  iconBtnText: { fontSize: 22, color: colors.surfaceInverse, fontWeight: "900" },
   headerTitle: {
     flex: 1,
     fontSize: 22,

@@ -11,6 +11,7 @@ import { colors, radius, shadow, spacing } from "@/src/theme";
 import FlyersGoalie from "@/src/components/FlyersGoalie";
 import HockeyRink from "@/src/components/HockeyRink";
 import HowToPlay from "@/src/components/HowToPlay";
+import ReplayButton from "@/src/components/ReplayButton";
 
 const FLYERS_ORANGE = "#F74902";
 const FLYERS_BLACK = "#111111";
@@ -85,6 +86,24 @@ export default function HockeyShootout() {
       }
     }, 100);
   }, []);
+
+  const restart = useCallback(() => {
+    if (shotTimerRef.current) clearInterval(shotTimerRef.current);
+    shotsRef.current = 0;
+    goalsRef.current = 0;
+    phaseRef.current = "aim";
+    setShotsTaken(0);
+    setGoals(0);
+    setFlash(null);
+    setReward(null);
+    setShowHelp(false);
+    puckAnim.setValue(0);
+    const centerX = fieldRef.current.w / 2;
+    puckXRef.current = centerX;
+    setPuckX(centerX);
+    setPhase("aim");
+    startShotTimer();
+  }, [puckAnim, startShotTimer]);
 
   const shoot = useCallback(() => {
     if (phaseRef.current !== "aim") return;
@@ -214,6 +233,7 @@ export default function HockeyShootout() {
             <Text style={styles.resultStatLabel}>GOALS</Text>
           </View>
           <Text style={styles.resultNote}>10 coins per goal. Come back and beat your score!</Text>
+          <ReplayButton onReplay={restart} color={FLYERS_ORANGE} />
           <Pressable
             testID="hockey-continue"
             onPress={() => router.replace("/level-map")}

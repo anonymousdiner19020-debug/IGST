@@ -10,6 +10,7 @@ import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import JerseyBack from "@/src/components/JerseyBack";
 import HowToPlay from "@/src/components/HowToPlay";
+import ReplayButton from "@/src/components/ReplayButton";
 
 const EAGLES_GREEN = "#128A3C";
 const EAGLES_DARK = "#0A3D1F";
@@ -77,7 +78,8 @@ export default function EaglesMatch() {
   const router = useRouter();
   const { width } = useWindowDimensions();
 
-  const tiles = useMemo(() => buildTiles(), []);
+  const [round, setRound] = useState(0);
+  const tiles = useMemo(() => buildTiles(), [round]);
 
   const [selected, setSelected] = useState<number | null>(null);
   const [wrongPair, setWrongPair] = useState<number[]>([]);
@@ -115,6 +117,24 @@ export default function EaglesMatch() {
     } catch {
       setReward({ coins: 0, completed, misses: finalMisses });
     }
+  }, []);
+
+  const restart = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    finishedRef.current = false;
+    busyRef.current = false;
+    missesRef.current = 0;
+    selectedRef.current = null;
+    matchedCountRef.current = 0;
+    setSelected(null);
+    setWrongPair([]);
+    setMatched([]);
+    setMisses(0);
+    setTimeLeft(TIME_LIMIT);
+    setReward(null);
+    setShowHelp(false);
+    setPhase("play");
+    setRound((r) => r + 1);
   }, []);
 
   const handleTap = (tile: Tile) => {
@@ -184,7 +204,7 @@ export default function EaglesMatch() {
     }, 200);
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showHelp]);
+  }, [showHelp, round]);
 
   if (phase === "done") {
     const won = reward ? reward.completed && reward.misses <= 3 : false;
@@ -217,6 +237,7 @@ export default function EaglesMatch() {
               ? "Time ran out before all pairs matched — 5-coin consolation."
               : "More than 3 misses — 5-coin consolation. Try again!"}
           </Text>
+          <ReplayButton onReplay={restart} color={EAGLES_GREEN} />
           <Pressable
             testID="eagles-match-continue"
             onPress={() => router.replace("/level-map")}

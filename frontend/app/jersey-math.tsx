@@ -10,6 +10,7 @@ import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import FanJersey from "@/src/components/FanJersey";
 import HowToPlay from "@/src/components/HowToPlay";
+import ReplayButton from "@/src/components/ReplayButton";
 
 const PHILLIES_RED = "#E81828";
 const PHILLIES_BLUE = "#284898";
@@ -56,9 +57,10 @@ export default function JerseyMath() {
   const router = useRouter();
   const { width } = useWindowDimensions();
 
+  const [round, setRound] = useState(0);
   const questions = useMemo(
     () => Array.from({ length: TOTAL_QUESTIONS }, () => makeQuestion()),
-    []
+    [round]
   );
 
   const [idx, setIdx] = useState(0);
@@ -92,6 +94,20 @@ export default function JerseyMath() {
     } catch {
       setReward({ coins: 0, correct: finalCorrect, wrong: finalWrong });
     }
+  }, []);
+
+  const restart = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    lockedRef.current = false;
+    setIdx(0);
+    setCorrect(0);
+    setWrong(0);
+    setPicked(null);
+    setTimeLeft(TIME_PER_Q);
+    setReward(null);
+    setShowHelp(false);
+    setPhase("play");
+    setRound((r) => r + 1);
   }, []);
 
   const advance = useCallback(
@@ -190,6 +206,7 @@ export default function JerseyMath() {
               ? "Great aim! You earned 10 coins per correct answer."
               : "More than 3 misses — 10-coin consolation. Sharpen up next time!"}
           </Text>
+          <ReplayButton onReplay={restart} color={PHILLIES_BLUE} />
           <Pressable
             testID="jersey-math-continue"
             onPress={() => router.replace("/level-map")}

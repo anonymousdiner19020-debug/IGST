@@ -10,6 +10,7 @@ import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import JerseyBack from "@/src/components/JerseyBack";
 import HowToPlay from "@/src/components/HowToPlay";
+import ReplayButton from "@/src/components/ReplayButton";
 
 const EAGLES_GREEN = "#128A3C";
 const EAGLES_DARK = "#0A3D1F";
@@ -76,7 +77,8 @@ export default function EaglesFlip() {
   const router = useRouter();
   const { width } = useWindowDimensions();
 
-  const tiles = useMemo(() => buildTiles(), []);
+  const [round, setRound] = useState(0);
+  const tiles = useMemo(() => buildTiles(), [round]);
 
   const [flipped, setFlipped] = useState<number[]>([]);
   const [matched, setMatched] = useState<number[]>([]);
@@ -112,6 +114,22 @@ export default function EaglesFlip() {
     } catch {
       setReward({ coins: 0, completed, misses: finalMisses });
     }
+  }, []);
+
+  const restart = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    finishedRef.current = false;
+    busyRef.current = false;
+    missesRef.current = 0;
+    matchedCountRef.current = 0;
+    setFlipped([]);
+    setMatched([]);
+    setMisses(0);
+    setTimeLeft(TIME_LIMIT);
+    setReward(null);
+    setShowHelp(false);
+    setPhase("play");
+    setRound((r) => r + 1);
   }, []);
 
   const handleFlip = (tile: Tile) => {
@@ -172,7 +190,7 @@ export default function EaglesFlip() {
     }, 200);
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showHelp]);
+  }, [showHelp, round]);
 
   if (phase === "done") {
     const won = reward ? reward.completed && reward.misses <= 3 : false;
@@ -205,6 +223,7 @@ export default function EaglesFlip() {
               ? "Time ran out before all pairs matched — 5-coin consolation."
               : "More than 3 misses — 5-coin consolation. Try again!"}
           </Text>
+          <ReplayButton onReplay={restart} color={EAGLES_GREEN} />
           <Pressable
             testID="eagles-flip-continue"
             onPress={() => router.replace("/level-map")}

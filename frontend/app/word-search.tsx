@@ -9,6 +9,7 @@ import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import HowToPlay from "@/src/components/HowToPlay";
+import ReplayButton from "@/src/components/ReplayButton";
 
 // Philadelphia 76ers colors.
 const SIXERS_BLUE = "#006BB6";
@@ -123,7 +124,8 @@ export default function WordSearch() {
   const router = useRouter();
   const { width } = useWindowDimensions();
 
-  const puzzle = useMemo(() => makePuzzle(), []);
+  const [round, setRound] = useState(0);
+  const puzzle = useMemo(() => makePuzzle(), [round]);
   const cell = Math.floor((Math.min(width, 460) - spacing.md * 2 - 2) / N);
   const fontSize = Math.max(11, Math.round(cell * 0.5));
 
@@ -151,6 +153,17 @@ export default function WordSearch() {
     } catch {
       setReward({ coins: 0 });
     }
+  }, []);
+
+  const restart = useCallback(() => {
+    finishedRef.current = false;
+    setStart(null);
+    setFoundCells(new Set());
+    setFoundWords([]);
+    setReward(null);
+    setDone(false);
+    setShowHelp(false);
+    setRound((r) => r + 1);
   }, []);
 
   const handleCell = (r: number, c: number) => {
@@ -208,6 +221,7 @@ export default function WordSearch() {
             <Text style={styles.resultCoinText}>+{reward?.coins ?? 0} 🪙</Text>
           </View>
           <Text style={styles.resultNote}>You found all 5 Sixers — nice work!</Text>
+          <ReplayButton onReplay={restart} color={SIXERS_BLUE} />
           <Pressable
             testID="word-search-continue"
             onPress={() => router.replace("/level-map")}
