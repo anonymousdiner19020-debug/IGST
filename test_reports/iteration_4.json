@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 4 review — Photo Lightbox + Monthly Mood Insights + Sunday Recap Toggle + On This Day. Backend: 42/42 pytest tests pass (32 regression + 10 new iter4). New coverage: /api/mood-trend defaults to 30 days, clamps to [7,90], returns correct shape (days[], average, count, startDate, endDate) with count/average reflecting saved moods (2 moods 5+3 => average 4.0, count 2). /api/on-this-day returns {found:false} for fresh users (candidate 7d-ago < today signupDate) and after backdating signupDate returns {found:true, date, weeksAgo, dayNumber, mood, snippet}; snippet prefers journal, falls back to first non-empty blessing; nearest week wins when multiple past-week entries exist. Regression: /api/init, PUT/GET /api/day/{d} (with mood/workouts/photos persistence), /api/calendar, /api/search, /api/insights, /api/weekly-recap bestDay+moodsByDay all pass. Frontend (Expo web, 390x844): with seeded uid u_mtq7dci4_rjbc9kv5 (signupDate backdated to 2026-07-01, entries at 2026-08-30 mood=4 + 2026-09-06 mood=5) — Today screen renders on-this-day-card ('On this day · 1 week ago 🙂 Seeded entry from 7 days ago for on-this-day test') and tapping navigates to /day/2026-08-30. Day Detail renders day-photo-0; tapping opens the PhotoLightbox with lightbox-close visible; tapping close dismisses the modal. Progress screen shows 'Monthly mood' card with average '4.5 avg mood · 2 days logged' and 😀 emoji from useMoodTrend hook. Settings renders both reminder-switch (Gentle daily nudge) and recap-switch (Sunday recap nudge) inside the Daily reminder card; toggling recap-switch works. Weekly recap trigger uses SchedulableTriggerInputTypes.WEEKLY, weekday=1 (Sunday) at 18:00. No deprecated Expo packages (no expo-av/expo-barcode-scanner/expo-background-fetch anywhere in code). No red screens.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter4_features.py",
+    "/app/test_reports/pytest/iteration_4.xml",
+    "/app/test_reports/pytest/iteration_4_all.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py:727-741 /api/mood-trend correctly clamps days to [7,90], builds a dense date list, joins with entries.mood, computes rounded average (0 when none), returns startDate/endDate — matches spec exactly.",
+    "server.py:744-770 /api/on-this-day loops weeks 1..52, breaks the moment candidate < signupDate (correct signup-boundary), returns nearest-week entry with content, snippet priority = journal → blessings[0] → dailyGoals[0] → morningRitual[0], truncated to 160 chars — matches spec.",
+    "photo-lightbox.tsx uses Modal + horizontal paged FlatList + close button + dot indicators; initialScrollIndex+getItemLayout make jumping to the tapped photo O(1). Backdrop press also closes (dual close affordance). Good.",
+    "app/(tabs)/index.tsx:118-135 gates the OTD card on otd?.found and shows a graceful snippet fallback ('You journaled on this day.') when snippet is empty.",
+    "app/(tabs)/profile.tsx uses useMoodTrend(userId,30); empty-state text present when count===0 ('Log your mood each day to see your 30-day trend and average.').",
+    "settings.tsx recap-switch bound to prefs.recapEnabled and toggleRecap; sits under the same 'Daily reminder' card divider — visible before and after sign-in.",
+    "notifications.ts uses Notifications.SchedulableTriggerInputTypes.WEEKLY with weekday=1 (Sunday) and hour=18 — correct Expo SDK 51+ API (no deprecated calendarTrigger).",
+    "day/[date].tsx renders each photo as a Pressable with testID day-photo-<i>; setLightbox(i) opens the lightbox with initialIndex — matches spec.",
+    "All new files <300 lines: photo-lightbox.tsx (88), profile.tsx (255), settings.tsx (281), day/[date].tsx (216), (tabs)/index.tsx (226).",
+    "No deprecated Expo packages detected (grep for expo-av/expo-barcode-scanner/expo-background-fetch returns nothing across package.json + source)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter4_features.py (new)"
+  ],
+  "success_rate": {"backend": "100% (42/42, 10/10 iter4)", "frontend": "100% of iteration-4 features verified"},
+  "seed_data_creation": "Per-test anonymous userIds prefixed TEST_i4_ for backend suite. For the frontend flow, reused device uid u_mtq7dci4_rjbc9kv5: backdated profiles.signupDate to 2026-07-01 via a direct mongo update, PUT /api/day/2026-08-30 (mood=4, journal='Seeded entry from 7 days ago...', blessing 'gratitude for family', photos=['seed/test.png']) and PUT /api/day/2026-09-06 (mood=5, journal='today entry', photos=['seed/test.png','seed/test2.png']). No production data touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter4 backend tests in /app/backend/tests/test_iter4_features.py. Important gotchas discovered: (a) the day endpoint is /api/day/{d}, not /api/day?date=... (b) DayEntry.workouts is List[str] (not objects), (c) GET /api/day/{d} returns {date, dayNumber, isSpecial, entry, content, hasContent} — read entry via r.json()['entry'], (d) profile is auto-created on PUT /api/day or POST /api/init (no /api/today route), and (e) for on-this-day tests, backdate profiles.signupDate directly via pymongo (helper _mongo()) before hitting the endpoint. For the frontend: aura.userId is stored JSON-encoded, so use JSON.stringify(uid) when injecting into localStorage.setItem. Server clock is Sept 2026 (2026-09-06 = Sunday).",
+  "rca_of_issue": "N/A — all iteration-4 features pass end-to-end."
+}

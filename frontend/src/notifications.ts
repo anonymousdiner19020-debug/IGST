@@ -14,12 +14,12 @@ Notifications.setNotificationHandler({
 
 const KEY = "aura.reminder";
 
-export type ReminderPrefs = { enabled: boolean; hour: number; minute: number };
-export const DEFAULT_REMINDER: ReminderPrefs = { enabled: false, hour: 9, minute: 0 };
+export type ReminderPrefs = { enabled: boolean; hour: number; minute: number; recapEnabled: boolean };
+export const DEFAULT_REMINDER: ReminderPrefs = { enabled: false, hour: 9, minute: 0, recapEnabled: false };
 
 export async function getReminderPrefs(): Promise<ReminderPrefs> {
   const p = await storage.getItem<ReminderPrefs>(KEY, DEFAULT_REMINDER);
-  return p ?? DEFAULT_REMINDER;
+  return { ...DEFAULT_REMINDER, ...(p ?? {}) };
 }
 
 export async function requestPermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
@@ -35,20 +35,28 @@ export async function requestPermission(): Promise<{ granted: boolean; canAskAga
   }
 }
 
-async function scheduleDaily(hour: number, minute: number) {
+async function applySchedules(p: ReminderPrefs) {
   if (Platform.OS === "web") return;
   await Notifications.cancelAllScheduledNotificationsAsync();
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Time for your check-in 🌱",
-      body: "A few mindful minutes for yourself — keep your streak alive.",
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour,
-      minute,
-    },
-  });
+  if (p.enabled) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Time for your check-in 🌱",
+        body: "A few mindful minutes for yourself — keep your streak alive.",
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: p.hour, minute: p.minute },
+    });
+  }
+  if (p.recapEnabled) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Your week in review ✨",
+        body: "See and share this week's wins in your Weekly Recap.",
+      },
+      // Sunday (weekday 1) at 6:00 PM
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday: 1, hour: 18, minute: 0 },
+    });
+  }
 }
 
 export async function cancelReminder() {
@@ -63,8 +71,7 @@ export async function cancelReminder() {
 export async function setReminderPrefs(p: ReminderPrefs) {
   await storage.setItem(KEY, p);
   try {
-    if (p.enabled) await scheduleDaily(p.hour, p.minute);
-    else await cancelReminder();
+    await applySchedules(p);
   } catch {
     // scheduling unavailable (e.g. Expo Go / web) — pref is still saved
   }

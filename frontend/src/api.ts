@@ -163,6 +163,23 @@ export type RecapResponse = {
 export type AuthUser = { user_id: string; email: string; name: string; picture: string; hasPassword: boolean };
 export type AuthResponse = { session_token: string; user: AuthUser };
 
+export type MoodTrendResponse = {
+  days: { date: string; mood: string }[];
+  average: number;
+  count: number;
+  startDate: string;
+  endDate: string;
+};
+
+export type OnThisDayResponse = {
+  found: boolean;
+  date?: string;
+  weeksAgo?: number;
+  dayNumber?: number;
+  mood?: string;
+  snippet?: string;
+};
+
 // ---- API calls ----
 export const api = {
   init: (userId: string) =>
@@ -182,6 +199,10 @@ export const api = {
     request<InsightsResponse>(`/insights?userId=${encodeURIComponent(userId)}`),
   recap: (userId: string, offset: number) =>
     request<RecapResponse>(`/weekly-recap?userId=${encodeURIComponent(userId)}&offset=${offset}`),
+  moodTrend: (userId: string, days: number) =>
+    request<MoodTrendResponse>(`/mood-trend?userId=${encodeURIComponent(userId)}&days=${days}`),
+  onThisDay: (userId: string) =>
+    request<OnThisDayResponse>(`/on-this-day?userId=${encodeURIComponent(userId)}`),
   // auth
   register: (email: string, password: string, deviceUserId: string, name?: string) =>
     request<AuthResponse>("/auth/register", {
@@ -236,6 +257,8 @@ export function useSaveDay(userId: string | null) {
       qc.invalidateQueries({ queryKey: ["calendar", userId] });
       qc.invalidateQueries({ queryKey: ["insights", userId] });
       qc.invalidateQueries({ queryKey: ["recap", userId] });
+      qc.invalidateQueries({ queryKey: ["mood-trend", userId] });
+      qc.invalidateQueries({ queryKey: ["on-this-day", userId] });
     },
   });
 }
@@ -268,6 +291,22 @@ export function useWeeklyRecap(userId: string | null, offset: number) {
   return useQuery({
     queryKey: ["recap", userId, offset],
     queryFn: () => api.recap(userId!, offset),
+    enabled: !!userId,
+  });
+}
+
+export function useMoodTrend(userId: string | null, days = 30) {
+  return useQuery({
+    queryKey: ["mood-trend", userId, days],
+    queryFn: () => api.moodTrend(userId!, days),
+    enabled: !!userId,
+  });
+}
+
+export function useOnThisDay(userId: string | null) {
+  return useQuery({
+    queryKey: ["on-this-day", userId],
+    queryFn: () => api.onThisDay(userId!),
     enabled: !!userId,
   });
 }

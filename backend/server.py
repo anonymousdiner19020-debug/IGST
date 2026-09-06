@@ -724,6 +724,52 @@ async def files(path: str, uid: Optional[str] = Query(None),
                     headers={"Cache-Control": "public, max-age=31536000"})
 
 
+@api_router.get("/mood-trend")
+async def mood_trend(userId: Optional[str] = Query(None), days: int = Query(30),
+                     account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    days = max(7, min(days, 90))
+    end = datetime.now(timezone.utc).date()
+    start = end - timedelta(days=days - 1)
+    dates = [(start + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days)]
+    entries = await db.entries.find({"userId": uid, "date": {"$in": dates}}, {"_id": 0}).to_list(200)
+    mood_map = {e["date"]: (e.get("mood") or "") for e in entries}
+    trend = [{"date": d, "mood": mood_map.get(d, "")} for d in dates]
+    vals = [int(m) for m in mood_map.values() if m]
+    average = round(sum(vals) / len(vals), 1) if vals else 0
+    return {"days": trend, "average": average, "count": len(vals),
+            "startDate": start.strftime("%Y-%m-%d"), "endDate": end.strftime("%Y-%m-%d")}
+
+
+@api_router.get("/on-this-day")
+async def on_this_day(userId: Optional[str] = Query(None),
+                      account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    profile = await get_or_create_profile(uid)
+    today = datetime.now(timezone.utc).date()
+    signup = parse_date(profile["signupDate"])
+    for weeks in range(1, 53):
+        d = today - timedelta(days=7 * weeks)
+        if d < signup:
+            break
+        ds = d.strftime("%Y-%m-%d")
+        e = await db.entries.find_one({"userId": uid, "date": ds}, {"_id": 0})
+        if e and entry_has_content(e):
+            snippet = ""
+            if (e.get("journal") or "").strip():
+                snippet = e["journal"].strip()[:160]
+            else:
+                for key in ("blessings", "dailyGoals", "morningRitual"):
+                    vals = [v for v in e.get(key, []) if (v or "").strip()]
+                    if vals:
+                        snippet = vals[0].strip()[:160]
+                        break
+            return {"found": True, "date": ds, "weeksAgo": weeks,
+                    "dayNumber": e.get("dayNumber"), "mood": e.get("mood", ""),
+                    "snippet": snippet}
+    return {"found": False}
+
+
 app.include_router(api_router)
 
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"],

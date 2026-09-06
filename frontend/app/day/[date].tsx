@@ -1,9 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDay, fileUrl, type DayEntry } from "@/src/api";
+import { PhotoLightbox } from "@/src/components/photo-lightbox";
 import { prettyDate } from "@/src/date-utils";
 import { EmptyState, Icon, PrimaryButton } from "@/src/components/ui";
 import { moodEmoji, moodLabel } from "@/src/mood";
@@ -25,6 +27,7 @@ export default function DayDetailScreen() {
 
   const e = data?.entry as DayEntry | undefined;
   const hasContent = data?.hasContent;
+  const [lightbox, setLightbox] = useState<number | null>(null);
 
   return (
     <View style={styles.root}>
@@ -91,15 +94,16 @@ export default function DayDetailScreen() {
             <View style={styles.card}>
               <SectionHeader title="Photos" icon="image" />
               <View style={styles.photoGrid}>
-                {e.photos.map((p) =>
+                {e.photos.map((p, i) =>
                   userId ? (
-                    <Image
-                      key={p}
-                      source={{ uri: fileUrl(p, userId) }}
-                      style={styles.photo}
-                      contentFit="cover"
-                      transition={200}
-                    />
+                    <Pressable key={p} testID={`day-photo-${i}`} onPress={() => setLightbox(i)}>
+                      <Image
+                        source={{ uri: fileUrl(p, userId) }}
+                        style={styles.photo}
+                        contentFit="cover"
+                        transition={200}
+                      />
+                    </Pressable>
                   ) : null,
                 )}
               </View>
@@ -115,6 +119,16 @@ export default function DayDetailScreen() {
           ) : null}
         </ScrollView>
       )}
+
+      {userId && e?.photos?.length ? (
+        <PhotoLightbox
+          visible={lightbox !== null}
+          paths={e.photos}
+          userId={userId}
+          initialIndex={lightbox ?? 0}
+          onClose={() => setLightbox(null)}
+        />
+      ) : null}
     </View>
   );
 }

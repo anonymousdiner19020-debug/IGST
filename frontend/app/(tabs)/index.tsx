@@ -6,9 +6,10 @@ import dayjs from "dayjs";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useCalendar, useDay } from "@/src/api";
+import { useCalendar, useDay, useOnThisDay } from "@/src/api";
 import { greeting, prettyDate, todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
+import { moodEmoji } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 
@@ -24,6 +25,7 @@ export default function TodayScreen() {
   const today = todayStr();
   const { data: day, isLoading } = useDay(userId, today);
   const { data: cal } = useCalendar(userId);
+  const { data: otd } = useOnThisDay(userId);
 
   const quote = day?.content.quote;
   const done = day?.hasContent;
@@ -113,6 +115,24 @@ export default function TodayScreen() {
               })}
             </View>
           </View>
+          {otd?.found ? (
+            <Pressable
+              testID="on-this-day-card"
+              onPress={() => router.push(`/day/${otd.date}`)}
+              style={({ pressed }) => [styles.otdCard, pressed && styles.pressed]}
+            >
+              <View style={styles.otdHead}>
+                <Icon name="rotate-ccw" size={16} color={colors.brand} />
+                <Text style={styles.otdLabel}>
+                  On this day · {otd.weeksAgo} week{(otd.weeksAgo ?? 0) > 1 ? "s" : ""} ago
+                  {otd.mood ? `  ${moodEmoji(otd.mood)}` : ""}
+                </Text>
+              </View>
+              <Text style={styles.otdSnippet} numberOfLines={2}>
+                {otd.snippet || "You journaled on this day."}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
     </View>
@@ -191,4 +211,16 @@ const useStyles = makeStyles((c) => ({
   },
   dotActive: { backgroundColor: c.brandPrimary },
   dotLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
+  otdCard: {
+    marginTop: 20,
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: c.border,
+    gap: 8,
+  },
+  otdHead: { flexDirection: "row", alignItems: "center", gap: 8 },
+  otdLabel: { fontFamily: fonts.semibold, fontSize: 13, color: c.brand },
+  otdSnippet: { fontFamily: fonts.display, fontSize: 17, lineHeight: 25, color: c.onSurface },
 }));

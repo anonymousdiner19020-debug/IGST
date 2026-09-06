@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useInsights } from "@/src/api";
+import { useInsights, useMoodTrend } from "@/src/api";
 import { shortDate } from "@/src/date-utils";
 import { Icon, PrimaryButton } from "@/src/components/ui";
 import { moodEmoji, moodLabel } from "@/src/mood";
@@ -23,6 +23,7 @@ export default function ProgressScreen() {
   const router = useRouter();
   const { userId } = useUser();
   const { data } = useInsights(userId);
+  const { data: trend } = useMoodTrend(userId, 30);
 
   const workouts = Object.entries(data?.workoutBreakdown ?? {}).sort((a, b) => b[1] - a[1]);
   const maxW = Math.max(1, ...workouts.map(([, v]) => v));
@@ -116,6 +117,34 @@ export default function ProgressScreen() {
             ))
           )}
         </View>
+        <Text style={styles.sectionTitle}>Monthly mood</Text>
+        <View style={styles.workoutCard}>
+          {!trend || trend.count === 0 ? (
+            <Text style={styles.emptyText}>Log your mood each day to see your 30-day trend and average.</Text>
+          ) : (
+            <>
+              <View style={styles.moodAvgRow}>
+                <Text style={styles.moodAvgEmoji}>{moodEmoji(String(Math.max(1, Math.round(trend.average))))}</Text>
+                <View>
+                  <Text style={styles.moodAvgNum}>{trend.average.toFixed(1)}</Text>
+                  <Text style={styles.statLabel}>avg mood · {trend.count} days logged</Text>
+                </View>
+              </View>
+              <View style={styles.trendRow}>
+                {trend.days.map((d) => {
+                  const v = d.mood ? Number(d.mood) : 0;
+                  return (
+                    <View key={d.date} style={styles.trendCol}>
+                      <View style={styles.trendTrack}>
+                        <View style={[styles.trendFill, { height: `${v ? (v / 5) * 100 : 4}%` }]} />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -166,6 +195,13 @@ const useStyles = makeStyles((c) => ({
   recapTitle: { fontFamily: fonts.semibold, fontSize: 16, color: c.onSurface },
   recapSub: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, marginTop: 2 },
   moodStatEmoji: { fontSize: 26, width: 36, textAlign: "center" },
+  moodAvgRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  moodAvgEmoji: { fontSize: 40 },
+  moodAvgNum: { fontFamily: fonts.displayBold, fontSize: 28, color: c.onSurface },
+  trendRow: { flexDirection: "row", alignItems: "flex-end", height: 60, gap: 3 },
+  trendCol: { flex: 1, alignItems: "center" },
+  trendTrack: { width: "70%", height: 52, borderRadius: 999, backgroundColor: c.surfaceTertiary, justifyContent: "flex-end", overflow: "hidden" },
+  trendFill: { width: "100%", borderRadius: 999, backgroundColor: c.brandPrimary },
   title: { fontFamily: fonts.displayBold, fontSize: 28, color: c.onSurface },
   subtitle: { fontFamily: fonts.regular, fontSize: 14, color: c.muted, marginTop: 2 },
   hero: {

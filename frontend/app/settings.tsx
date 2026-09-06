@@ -52,6 +52,19 @@ export default function SettingsScreen() {
     await persist({ ...prefs, enabled: value });
   };
 
+  const toggleRecap = async (value: boolean) => {
+    if (value) {
+      const res = await requestPermission();
+      if (!res.granted) {
+        setBlocked(!res.canAskAgain);
+        if (Platform.OS === "web") setBlocked(true);
+        return;
+      }
+      setBlocked(false);
+    }
+    await persist({ ...prefs, recapEnabled: value });
+  };
+
   const bumpHour = (delta: number) =>
     persist({ ...prefs, hour: (prefs.hour + delta + 24) % 24 });
   const cycleMinute = () => {
@@ -169,6 +182,21 @@ export default function SettingsScreen() {
             </View>
           ) : null}
 
+          <View style={styles.recapDivider} />
+          <View style={styles.reminderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.accountName}>Sunday recap nudge</Text>
+              <Text style={styles.accountEmail}>Review & share your week every Sunday</Text>
+            </View>
+            <Switch
+              testID="recap-switch"
+              value={prefs.recapEnabled}
+              onValueChange={toggleRecap}
+              trackColor={{ true: colors.brandPrimary, false: colors.surfaceTertiary }}
+              thumbColor={colors.surface}
+            />
+          </View>
+
           <Text style={styles.note}>
             Reminders fire on an installed build, not in the Expo Go preview.
           </Text>
@@ -222,6 +250,7 @@ const useStyles = makeStyles((c) => ({
   linkRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   linkText: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: c.onSurface },
   reminderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  recapDivider: { height: 1, backgroundColor: c.divider },
   timeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   timeLabel: { fontFamily: fonts.medium, fontSize: 15, color: c.onSurface },
   stepper: { flexDirection: "row", alignItems: "center", gap: 10 },

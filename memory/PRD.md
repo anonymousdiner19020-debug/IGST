@@ -50,5 +50,12 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Recap Streaks:** weekly recap now shows a "Best day" (highest mood that week) highlight + a 7-day mood-trend bar chart.
 - Verified by testing agent (32/32 backend tests + frontend flows). Google OAuth not auto-tested (interactive).
 
+## Implemented — Iteration 4 (2026-09-06)
+- **Photo Lightbox:** tapping a Day Detail photo opens a full-screen swipeable viewer (`src/components/photo-lightbox.tsx`; Modal + paged FlatList, close button, page dots).
+- **Mood Insights:** `GET /api/mood-trend` (last 30 days moods + average); Progress "Monthly mood" card with average + emoji + 30-day trend bars.
+- **Recap Reminder:** weekly "Sunday recap nudge" toggle in Settings (expo-notifications WEEKLY trigger, Sunday 6pm); reminder prefs now hold `recapEnabled`; both daily + weekly rescheduled together.
+- **On This Day:** `GET /api/on-this-day` resurfaces the nearest past-week entry with content (never before signup); Today dashboard card links to that day.
+- Verified by testing agent (42/42 backend tests + frontend flows).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
