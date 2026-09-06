@@ -41,6 +41,7 @@ export default function HockeyShootout() {
   const puckXRef = useRef(0);
   const goalieXRef = useRef(0);
   const dirRef = useRef(1);
+  const speedRef = useRef(GOALIE_SPEED);
   const phaseRef = useRef<"aim" | "shoot" | "done">("aim");
   const startXRef = useRef(0);
   const boundsRef = useRef({ min: 0, max: 0 });
@@ -148,19 +149,26 @@ export default function HockeyShootout() {
     })
   ).current;
 
-  // Goalie glides back and forth.
+  // Goalie glides back and forth with random direction changes and speed.
   useEffect(() => {
     const iv = setInterval(() => {
       if (phaseRef.current === "done") return;
       const b = goalieBoundsRef.current;
       if (b.max <= b.min) return;
-      let nx = goalieXRef.current + dirRef.current * GOALIE_SPEED;
+      // Occasionally flip direction mid-glide for unpredictable movement.
+      if (Math.random() < 0.05) {
+        dirRef.current *= -1;
+        speedRef.current = 2.5 + Math.random() * 4.5; // new random speed 2.5–7
+      }
+      let nx = goalieXRef.current + dirRef.current * speedRef.current;
       if (nx <= b.min) {
         nx = b.min;
         dirRef.current = 1;
+        speedRef.current = 2.5 + Math.random() * 4.5;
       } else if (nx >= b.max) {
         nx = b.max;
         dirRef.current = -1;
+        speedRef.current = 2.5 + Math.random() * 4.5;
       }
       goalieXRef.current = nx;
       setGoalieX(nx);
