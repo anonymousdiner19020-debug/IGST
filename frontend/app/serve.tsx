@@ -294,7 +294,7 @@ export default function Serve() {
         } else {
           setIdx((i) => i + 1);
         }
-      }, 2200);
+      }, 3500);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [idx, customers.length, coins, servedCount, score, bells]
