@@ -125,14 +125,20 @@ export default function TodayScreen() {
             </View>
           </View>
           {topBlessing ? (
-            <View style={styles.gratCard} testID="gratitude-reminder">
+            <Pressable
+              testID="gratitude-reminder"
+              onPress={() => router.push("/gratitude-wall")}
+              style={({ pressed }) => [styles.gratCard, pressed && styles.pressed]}
+            >
               <View style={styles.gratHead}>
                 <Icon name="heart" size={16} color={colors.brand} />
                 <Text style={styles.gratLabel}>A recurring gratitude</Text>
+                <View style={{ flex: 1 }} />
+                <Icon name="chevron-right" size={18} color={colors.brand} />
               </View>
               <Text style={styles.gratText}>{topBlessing.text}</Text>
-              <Text style={styles.gratCount}>You've been grateful for this {topBlessing.count} times</Text>
-            </View>
+              <Text style={styles.gratCount}>Tap to see your whole gratitude wall</Text>
+            </Pressable>
           ) : null}
 
           {otd?.found ? (

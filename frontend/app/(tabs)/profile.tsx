@@ -76,6 +76,21 @@ export default function ProgressScreen() {
           <Icon name="chevron-right" size={22} color={colors.brand} />
         </Pressable>
 
+        <Pressable
+          testID="gratitude-wall-btn"
+          onPress={() => router.push("/gratitude-wall")}
+          style={({ pressed }) => [styles.recapCard, pressed && { opacity: 0.9 }]}
+        >
+          <View style={[styles.recapIcon, { backgroundColor: colors.brandSecondary }]}>
+            <Icon name="heart" size={22} color={colors.onBrandSecondary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.recapTitle}>Gratitude Wall</Text>
+            <Text style={styles.recapSub}>Every blessing you've written, in one feed</Text>
+          </View>
+          <Icon name="chevron-right" size={22} color={colors.brand} />
+        </Pressable>
+
         <View style={styles.hero}>
           <Icon name="zap" size={26} color={colors.warning} />
           <Text style={styles.heroNum}>{data?.currentStreak ?? 0}</Text>

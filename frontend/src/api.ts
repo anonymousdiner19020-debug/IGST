@@ -188,6 +188,11 @@ export type GratitudeTrendsResponse = {
   goals: { text: string; count: number }[];
 };
 
+export type GratitudeWallResponse = {
+  items: { date: string; text: string }[];
+  total: number;
+};
+
 export type YearlyWrapResponse = {
   year: number;
   entriesCount: number;
@@ -232,6 +237,8 @@ export const api = {
     request<OnThisDayResponse>(`/on-this-day?userId=${encodeURIComponent(userId)}`),
   gratitudeTrends: (userId: string) =>
     request<GratitudeTrendsResponse>(`/gratitude-trends?userId=${encodeURIComponent(userId)}`),
+  gratitudeWall: (userId: string) =>
+    request<GratitudeWallResponse>(`/gratitude-wall?userId=${encodeURIComponent(userId)}`),
   yearlyWrap: (userId: string, year: number) =>
     request<YearlyWrapResponse>(`/yearly-wrap?userId=${encodeURIComponent(userId)}&year=${year}`),
   // auth
@@ -290,6 +297,8 @@ export function useSaveDay(userId: string | null) {
       qc.invalidateQueries({ queryKey: ["recap", userId] });
       qc.invalidateQueries({ queryKey: ["mood-trend", userId] });
       qc.invalidateQueries({ queryKey: ["on-this-day", userId] });
+      qc.invalidateQueries({ queryKey: ["gratitude-trends", userId] });
+      qc.invalidateQueries({ queryKey: ["gratitude-wall", userId] });
     },
   });
 }
@@ -350,6 +359,14 @@ export function useGratitudeTrends(userId: string | null) {
   return useQuery({
     queryKey: ["gratitude-trends", userId],
     queryFn: () => api.gratitudeTrends(userId!),
+    enabled: !!userId,
+  });
+}
+
+export function useGratitudeWall(userId: string | null) {
+  return useQuery({
+    queryKey: ["gratitude-wall", userId],
+    queryFn: () => api.gratitudeWall(userId!),
     enabled: !!userId,
   });
 }

@@ -485,7 +485,7 @@ export default function FlowScreen() {
           )}
         </View>
 
-        {affirmationText && stepKey !== "affirmations" && stepKey !== "final" ? (
+        {affirmationText && stepKey !== "affirmations" && stepKey !== "final" && stepKey !== "morningRitual" ? (
           <View testID="affirmation-banner" style={styles.affBanner}>
             <Icon name="sun" size={16} color={colors.brand} />
             <Text style={styles.affBannerText}>{affirmationText}</Text>

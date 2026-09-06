@@ -73,5 +73,10 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Flow order:** the Affirmation step is now the 2nd step (right after Mood), reinforced by the mid-flow affirmation banner.
 - Verified by testing agent (62/62 backend tests + frontend flows).
 
+## Implemented — Iteration 7 (2026-09-06)
+- **Gratitude Wall:** `GET /api/gratitude-wall` returns every blessing (newest first); new `app/gratitude-wall.tsx` warm feed reachable from a Progress button and the tappable Today "recurring gratitude" card; each item opens that day.
+- **Tweak:** the mid-flow affirmation banner is now also hidden on the "Taking Control" (Page 1) step.
+- Verified by testing agent (71/71 backend tests + frontend flows).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.

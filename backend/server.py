@@ -884,6 +884,21 @@ async def yearly_wrap(userId: Optional[str] = Query(None), year: Optional[int] =
             "longestStreak": streak["longestStreak"], "currentStreak": streak["currentStreak"]}
 
 
+@api_router.get("/gratitude-wall")
+async def gratitude_wall(userId: Optional[str] = Query(None),
+                         account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    entries = await db.entries.find({"userId": uid}, {"_id": 0}).to_list(3000)
+    items = []
+    for e in entries:
+        for b in e.get("blessings", []):
+            t = (b or "").strip()
+            if t:
+                items.append({"date": e["date"], "text": t})
+    items.sort(key=lambda x: x["date"], reverse=True)
+    return {"items": items, "total": len(items)}
+
+
 app.include_router(api_router)
 
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"],
