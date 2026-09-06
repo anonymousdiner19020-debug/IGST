@@ -568,7 +568,7 @@ export default function Serve() {
                 <Text style={[styles.ticketItem, isSpecial && styles.ticketItemSpecial]}>
                   {INGREDIENTS[w]?.label || w}
                 </Text>
-                <IngredientIcon id={w} emoji={INGREDIENTS[w]?.emoji} size={30} />
+                <IngredientIcon id={w} emoji={INGREDIENTS[w]?.emoji} size={34} />
               </View>
             );
           })}
@@ -578,7 +578,7 @@ export default function Serve() {
               <Text style={[styles.ticketItem, { color: colors.error }]}>
                 {INGREDIENTS[f]?.label || f}
               </Text>
-              <IngredientIcon id={f} emoji={INGREDIENTS[f]?.emoji} size={30} />
+              <IngredientIcon id={f} emoji={INGREDIENTS[f]?.emoji} size={34} />
             </View>
           ))}
         </View>
@@ -621,7 +621,7 @@ export default function Serve() {
             <View style={styles.plateItems}>
               {plate.map((p) => (
                 <View key={p} style={styles.plateChip} testID={`plate-${p}`}>
-                  <IngredientIcon id={p} emoji={INGREDIENTS[p]?.emoji} size={34} />
+                  <IngredientIcon id={p} emoji={INGREDIENTS[p]?.emoji} size={40} />
                 </View>
               ))}
             </View>
@@ -673,8 +673,8 @@ export default function Serve() {
                   pressed && { transform: [{ scale: 0.93 }] },
                 ]}
               >
-                <IngredientIcon id={t} emoji={info?.emoji} size={42} />
-                <Text style={styles.trayLabel} numberOfLines={1}>
+                <IngredientIcon id={t} emoji={info?.emoji} size={54} />
+                <Text style={styles.trayLabel} numberOfLines={2}>
                   {info?.label || t}
                 </Text>
                 {active && (
@@ -1075,19 +1075,20 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   trayItem: {
-    width: 76,
-    height: 76,
+    width: 104,
+    height: 104,
     borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface,
     borderWidth: 2,
     borderColor: "rgba(0,0,0,0.10)",
-    gap: 2,
+    paddingHorizontal: 4,
+    gap: 4,
   },
   trayItemActive: { borderColor: colors.brand, borderWidth: 3, transform: [{ scale: 1.06 }] },
   trayEmoji: { fontSize: 26 },
-  trayLabel: { fontSize: 9, fontWeight: "900", color: colors.surfaceInverse, textAlign: "center" },
+  trayLabel: { fontSize: 11, fontWeight: "900", color: colors.surfaceInverse, textAlign: "center" },
   trayCheck: {
     position: "absolute",
     top: -6,
