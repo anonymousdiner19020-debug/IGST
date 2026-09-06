@@ -36,8 +36,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
-  const loadPlayer = useCallback(async () => {
-    setLoading(true);
+  const loadPlayer = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     try {
       const id = await playerStorage.get();
       if (!id) {
@@ -52,21 +52,21 @@ export default function Home() {
       await playerStorage.clear();
       setNeedsName(true);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadPlayer();
+    loadPlayer(true);
   }, [loadPlayer]);
 
   useEffect(() => {
     api.getDailySpecial().then(setDaily).catch(() => {});
   }, []);
 
-  // reload whenever screen refocuses (coin/level updates)
+  // reload whenever screen refocuses (coin/level updates) — silent, no spinner
   useEffect(() => {
-    const interval = setInterval(loadPlayer, 3000);
+    const interval = setInterval(() => loadPlayer(false), 3000);
     return () => clearInterval(interval);
   }, [loadPlayer]);
 
