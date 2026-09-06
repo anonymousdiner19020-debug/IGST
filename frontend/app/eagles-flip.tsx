@@ -9,6 +9,7 @@ import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import JerseyBack from "@/src/components/JerseyBack";
+import HowToPlay from "@/src/components/HowToPlay";
 
 const EAGLES_GREEN = "#128A3C";
 const EAGLES_DARK = "#0A3D1F";
@@ -82,6 +83,7 @@ export default function EaglesFlip() {
   const [misses, setMisses] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [phase, setPhase] = useState<"play" | "done">("play");
+  const [showHelp, setShowHelp] = useState(true);
   const [reward, setReward] = useState<{ coins: number; completed: boolean; misses: number } | null>(null);
 
   const busyRef = useRef(false);
@@ -156,6 +158,7 @@ export default function EaglesFlip() {
   };
 
   useEffect(() => {
+    if (showHelp) return;
     startRef.current = Date.now();
     timerRef.current = setInterval(() => {
       const elapsed = (Date.now() - startRef.current) / 1000;
@@ -168,7 +171,7 @@ export default function EaglesFlip() {
     }, 200);
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showHelp]);
 
   if (phase === "done") {
     const won = reward ? reward.completed && reward.misses <= 3 : false;
@@ -263,6 +266,19 @@ export default function EaglesFlip() {
           );
         })}
       </View>
+
+      <HowToPlay
+        visible={showHelp}
+        emoji="🦅"
+        title="How to Play — Mini 7"
+        steps={[
+          "All tiles start face-down showing the Eagles logo.",
+          "Flip two tiles to reveal their jerseys — remember the numbers!",
+          "Match all 10 pairs before the 45-second timer runs out.",
+          "100 coins for a clean sweep — minus 10 for each wrong flip.",
+        ]}
+        onDismiss={() => setShowHelp(false)}
+      />
     </SafeAreaView>
   );
 }

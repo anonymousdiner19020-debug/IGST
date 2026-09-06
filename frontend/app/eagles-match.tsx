@@ -9,6 +9,7 @@ import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import JerseyBack from "@/src/components/JerseyBack";
+import HowToPlay from "@/src/components/HowToPlay";
 
 const EAGLES_GREEN = "#128A3C";
 const EAGLES_DARK = "#0A3D1F";
@@ -84,6 +85,7 @@ export default function EaglesMatch() {
   const [misses, setMisses] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [phase, setPhase] = useState<"play" | "done">("play");
+  const [showHelp, setShowHelp] = useState(true);
   const [reward, setReward] = useState<{ coins: number; completed: boolean; misses: number } | null>(null);
 
   const busyRef = useRef(false);
@@ -162,6 +164,7 @@ export default function EaglesMatch() {
 
   // countdown
   useEffect(() => {
+    if (showHelp) return;
     startRef.current = Date.now();
     timerRef.current = setInterval(() => {
       const elapsed = (Date.now() - startRef.current) / 1000;
@@ -174,7 +177,7 @@ export default function EaglesMatch() {
     }, 200);
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showHelp]);
 
   if (phase === "done") {
     const won = reward ? reward.completed && reward.misses <= 3 : false;
@@ -271,6 +274,19 @@ export default function EaglesMatch() {
           );
         })}
       </View>
+
+      <HowToPlay
+        visible={showHelp}
+        emoji="🦅"
+        title="How to Play — Mini 2"
+        steps={[
+          "All 20 Eagles jerseys are shown face-up on the board.",
+          "Tap two jerseys that share the same player number to match them.",
+          "Find all 10 pairs before the 45-second timer runs out.",
+          "100 coins for a clean sweep — minus 10 for each wrong pair.",
+        ]}
+        onDismiss={() => setShowHelp(false)}
+      />
     </SafeAreaView>
   );
 }

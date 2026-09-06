@@ -10,6 +10,7 @@ import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import FlyersGoalie from "@/src/components/FlyersGoalie";
 import HockeyRink from "@/src/components/HockeyRink";
+import HowToPlay from "@/src/components/HowToPlay";
 
 const FLYERS_ORANGE = "#F74902";
 const FLYERS_BLACK = "#111111";
@@ -34,6 +35,7 @@ export default function HockeyShootout() {
   const [goals, setGoals] = useState(0);
   const [flash, setFlash] = useState<"GOAL!" | "SAVE!" | null>(null);
   const [timeLeft, setTimeLeft] = useState(SHOT_TIME);
+  const [showHelp, setShowHelp] = useState(true);
   const [reward, setReward] = useState<{ coins: number; goals: number } | null>(null);
 
   const puckXRef = useRef(0);
@@ -187,7 +189,7 @@ export default function HockeyShootout() {
     goalieXRef.current = cx;
     setPuckX(cx);
     setGoalieX(cx);
-    startShotTimer();
+    if (!showHelp) startShotTimer();
   };
 
   if (phase === "done") {
@@ -311,6 +313,22 @@ export default function HockeyShootout() {
           </View>
         )}
       </View>
+
+      <HowToPlay
+        visible={showHelp}
+        emoji="🏒"
+        title="How to Play — Mini 3"
+        steps={[
+          "Drag the puck left and right to line up your shot.",
+          "Release your finger to launch the puck at the net.",
+          "Beat the Flyers goalie sliding back and forth — you get 5 seconds per shot.",
+          "10 shots total, and every goal is worth 10 coins!",
+        ]}
+        onDismiss={() => {
+          setShowHelp(false);
+          startShotTimer();
+        }}
+      />
     </SafeAreaView>
   );
 }

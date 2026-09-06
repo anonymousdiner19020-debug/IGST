@@ -117,6 +117,12 @@ export const INGREDIENTS: Record<string, Ingredient> = {
   cheddar: { id: "cheddar", emoji: "🧀", color: "#E8871E", label: "Cheddar Cheese" },
   sauerkraut: { id: "sauerkraut", emoji: "🥬", color: "#E8E0A8", label: "Sauerkraut" },
   potato_raw: { id: "potato_raw", emoji: "🥔", color: "#D9A066", label: "Potato" },
+
+  // Level 16 — Fruit Pierogies.
+  strawberry: { id: "strawberry", emoji: "🍓", color: "#E63950", label: "Strawberry" },
+  blackberry: { id: "blackberry", emoji: "🫐", color: "#3A2A4D", label: "Blackberry" },
+  apple: { id: "apple", emoji: "🍎", color: "#D62828", label: "Apple" },
+  plum: { id: "plum", emoji: "🟣", color: "#7B4B94", label: "Plum" },
 };
 
 export type Dish = {
@@ -313,6 +319,19 @@ export const FALLBACK_DISHES: Dish[] = [
     special_options: [],
     verb: "box",
     reward_coins: 245,
+    moves: 36,
+    customers_per_level: 10,
+  },
+  {
+    id: "fruit_pierogies",
+    name: "Fruit Pierogies",
+    emoji: "🥟",
+    unlock_level: 16,
+    base_recipe: { strawberry: 2, blueberry: 2, blackberry: 2, apple: 2, cherry: 2 },
+    topping_options: ["plum"],
+    special_options: [],
+    verb: "fry",
+    reward_coins: 255,
     moves: 36,
     customers_per_level: 10,
   },

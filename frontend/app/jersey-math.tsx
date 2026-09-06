@@ -9,6 +9,7 @@ import { playerStorage } from "@/src/storage";
 import { sound } from "@/src/sound";
 import { colors, radius, shadow, spacing } from "@/src/theme";
 import FanJersey from "@/src/components/FanJersey";
+import HowToPlay from "@/src/components/HowToPlay";
 
 const PHILLIES_RED = "#E81828";
 const PHILLIES_BLUE = "#284898";
@@ -66,6 +67,7 @@ export default function JerseyMath() {
   const [timeLeft, setTimeLeft] = useState(TIME_PER_Q);
   const [phase, setPhase] = useState<"play" | "done">("play");
   const [picked, setPicked] = useState<number | null>(null);
+  const [showHelp, setShowHelp] = useState(true);
   const [reward, setReward] = useState<{ coins: number; correct: number; wrong: number } | null>(null);
 
   const lockedRef = useRef(false);
@@ -146,7 +148,7 @@ export default function JerseyMath() {
 
   // Per-question countdown timer.
   useEffect(() => {
-    if (phase !== "play") return;
+    if (phase !== "play" || showHelp) return;
     startRef.current = Date.now();
     setTimeLeft(TIME_PER_Q);
     lockedRef.current = false;
@@ -161,7 +163,7 @@ export default function JerseyMath() {
     }, 100);
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, phase]);
+  }, [idx, phase, showHelp]);
 
   if (phase === "done") {
     const perAnswer = reward ? reward.wrong <= 3 : true;
@@ -254,6 +256,19 @@ export default function JerseyMath() {
           );
         })}
       </View>
+
+      <HowToPlay
+        visible={showHelp}
+        emoji="⚾"
+        title="How to Play — Mini 1"
+        steps={[
+          "A math problem shows at the top, like 7 + 2 = ?",
+          "Tap the Phillies jersey with the correct answer number.",
+          "You get 10 seconds per question — 10 questions in all.",
+          "3 or fewer wrong earns 10 coins per correct answer!",
+        ]}
+        onDismiss={() => setShowHelp(false)}
+      />
     </SafeAreaView>
   );
 }

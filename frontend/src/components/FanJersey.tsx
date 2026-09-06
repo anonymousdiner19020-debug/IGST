@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import Svg, { ClipPath, Defs, G, Line, Path, Text as SvgText } from "react-native-svg";
+import React from "react";
+import Svg, { Line, Path, Text as SvgText } from "react-native-svg";
 
 type Props = { size?: number; color?: string; number?: string; pinstripe?: boolean };
 
@@ -13,35 +13,15 @@ const RIGHT_SLEEVE = "M42 13 L57 21 L53 32 L41 25 Z";
 const PHILS_BLUE = "#79BDEE";
 
 // A sports jersey. Default: solid team color with a white number.
-// pinstripe=true: realistic white Phillies-style jersey with red pinstripes.
+// pinstripe=true: solid Phillies-blue back-view jersey (no stripes).
 export function FanJersey({ size = 28, color = "#004C54", number = "1", pinstripe = false }: Props) {
-  // Stable unique id so multiple jerseys don't share a clipPath on web.
-  const idRef = useRef(`jersey_${Math.random().toString(36).slice(2, 9)}`);
-  const clipId = idRef.current;
-
   if (pinstripe) {
-    const stripeXs = [10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54];
     return (
       <Svg width={size} height={size} viewBox="0 0 64 64">
-        <Defs>
-          <ClipPath id={clipId}>
-            <Path d={TORSO} />
-            <Path d={LEFT_SLEEVE} />
-            <Path d={RIGHT_SLEEVE} />
-          </ClipPath>
-        </Defs>
-
         {/* Phillies-blue fabric base */}
         <Path d={LEFT_SLEEVE} fill={PHILS_BLUE} />
         <Path d={RIGHT_SLEEVE} fill={PHILS_BLUE} />
         <Path d={TORSO} fill={PHILS_BLUE} />
-
-        {/* subtle darker pinstripes clipped to the fabric */}
-        <G clipPath={`url(#${clipId})`}>
-          {stripeXs.map((x) => (
-            <Line key={x} x1={x} y1={8} x2={x} y2={60} stroke="#5AA0D6" strokeWidth={0.8} opacity={0.6} />
-          ))}
-        </G>
 
         {/* white outlines over the fabric */}
         <Path d={LEFT_SLEEVE} fill="none" stroke="#FFFFFF" strokeWidth={0.8} strokeLinejoin="round" />
