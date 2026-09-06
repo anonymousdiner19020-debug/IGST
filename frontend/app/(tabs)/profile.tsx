@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useInsights, useMoodTrend } from "@/src/api";
+import { useInsights, useMoodTrend, useGratitudeTrends } from "@/src/api";
 import { shortDate } from "@/src/date-utils";
 import { Icon, PrimaryButton } from "@/src/components/ui";
 import { moodEmoji, moodLabel } from "@/src/mood";
@@ -24,6 +24,7 @@ export default function ProgressScreen() {
   const { userId } = useUser();
   const { data } = useInsights(userId);
   const { data: trend } = useMoodTrend(userId, 30);
+  const { data: gratitude } = useGratitudeTrends(userId);
 
   const workouts = Object.entries(data?.workoutBreakdown ?? {}).sort((a, b) => b[1] - a[1]);
   const maxW = Math.max(1, ...workouts.map(([, v]) => v));
@@ -56,6 +57,21 @@ export default function ProgressScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.recapTitle}>Weekly Recap</Text>
             <Text style={styles.recapSub}>See & share your week's wins</Text>
+          </View>
+          <Icon name="chevron-right" size={22} color={colors.brand} />
+        </Pressable>
+
+        <Pressable
+          testID="yearly-wrap-btn"
+          onPress={() => router.push("/yearly-wrap")}
+          style={({ pressed }) => [styles.recapCard, pressed && { opacity: 0.9 }]}
+        >
+          <View style={[styles.recapIcon, { backgroundColor: colors.brand }]}>
+            <Icon name="gift" size={22} color={colors.onBrand} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.recapTitle}>Year in Review</Text>
+            <Text style={styles.recapSub}>Your {new Date().getFullYear()} moods, wins & streaks</Text>
           </View>
           <Icon name="chevron-right" size={22} color={colors.brand} />
         </Pressable>
@@ -145,6 +161,37 @@ export default function ProgressScreen() {
             </>
           )}
         </View>
+        {gratitude && (gratitude.blessings.length > 0 || gratitude.goals.length > 0) ? (
+          <>
+            <Text style={styles.sectionTitle}>Recurring themes</Text>
+            <View style={styles.workoutCard}>
+              {gratitude.blessings.length > 0 ? (
+                <View style={{ gap: 10 }}>
+                  <Text style={styles.themeHead}>Most-repeated blessings</Text>
+                  {gratitude.blessings.map((b, i) => (
+                    <View key={i} style={styles.themeRow}>
+                      <Icon name="heart" size={14} color={colors.brand} />
+                      <Text style={styles.themeText} numberOfLines={1}>{b.text}</Text>
+                      <Text style={styles.themeCount}>×{b.count}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {gratitude.goals.length > 0 ? (
+                <View style={{ gap: 10, marginTop: gratitude.blessings.length > 0 ? 18 : 0 }}>
+                  <Text style={styles.themeHead}>Most-repeated goals</Text>
+                  {gratitude.goals.map((g, i) => (
+                    <View key={i} style={styles.themeRow}>
+                      <Icon name="flag" size={14} color={colors.brand} />
+                      <Text style={styles.themeText} numberOfLines={1}>{g.text}</Text>
+                      <Text style={styles.themeCount}>×{g.count}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -202,6 +249,10 @@ const useStyles = makeStyles((c) => ({
   trendCol: { flex: 1, alignItems: "center" },
   trendTrack: { width: "70%", height: 52, borderRadius: 999, backgroundColor: c.surfaceTertiary, justifyContent: "flex-end", overflow: "hidden" },
   trendFill: { width: "100%", borderRadius: 999, backgroundColor: c.brandPrimary },
+  themeHead: { fontFamily: fonts.semibold, fontSize: 13, color: c.muted, textTransform: "uppercase", letterSpacing: 0.5 },
+  themeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  themeText: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: c.onSurface },
+  themeCount: { fontFamily: fonts.semibold, fontSize: 14, color: c.brand },
   title: { fontFamily: fonts.displayBold, fontSize: 28, color: c.onSurface },
   subtitle: { fontFamily: fonts.regular, fontSize: 14, color: c.muted, marginTop: 2 },
   hero: {

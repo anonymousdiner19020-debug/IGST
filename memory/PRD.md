@@ -57,5 +57,14 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **On This Day:** `GET /api/on-this-day` resurfaces the nearest past-week entry with content (never before signup); Today dashboard card links to that day.
 - Verified by testing agent (42/42 backend tests + frontend flows).
 
+## Implemented — Iteration 5 (2026-09-06)
+- **Photo Zoom:** lightbox now supports pinch-to-zoom, pan, and double-tap (gesture-handler + reanimated) while still paging.
+- **Yearly Wrap:** `GET /api/yearly-wrap?year=` + `app/yearly-wrap.tsx` shareable end-of-year card (entries, days, streak, avg mood, photos, best month, top wins); "Year in Review" button on Progress.
+- **Search Filters:** `/api/search` now takes `pages`, `from`, `to`; Search screen has page-type + date-range chip rows.
+- **Gratitude Trends:** `GET /api/gratitude-trends` (most-repeated blessings & goals, count≥2); "Recurring themes" card on Progress.
+- **Flow affirmation banner:** the picked affirmation shows near the bottom of every flow step (except the picker + final).
+- **Goal reminders:** `GET /api/day` now returns `prevGoals`; flow shows yesterday's goals on the Yesterday step (page 8) and today's goals on the Tomorrow step (page 9).
+- Verified by testing agent (53/53 backend tests + frontend flows) + curl/screenshot for the goal reminders.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.

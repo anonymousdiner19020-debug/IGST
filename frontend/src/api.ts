@@ -107,6 +107,7 @@ export type DayResponse = {
   entry: DayEntry & { userId?: string; date?: string };
   content: { affirmations: string[]; quote: { text: string; author: string } };
   hasContent: boolean;
+  prevGoals: string[];
 };
 
 export type InitResponse = {
@@ -180,6 +181,25 @@ export type OnThisDayResponse = {
   snippet?: string;
 };
 
+export type GratitudeTrendsResponse = {
+  blessings: { text: string; count: number }[];
+  goals: { text: string; count: number }[];
+};
+
+export type YearlyWrapResponse = {
+  year: number;
+  entriesCount: number;
+  daysLoggedIn: number;
+  avgMood: number;
+  moodCounts: Record<string, number>;
+  workoutBreakdown: Record<string, number>;
+  photos: number;
+  bestMonth: string | null;
+  topWins: string[];
+  longestStreak: number;
+  currentStreak: number;
+};
+
 // ---- API calls ----
 export const api = {
   init: (userId: string) =>
@@ -193,8 +213,13 @@ export const api = {
     }),
   calendar: (userId: string) =>
     request<CalendarResponse>(`/calendar?userId=${encodeURIComponent(userId)}`),
-  search: (userId: string, q: string) =>
-    request<SearchResponse>(`/search?userId=${encodeURIComponent(userId)}&q=${encodeURIComponent(q)}`),
+  search: (userId: string, q: string, opts?: { pages?: number[]; from?: string; to?: string }) => {
+    const params = new URLSearchParams({ userId, q });
+    if (opts?.pages?.length) params.set("pages", opts.pages.join(","));
+    if (opts?.from) params.set("from", opts.from);
+    if (opts?.to) params.set("to", opts.to);
+    return request<SearchResponse>(`/search?${params.toString()}`);
+  },
   insights: (userId: string) =>
     request<InsightsResponse>(`/insights?userId=${encodeURIComponent(userId)}`),
   recap: (userId: string, offset: number) =>
@@ -203,6 +228,10 @@ export const api = {
     request<MoodTrendResponse>(`/mood-trend?userId=${encodeURIComponent(userId)}&days=${days}`),
   onThisDay: (userId: string) =>
     request<OnThisDayResponse>(`/on-this-day?userId=${encodeURIComponent(userId)}`),
+  gratitudeTrends: (userId: string) =>
+    request<GratitudeTrendsResponse>(`/gratitude-trends?userId=${encodeURIComponent(userId)}`),
+  yearlyWrap: (userId: string, year: number) =>
+    request<YearlyWrapResponse>(`/yearly-wrap?userId=${encodeURIComponent(userId)}&year=${year}`),
   // auth
   register: (email: string, password: string, deviceUserId: string, name?: string) =>
     request<AuthResponse>("/auth/register", {
@@ -271,10 +300,14 @@ export function useCalendar(userId: string | null) {
   });
 }
 
-export function useSearch(userId: string | null, q: string) {
+export function useSearch(
+  userId: string | null,
+  q: string,
+  filters?: { pages?: number[]; from?: string; to?: string },
+) {
   return useQuery({
-    queryKey: ["search", userId, q],
-    queryFn: () => api.search(userId!, q),
+    queryKey: ["search", userId, q, filters?.pages ?? [], filters?.from ?? "", filters?.to ?? ""],
+    queryFn: () => api.search(userId!, q, filters),
     enabled: !!userId && q.trim().length > 0,
   });
 }
@@ -307,6 +340,22 @@ export function useOnThisDay(userId: string | null) {
   return useQuery({
     queryKey: ["on-this-day", userId],
     queryFn: () => api.onThisDay(userId!),
+    enabled: !!userId,
+  });
+}
+
+export function useGratitudeTrends(userId: string | null) {
+  return useQuery({
+    queryKey: ["gratitude-trends", userId],
+    queryFn: () => api.gratitudeTrends(userId!),
+    enabled: !!userId,
+  });
+}
+
+export function useYearlyWrap(userId: string | null, year: number) {
+  return useQuery({
+    queryKey: ["yearly-wrap", userId, year],
+    queryFn: () => api.yearlyWrap(userId!, year),
     enabled: !!userId,
   });
 }

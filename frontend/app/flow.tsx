@@ -313,20 +313,43 @@ export default function FlowScreen() {
             </View>
           )}
 
-          {stepKey === "actionsYesterday" &&
-            entry.actionsYesterday.map((v, i) => (
-              <NumberedField
-                key={i}
-                index={i + 1}
-                testID={`action-yesterday-${i}`}
-                value={v}
-                onChangeText={(t) => setList("actionsYesterday", i, t)}
-                placeholder={`Action ${i + 1}`}
-              />
-            ))}
+          {stepKey === "actionsYesterday" && (
+            <View style={{ gap: 16 }}>
+              <View style={styles.refCard}>
+                <Text style={styles.refTitle}>Yesterday's goals</Text>
+                {data.prevGoals.length > 0 ? (
+                  data.prevGoals.map((g, i) => (
+                    <Text key={i} style={styles.refItem}>•  {g}</Text>
+                  ))
+                ) : (
+                  <Text style={styles.refEmpty}>No goals were logged yesterday.</Text>
+                )}
+              </View>
+              {entry.actionsYesterday.map((v, i) => (
+                <NumberedField
+                  key={i}
+                  index={i + 1}
+                  testID={`action-yesterday-${i}`}
+                  value={v}
+                  onChangeText={(t) => setList("actionsYesterday", i, t)}
+                  placeholder={`Action ${i + 1}`}
+                />
+              ))}
+            </View>
+          )}
 
           {stepKey === "actionsTomorrow" && (
             <View style={{ gap: 18 }}>
+              <View style={styles.refCard}>
+                <Text style={styles.refTitle}>Today's goals</Text>
+                {entry.dailyGoals.filter((g) => g.trim()).length > 0 ? (
+                  entry.dailyGoals
+                    .filter((g) => g.trim())
+                    .map((g, i) => <Text key={i} style={styles.refItem}>•  {g}</Text>)
+                ) : (
+                  <Text style={styles.refEmpty}>No goals set today yet.</Text>
+                )}
+              </View>
               <View style={styles.qBox}>
                 <Text style={styles.qLabel}>Did you accomplish all your goals yesterday?</Text>
                 <View style={styles.yesNoRow}>
@@ -461,6 +484,13 @@ export default function FlowScreen() {
             </View>
           )}
         </View>
+
+        {affirmationText && stepKey !== "affirmations" && stepKey !== "final" ? (
+          <View testID="affirmation-banner" style={styles.affBanner}>
+            <Icon name="sun" size={16} color={colors.brand} />
+            <Text style={styles.affBannerText}>{affirmationText}</Text>
+          </View>
+        ) : null}
       </KeyboardAwareScrollView>
 
       {/* Sticky footer */}
@@ -515,6 +545,16 @@ const useStyles = makeStyles((c) => ({
   stepTitle: { fontFamily: fonts.displayBold, fontSize: 30, color: c.onSurface, marginTop: 6 },
   stepSubtitle: { fontFamily: fonts.regular, fontSize: 15, color: c.muted, marginTop: 6, lineHeight: 22 },
   fields: { marginTop: 28, gap: 16 },
+  affBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 28,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: c.brandTertiary,
+  },
+  affBannerText: { flex: 1, fontFamily: fonts.display, fontSize: 15, lineHeight: 22, color: c.onBrandTertiary },
   affCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -557,6 +597,10 @@ const useStyles = makeStyles((c) => ({
   bigQuote: { fontFamily: fonts.display, fontSize: 24, lineHeight: 34, color: c.onSurface, textAlign: "center" },
   bigQuoteAuthor: { fontFamily: fonts.medium, fontSize: 15, color: c.muted },
   qBox: { gap: 12 },
+  refCard: { backgroundColor: c.brandTertiary, borderRadius: 14, padding: 16, gap: 6 },
+  refTitle: { fontFamily: fonts.semibold, fontSize: 13, color: c.onBrandTertiary, textTransform: "uppercase", letterSpacing: 0.5 },
+  refItem: { fontFamily: fonts.medium, fontSize: 15, color: c.onBrandTertiary, lineHeight: 22 },
+  refEmpty: { fontFamily: fonts.regular, fontSize: 14, color: c.onBrandTertiary, opacity: 0.7 },
   qLabel: { fontFamily: fonts.semibold, fontSize: 15, color: c.onSurface, lineHeight: 22 },
   yesNoRow: { flexDirection: "row", gap: 12 },
   finalBox: {

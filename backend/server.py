@@ -542,8 +542,12 @@ async def get_day(d: str, userId: Optional[str] = Query(None),
         entry.setdefault("photos", [])
     content = await get_or_create_content(uid, d)
     day_no = day_number(profile["signupDate"], d)
+    prev = (parse_date(d) - timedelta(days=1)).strftime("%Y-%m-%d")
+    prev_entry = await db.entries.find_one({"userId": uid, "date": prev}, {"_id": 0})
+    prev_goals = [g for g in (prev_entry or {}).get("dailyGoals", []) if (g or "").strip()]
     return {"date": d, "dayNumber": day_no, "isSpecial": is_special(day_no),
-            "entry": entry, "content": content, "hasContent": entry_has_content(entry)}
+            "entry": entry, "content": content, "hasContent": entry_has_content(entry),
+            "prevGoals": prev_goals}
 
 
 @api_router.put("/day/{d}")
@@ -578,16 +582,32 @@ async def calendar(userId: Optional[str] = Query(None),
 
 @api_router.get("/search")
 async def search(userId: Optional[str] = Query(None), q: str = Query(""),
+                 pages: Optional[str] = Query(None),
+                 date_from: Optional[str] = Query(None, alias="from"),
+                 date_to: Optional[str] = Query(None, alias="to"),
                  account: Optional[str] = Depends(get_account_id)):
     uid = require_id(account, userId)
     q = (q or "").strip().lower()
     if not q:
         return {"results": []}
-    entries = await db.entries.find({"userId": uid}, {"_id": 0}).to_list(2000)
+    page_set = None
+    if pages:
+        page_set = {int(p) for p in pages.split(",") if p.strip().isdigit()}
+    query: Dict[str, Any] = {"userId": uid}
+    if date_from or date_to:
+        rng: Dict[str, Any] = {}
+        if date_from:
+            rng["$gte"] = date_from
+        if date_to:
+            rng["$lte"] = date_to
+        query["date"] = rng
+    entries = await db.entries.find(query, {"_id": 0}).to_list(2000)
     results = []
     for e in entries:
         matches = []
         for field, page, label, kind in SEARCH_FIELDS:
+            if page_set is not None and page not in page_set:
+                continue
             if kind == "list":
                 for val in e.get(field, []):
                     if val and q in val.lower():
@@ -768,6 +788,83 @@ async def on_this_day(userId: Optional[str] = Query(None),
                     "dayNumber": e.get("dayNumber"), "mood": e.get("mood", ""),
                     "snippet": snippet}
     return {"found": False}
+
+
+@api_router.get("/gratitude-trends")
+async def gratitude_trends(userId: Optional[str] = Query(None),
+                           account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    entries = await db.entries.find({"userId": uid}, {"_id": 0}).to_list(3000)
+
+    def tally(field: str):
+        counts: Dict[str, int] = {}
+        display: Dict[str, str] = {}
+        for e in entries:
+            for v in e.get(field, []):
+                t = (v or "").strip()
+                if not t:
+                    continue
+                k = t.lower()
+                counts[k] = counts.get(k, 0) + 1
+                display.setdefault(k, t)
+        top = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+        return [{"text": display[k], "count": c} for k, c in top if c >= 2][:6]
+
+    return {"blessings": tally("blessings"), "goals": tally("dailyGoals")}
+
+
+@api_router.get("/yearly-wrap")
+async def yearly_wrap(userId: Optional[str] = Query(None), year: Optional[int] = Query(None),
+                      account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    y = year or datetime.now(timezone.utc).year
+    prefix = f"{y}-"
+    entries = await db.entries.find({"userId": uid, "date": {"$regex": f"^{y}-"}}, {"_id": 0}).to_list(2000)
+    login_dates = [d for d in await db.logins.distinct("date", {"userId": uid}) if d.startswith(prefix)]
+
+    mood_vals: List[int] = []
+    mood_counts: Dict[str, int] = {}
+    workouts: Dict[str, int] = {}
+    photos = 0
+    entries_count = 0
+    month_counts: Dict[str, int] = {}
+    win_counts: Dict[str, int] = {}
+    win_display: Dict[str, str] = {}
+    for e in entries:
+        if entry_has_content(e):
+            entries_count += 1
+            month_counts[e["date"][:7]] = month_counts.get(e["date"][:7], 0) + 1
+        m = (e.get("mood") or "").strip()
+        if m:
+            mood_counts[m] = mood_counts.get(m, 0) + 1
+            try:
+                mood_vals.append(int(m))
+            except ValueError:
+                pass
+        for w in e.get("workouts", []):
+            w = (w or "").strip()
+            if w:
+                workouts[w] = workouts.get(w, 0) + 1
+        photos += len(e.get("photos", []))
+        wins = list(e.get("dailyGoals", []))
+        ww = (e.get("weekly") or {}).get("wentWell", "")
+        if ww:
+            wins.append(ww)
+        for wtxt in wins:
+            t = (wtxt or "").strip()
+            if t:
+                k = t.lower()
+                win_counts[k] = win_counts.get(k, 0) + 1
+                win_display.setdefault(k, t)
+
+    best_month = max(month_counts.items(), key=lambda kv: kv[1])[0] if month_counts else None
+    top_wins = [win_display[k] for k, _ in sorted(win_counts.items(), key=lambda kv: kv[1], reverse=True)][:5]
+    avg_mood = round(sum(mood_vals) / len(mood_vals), 1) if mood_vals else 0
+    streak = await compute_streak(uid)
+    return {"year": y, "entriesCount": entries_count, "daysLoggedIn": len(login_dates),
+            "avgMood": avg_mood, "moodCounts": mood_counts, "workoutBreakdown": workouts,
+            "photos": photos, "bestMonth": best_month, "topWins": top_wins,
+            "longestStreak": streak["longestStreak"], "currentStreak": streak["currentStreak"]}
 
 
 app.include_router(api_router)

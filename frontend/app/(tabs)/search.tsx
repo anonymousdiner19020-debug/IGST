@@ -1,13 +1,30 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+import dayjs from "dayjs";
+import { useEffect, useMemo, useState } from "react";
+import { FlatList, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSearch } from "@/src/api";
 import { shortDate } from "@/src/date-utils";
-import { EmptyState, Icon } from "@/src/components/ui";
+import { Chip, EmptyState, Icon } from "@/src/components/ui";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
+
+const PAGE_FILTERS: { key: string; label: string; pages?: number[] }[] = [
+  { key: "all", label: "All" },
+  { key: "journal", label: "Journal", pages: [10] },
+  { key: "blessings", label: "Blessings", pages: [3] },
+  { key: "goals", label: "Goals", pages: [6] },
+  { key: "workout", label: "Workout", pages: [5] },
+  { key: "actions", label: "Actions", pages: [8, 9] },
+  { key: "ritual", label: "Ritual", pages: [1] },
+];
+
+const RANGE_FILTERS = [
+  { key: "any", label: "Any time" },
+  { key: "30", label: "Last 30 days" },
+  { key: "year", label: "This year" },
+];
 
 export default function SearchScreen() {
   const styles = useStyles();
@@ -17,13 +34,23 @@ export default function SearchScreen() {
   const { userId } = useUser();
   const [text, setText] = useState("");
   const [q, setQ] = useState("");
+  const [pageKey, setPageKey] = useState("all");
+  const [rangeKey, setRangeKey] = useState("any");
 
   useEffect(() => {
     const t = setTimeout(() => setQ(text), 300);
     return () => clearTimeout(t);
   }, [text]);
 
-  const { data, isFetching } = useSearch(userId, q);
+  const filters = useMemo(() => {
+    const pages = PAGE_FILTERS.find((f) => f.key === pageKey)?.pages;
+    let from: string | undefined;
+    if (rangeKey === "30") from = dayjs().subtract(30, "day").format("YYYY-MM-DD");
+    else if (rangeKey === "year") from = dayjs().startOf("year").format("YYYY-MM-DD");
+    return { pages, from };
+  }, [pageKey, rangeKey]);
+
+  const { data, isFetching } = useSearch(userId, q, filters);
   const results = data?.results ?? [];
 
   return (
@@ -48,6 +75,38 @@ export default function SearchScreen() {
             </Pressable>
           ) : null}
         </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRowContent}
+          style={styles.chipRow}
+        >
+          {PAGE_FILTERS.map((f) => (
+            <Chip
+              key={f.key}
+              testID={`filter-page-${f.key}`}
+              label={f.label}
+              selected={pageKey === f.key}
+              onPress={() => setPageKey(f.key)}
+            />
+          ))}
+        </ScrollView>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRowContent}
+          style={styles.chipRow}
+        >
+          {RANGE_FILTERS.map((f) => (
+            <Chip
+              key={f.key}
+              testID={`filter-range-${f.key}`}
+              label={f.label}
+              selected={rangeKey === f.key}
+              onPress={() => setRangeKey(f.key)}
+            />
+          ))}
+        </ScrollView>
       </View>
 
       <FlatList
@@ -119,6 +178,8 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.border,
   },
   searchInput: { flex: 1, fontFamily: fonts.regular, fontSize: 16, color: c.onSurface },
+  chipRow: { marginHorizontal: -20 },
+  chipRowContent: { paddingHorizontal: 20, gap: 8 },
   card: {
     backgroundColor: c.surfaceSecondary,
     borderRadius: 16,

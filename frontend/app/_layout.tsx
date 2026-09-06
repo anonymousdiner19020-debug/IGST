@@ -50,6 +50,7 @@ export default function RootLayout() {
                     <Stack.Screen name="auth" options={{ presentation: "modal" }} />
                     <Stack.Screen name="account" options={{ presentation: "card" }} />
                     <Stack.Screen name="recap" options={{ presentation: "card" }} />
+                    <Stack.Screen name="yearly-wrap" options={{ presentation: "card" }} />
                   </Stack>
                 </UserProvider>
               </AuthProvider>
