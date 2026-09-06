@@ -41,7 +41,7 @@ type Customer = {
   vip?: boolean; // rare big-tipper: double tip but shorter patience
 };
 
-const PATIENCE_MS = 15000;
+const PATIENCE_MS = 20000;
 
 // Philly sports teams — fans occasionally show up repping their colors.
 const PHILLY_TEAMS = ["🦅", "⚾", "🏀", "🏒"];
@@ -191,7 +191,7 @@ export default function Serve() {
   const pantryMaxed = pantryLevel >= 3;
 
   // Later levels give customers less patience so 10 orders stays challenging.
-  const patienceMs = Math.max(7000, PATIENCE_MS - (levelNum - 1) * 1100);
+  const patienceMs = PATIENCE_MS;
   // Customer mood reacts to how long they've been waiting.
   const mood = patience > 0.6 ? "😀" : patience > 0.3 ? "😐" : "😠";
 
@@ -294,7 +294,7 @@ export default function Serve() {
         } else {
           setIdx((i) => i + 1);
         }
-      }, 1100);
+      }, 2200);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [idx, customers.length, coins, servedCount, score, bells]
@@ -568,7 +568,7 @@ export default function Serve() {
                 <Text style={[styles.ticketItem, isSpecial && styles.ticketItemSpecial]}>
                   {INGREDIENTS[w]?.label || w}
                 </Text>
-                <IngredientIcon id={w} emoji={INGREDIENTS[w]?.emoji} size={22} />
+                <IngredientIcon id={w} emoji={INGREDIENTS[w]?.emoji} size={30} />
               </View>
             );
           })}
@@ -578,7 +578,7 @@ export default function Serve() {
               <Text style={[styles.ticketItem, { color: colors.error }]}>
                 {INGREDIENTS[f]?.label || f}
               </Text>
-              <IngredientIcon id={f} emoji={INGREDIENTS[f]?.emoji} size={22} />
+              <IngredientIcon id={f} emoji={INGREDIENTS[f]?.emoji} size={30} />
             </View>
           ))}
         </View>
@@ -621,7 +621,7 @@ export default function Serve() {
             <View style={styles.plateItems}>
               {plate.map((p) => (
                 <View key={p} style={styles.plateChip} testID={`plate-${p}`}>
-                  <IngredientIcon id={p} emoji={INGREDIENTS[p]?.emoji} size={22} />
+                  <IngredientIcon id={p} emoji={INGREDIENTS[p]?.emoji} size={34} />
                 </View>
               ))}
             </View>
@@ -643,7 +643,7 @@ export default function Serve() {
                   onPress={() => takeFromPantry(t)}
                   style={({ pressed }) => [styles.pantryChip, pressed && { transform: [{ scale: 0.93 }] }]}
                 >
-                  <IngredientIcon id={t} emoji={INGREDIENTS[t]?.emoji} size={22} />
+                  <IngredientIcon id={t} emoji={INGREDIENTS[t]?.emoji} size={30} />
                   <View style={styles.pantryCount}>
                     <Text style={styles.pantryCountText}>{n}</Text>
                   </View>
@@ -673,7 +673,7 @@ export default function Serve() {
                   pressed && { transform: [{ scale: 0.93 }] },
                 ]}
               >
-                <IngredientIcon id={t} emoji={info?.emoji} size={26} />
+                <IngredientIcon id={t} emoji={info?.emoji} size={42} />
                 <Text style={styles.trayLabel} numberOfLines={1}>
                   {info?.label || t}
                 </Text>
