@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 import { useDay, useSaveDay, type DayEntry } from "@/src/api";
 import { prettyDate, todayStr } from "@/src/date-utils";
 import { Chip, Icon, NumberedField, PrimaryButton, TextField } from "@/src/components/ui";
+import { MOODS } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 
@@ -18,6 +19,7 @@ const WORKOUTS = ["Cardio", "Weights", "Rest Day", "Other"];
 const COUNTS = ["1", "2", "3", "4", "All"];
 
 type StepKey =
+  | "mood"
   | "morningRitual"
   | "weeklyGoals"
   | "blessings"
@@ -32,11 +34,12 @@ type StepKey =
   | "final";
 
 const STEP_META: Record<StepKey, { page?: number; title: string; subtitle: string }> = {
+  mood: { title: "How are you feeling?", subtitle: "Check in with your mood before you begin." },
   morningRitual: { page: 1, title: "Taking Control", subtitle: "Set three intentions for your morning ritual." },
   weeklyGoals: { page: 2, title: "Weekly Goals", subtitle: "What do you want to achieve this week?" },
   blessings: { page: 3, title: "Blessings", subtitle: "Three things you are grateful for today." },
   affirmations: { page: 4, title: "Affirmation", subtitle: "Choose one to carry with you — or write your own." },
-  workout: { page: 5, title: "Workout", subtitle: "How will you move your body today?" },
+  workout: { page: 5, title: "Workout", subtitle: "How will you move your body today? Select all that apply." },
   dailyGoals: { page: 6, title: "Currently Working Towards", subtitle: "Your goals for today — up to five." },
   quote: { page: 7, title: "Daily Inspiration", subtitle: "A moment to pause and reflect." },
   actionsYesterday: { page: 8, title: "Yesterday's Actions", subtitle: "What did you do yesterday to reach your goals?" },
@@ -70,7 +73,8 @@ export default function FlowScreen() {
         blessings: e.blessings,
         affirmationSelected: e.affirmationSelected,
         affirmationCustom: e.affirmationCustom,
-        workout: e.workout,
+        workouts: e.workouts ?? [],
+        mood: e.mood ?? "",
         dailyGoals: e.dailyGoals,
         actionsYesterday: e.actionsYesterday,
         accomplishedYesterday: e.accomplishedYesterday,
@@ -85,7 +89,7 @@ export default function FlowScreen() {
 
   const steps = useMemo<StepKey[]>(() => {
     const special = data?.isSpecial;
-    const s: StepKey[] = [];
+    const s: StepKey[] = ["mood"];
     if (special) s.push("morningRitual", "weeklyGoals");
     s.push("blessings", "affirmations", "workout", "dailyGoals", "quote", "actionsYesterday", "actionsTomorrow", "journal");
     if (special) s.push("weekly");
@@ -170,6 +174,28 @@ export default function FlowScreen() {
         <Text style={styles.stepSubtitle}>{meta.subtitle}</Text>
 
         <View style={styles.fields}>
+          {stepKey === "mood" && (
+            <View style={styles.moodWrap}>
+              {MOODS.map((m) => {
+                const selected = entry.mood === m.key;
+                return (
+                  <Pressable
+                    key={m.key}
+                    testID={`mood-${m.key}`}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                      update({ mood: entry.mood === m.key ? "" : m.key });
+                    }}
+                    style={[styles.moodItem, selected && styles.moodItemSelected]}
+                  >
+                    <Text style={styles.moodEmoji}>{m.emoji}</Text>
+                    <Text style={[styles.moodLabel, selected && styles.moodLabelSelected]}>{m.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
           {stepKey === "morningRitual" &&
             entry.morningRitual.map((v, i) => (
               <TextField
@@ -242,15 +268,24 @@ export default function FlowScreen() {
 
           {stepKey === "workout" && (
             <View style={styles.chipWrap}>
-              {WORKOUTS.map((w) => (
-                <Chip
-                  key={w}
-                  testID={`workout-${w}`}
-                  label={w}
-                  selected={entry.workout === w}
-                  onPress={() => update({ workout: entry.workout === w ? "" : w })}
-                />
-              ))}
+              {WORKOUTS.map((w) => {
+                const selected = entry.workouts.includes(w);
+                return (
+                  <Chip
+                    key={w}
+                    testID={`workout-${w}`}
+                    label={w}
+                    selected={selected}
+                    onPress={() =>
+                      update({
+                        workouts: selected
+                          ? entry.workouts.filter((x) => x !== w)
+                          : [...entry.workouts, w],
+                      })
+                    }
+                  />
+                );
+              })}
             </View>
           )}
 
@@ -483,6 +518,21 @@ const useStyles = makeStyles((c) => ({
   affTextSelected: { color: c.onBrandPrimary },
   orLabel: { fontFamily: fonts.medium, fontSize: 13, color: c.muted, textAlign: "center", marginTop: 6 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  moodWrap: { flexDirection: "row", justifyContent: "space-between", gap: 6 },
+  moodItem: {
+    flex: 1,
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: c.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  moodItemSelected: { backgroundColor: c.brandPrimary, borderColor: c.brandPrimary },
+  moodEmoji: { fontSize: 30 },
+  moodLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.onSurfaceTertiary },
+  moodLabelSelected: { color: c.onBrandPrimary },
   quoteBox: {
     backgroundColor: c.surfaceSecondary,
     borderRadius: 20,

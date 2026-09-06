@@ -31,7 +31,7 @@ export default function TodayScreen() {
   const loginDates = new Set(cal?.loginDates ?? []);
 
   const last7 = Array.from({ length: 7 }).map((_, i) =>
-    dayjs().subtract(6 - i, "day").format("YYYY-MM-DD"),
+    dayjs().day(0).add(i, "day").format("YYYY-MM-DD"),
   );
 
   return (

@@ -9,6 +9,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/src/components/error-boundary";
+import { AuthProvider } from "@/src/auth-context";
 import { queryClient } from "@/src/query-client";
 import { UserProvider } from "@/src/user-context";
 
@@ -39,13 +40,18 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <KeyboardProvider>
             <QueryClientProvider client={queryClient}>
-              <UserProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="flow" options={{ presentation: "card", animation: "slide_from_bottom" }} />
-                  <Stack.Screen name="day/[date]" options={{ presentation: "card" }} />
-                </Stack>
-              </UserProvider>
+              <AuthProvider>
+                <UserProvider>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="flow" options={{ presentation: "card", animation: "slide_from_bottom" }} />
+                    <Stack.Screen name="day/[date]" options={{ presentation: "card" }} />
+                    <Stack.Screen name="settings" options={{ presentation: "card" }} />
+                    <Stack.Screen name="auth" options={{ presentation: "modal" }} />
+                    <Stack.Screen name="recap" options={{ presentation: "card" }} />
+                  </Stack>
+                </UserProvider>
+              </AuthProvider>
             </QueryClientProvider>
           </KeyboardProvider>
         </SafeAreaProvider>

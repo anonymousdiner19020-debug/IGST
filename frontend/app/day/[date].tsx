@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDay, type DayEntry } from "@/src/api";
 import { prettyDate } from "@/src/date-utils";
 import { EmptyState, Icon, PrimaryButton } from "@/src/components/ui";
+import { moodEmoji, moodLabel } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 
@@ -59,13 +60,18 @@ export default function DayDetailScreen() {
           contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24, gap: 16 }}
           showsVerticalScrollIndicator={false}
         >
+          {e.mood ? (
+            <SectionText title="Mood" icon="smile" text={`${moodEmoji(e.mood)}  ${moodLabel(e.mood)}`} />
+          ) : null}
           <Section title="Taking Control" icon="compass" items={nonEmpty(e.morningRitual)} />
           <Section title="Weekly Goals" icon="target" items={nonEmpty(e.weeklyGoals)} />
           <Section title="Blessings" icon="gift" items={nonEmpty(e.blessings)} />
           {(e.affirmationCustom.trim() || e.affirmationSelected) ? (
             <SectionText title="Affirmation" icon="sun" text={e.affirmationCustom.trim() || e.affirmationSelected} />
           ) : null}
-          {e.workout ? <SectionText title="Workout" icon="activity" text={e.workout} /> : null}
+          {e.workouts && e.workouts.length ? (
+            <SectionText title="Workout" icon="activity" text={e.workouts.join(", ")} />
+          ) : null}
           <Section title="Currently Working Towards" icon="flag" items={nonEmpty(e.dailyGoals)} />
           <Section title="Yesterday's Actions" icon="rotate-ccw" items={nonEmpty(e.actionsYesterday)} />
           {e.accomplishedYesterday !== null ? (

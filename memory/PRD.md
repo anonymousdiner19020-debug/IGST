@@ -29,12 +29,21 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - Frontend: Today dashboard (hero, AI quote, streak widget), full daily flow (all 11 pages + final affirmation, affirmation card selection, workout chips, yes/no + count chips, notes, journal, weekly reflection), Calendar with colored streaks + legend, Search (grouped results), Progress/insights (streaks, workout breakdown).
 - Verified end-to-end by testing agent (14/14 backend tests, full frontend flow).
 
+## Implemented — Iteration 2 (2026-09-06)
+- **Auth (both):** email/password (bcrypt) + Emergent Google OAuth. DB-backed session tokens in `user_sessions`; `get_account_id` dependency; all data endpoints accept Bearer token (account) OR `userId` query (anonymous). Endpoints: `/api/auth/register|login|me|logout|session`.
+- **Anonymous→account migration:** on first sign-in the device userId's entries/logins/daily_content/profile move into the account (`deviceUserId` in auth request).
+- **Mood Check:** 5 emoji-face picker as the FIRST daily-flow step; stored per day (`entry.mood`); shown on Calendar (this-week mood strip) + Progress (mood breakdown).
+- **Daily Reminder:** `expo-notifications` local daily schedule, default 9:00 AM, adjustable + toggle in new Settings screen; contextual permission handling + Open Settings fallback. (Fires only on installed build, not Expo Go/web.)
+- **Weekly Recap:** shareable card screen (`react-native-view-shot` + `expo-sharing`) with streak/entries/mood row/wins/highlight quote and prev/next week navigation.
+- **Tweaks:** week starts Sunday (calendar `firstDay=0`, Today streak row, recap Sun–Sat window); Workout now multi-select (`workouts` array).
+- New screens: `app/auth.tsx`, `app/settings.tsx`, `app/recap.tsx`. New: `src/auth-context.tsx`, `src/notifications.ts`, `src/mood.ts`.
+- Verified by testing agent (25/25 backend tests + full frontend flows). Google OAuth not auto-tested (interactive).
+
 ## Backlog / Remaining
-- **P1:** Authentication (email+password or Google) to sync across devices — user said "add later".
-- **P1:** Add testIDs to bottom tab items and calendar day cells (robustness).
-- **P2:** Reminders/nudges to keep the streak alive.
-- **P2:** Export / share a day or weekly summary.
-- **P2:** Rich journal (photos via Emergent Object Storage).
+- **P2:** Optional login gate / account settings (change password, delete account).
+- **P2:** Calendar per-day mood emoji directly in the grid cells.
+- **P2:** Export / rich journal (photos via Emergent Object Storage).
+- Cleanup: remove legacy singular `workout` read in insights once no legacy docs remain.
 
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.

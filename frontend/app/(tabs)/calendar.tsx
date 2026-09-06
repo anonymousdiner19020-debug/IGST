@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCalendar } from "@/src/api";
 import { todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
+import { moodEmoji } from "@/src/mood";
+import dayjs from "dayjs";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 
@@ -55,6 +57,11 @@ export default function CalendarScreen() {
     return m;
   }, [data, colors]);
 
+  const moodByDate = new Map((data?.days ?? []).map((d) => [d.date, d.mood]));
+  const weekDays = Array.from({ length: 7 }).map((_, i) =>
+    dayjs().day(0).add(i, "day").format("YYYY-MM-DD"),
+  );
+
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -74,6 +81,7 @@ export default function CalendarScreen() {
         <View style={styles.calWrap}>
           <Calendar
             markingType="custom"
+            firstDay={0}
             markedDates={marked}
             maxDate={todayStr()}
             onDayPress={(d) => router.push(`/day/${d.dateString}`)}
@@ -91,6 +99,21 @@ export default function CalendarScreen() {
               textSectionTitleColor: colors.muted,
             }}
           />
+        </View>
+
+        <View style={styles.moodStrip}>
+          <Text style={styles.moodStripTitle}>This week's mood</Text>
+          <View style={styles.moodRow}>
+            {weekDays.map((d) => {
+              const m = moodByDate.get(d);
+              return (
+                <View key={d} style={styles.moodCol}>
+                  <Text style={styles.moodEmojiText}>{m ? moodEmoji(m) : "·"}</Text>
+                  <Text style={styles.moodDayLabel}>{dayjs(d).format("dd")[0]}</Text>
+                </View>
+              );
+            })}
+          </View>
         </View>
 
         <View style={styles.legend}>
@@ -160,6 +183,20 @@ const useStyles = makeStyles((c) => ({
   },
   legend: { flexDirection: "row", justifyContent: "center", gap: 20, marginTop: 20, flexWrap: "wrap" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  moodStrip: {
+    marginTop: 20,
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: c.border,
+    gap: 12,
+  },
+  moodStripTitle: { fontFamily: fonts.semibold, fontSize: 14, color: c.onSurface },
+  moodRow: { flexDirection: "row", justifyContent: "space-between" },
+  moodCol: { alignItems: "center", gap: 4 },
+  moodEmojiText: { fontSize: 22 },
+  moodDayLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
   legendDot: { width: 16, height: 16, borderRadius: 999 },
   legendLabel: { fontFamily: fonts.medium, fontSize: 12, color: c.onSurfaceTertiary },
 }));

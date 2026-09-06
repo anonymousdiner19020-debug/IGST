@@ -7,6 +7,11 @@ const BASE = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api`;
 const USER_KEY = "aura.userId";
 
 let cachedUserId: string | null = null;
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
 
 function makeId(): string {
   return `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -26,13 +31,21 @@ export async function getUserId(): Promise<string> {
 }
 
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...opts,
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((opts.headers as Record<string, string>) || {}),
+  };
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const res = await fetch(`${BASE}${path}`, { ...opts, headers });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${text}`);
+    let msg = `API ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body?.detail) msg = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    } catch {
+      // ignore
+    }
+    throw new Error(msg);
   }
   return res.json() as Promise<T>;
 }
@@ -44,7 +57,8 @@ export type DayEntry = {
   blessings: string[];
   affirmationSelected: string;
   affirmationCustom: string;
-  workout: string;
+  workouts: string[];
+  mood: string;
   dailyGoals: string[];
   actionsYesterday: string[];
   accomplishedYesterday: boolean | null;
@@ -76,7 +90,7 @@ export type InitResponse = {
 };
 
 export type CalendarResponse = {
-  days: { date: string; completed: boolean; isSpecial: boolean }[];
+  days: { date: string; completed: boolean; isSpecial: boolean; mood: string }[];
   loginDates: string[];
   totalEntries: number;
   loginDays: number;
@@ -97,18 +111,30 @@ export type InsightsResponse = {
   dayNumber: number;
   totalEntries: number;
   workoutBreakdown: Record<string, number>;
+  moodBreakdown: Record<string, number>;
   loginDays: number;
   currentStreak: number;
   longestStreak: number;
 };
 
+export type RecapResponse = {
+  startDate: string;
+  endDate: string;
+  entriesCount: number;
+  moodCounts: Record<string, number>;
+  moodsByDay: { date: string; mood: string }[];
+  wins: string[];
+  highlightQuote: { text: string; author: string } | null;
+  currentStreak: number;
+};
+
+export type AuthUser = { user_id: string; email: string; name: string; picture: string };
+export type AuthResponse = { session_token: string; user: AuthUser };
+
 // ---- API calls ----
 export const api = {
   init: (userId: string) =>
-    request<InitResponse>("/init", {
-      method: "POST",
-      body: JSON.stringify({ userId }),
-    }),
+    request<InitResponse>("/init", { method: "POST", body: JSON.stringify({ userId }) }),
   getDay: (userId: string, date: string) =>
     request<DayResponse>(`/day/${date}?userId=${encodeURIComponent(userId)}`),
   saveDay: (userId: string, date: string, entry: DayEntry) =>
@@ -119,11 +145,29 @@ export const api = {
   calendar: (userId: string) =>
     request<CalendarResponse>(`/calendar?userId=${encodeURIComponent(userId)}`),
   search: (userId: string, q: string) =>
-    request<SearchResponse>(
-      `/search?userId=${encodeURIComponent(userId)}&q=${encodeURIComponent(q)}`,
-    ),
+    request<SearchResponse>(`/search?userId=${encodeURIComponent(userId)}&q=${encodeURIComponent(q)}`),
   insights: (userId: string) =>
     request<InsightsResponse>(`/insights?userId=${encodeURIComponent(userId)}`),
+  recap: (userId: string, offset: number) =>
+    request<RecapResponse>(`/weekly-recap?userId=${encodeURIComponent(userId)}&offset=${offset}`),
+  // auth
+  register: (email: string, password: string, deviceUserId: string, name?: string) =>
+    request<AuthResponse>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, name, deviceUserId }),
+    }),
+  login: (email: string, password: string, deviceUserId: string) =>
+    request<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password, deviceUserId }),
+    }),
+  googleSession: (session_id: string, deviceUserId: string) =>
+    request<AuthResponse>("/auth/session", {
+      method: "POST",
+      body: JSON.stringify({ session_id, deviceUserId }),
+    }),
+  me: () => request<{ user: AuthUser }>("/auth/me"),
+  logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" }),
 };
 
 // ---- Hooks ----
@@ -144,6 +188,7 @@ export function useSaveDay(userId: string | null) {
       qc.invalidateQueries({ queryKey: ["day", userId, vars.date] });
       qc.invalidateQueries({ queryKey: ["calendar", userId] });
       qc.invalidateQueries({ queryKey: ["insights", userId] });
+      qc.invalidateQueries({ queryKey: ["recap", userId] });
     },
   });
 }
@@ -168,6 +213,14 @@ export function useInsights(userId: string | null) {
   return useQuery({
     queryKey: ["insights", userId],
     queryFn: () => api.insights(userId!),
+    enabled: !!userId,
+  });
+}
+
+export function useWeeklyRecap(userId: string | null, offset: number) {
+  return useQuery({
+    queryKey: ["recap", userId, offset],
+    queryFn: () => api.recap(userId!, offset),
     enabled: !!userId,
   });
 }

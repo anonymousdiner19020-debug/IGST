@@ -77,7 +77,8 @@ class TestAuraFullFlow:
             "blessings": ["health", "family", "coffee"],
             "affirmationSelected": "I am becoming stronger every day.",
             "affirmationCustom": "",
-            "workout": "Cardio",
+            "workouts": ["Cardio"],
+            "mood": "4",
             "dailyGoals": ["standup", "PR review", "gym", "", ""],
             "actionsYesterday": ["shipped feature", "", "", "", ""],
             "accomplishedYesterday": True,
@@ -91,7 +92,8 @@ class TestAuraFullFlow:
         assert r.status_code == 200, r.text
         saved = r.json()["entry"]
         assert saved["morningRitual"] == payload["morningRitual"]
-        assert saved["workout"] == "Cardio"
+        assert saved["workouts"] == ["Cardio"]
+        assert saved["mood"] == "4"
         assert saved["accomplishedYesterday"] is True
         assert saved["weekly"]["wentWell"] == "team sync"
         assert saved["dayNumber"] == 1

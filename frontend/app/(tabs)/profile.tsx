@@ -1,9 +1,11 @@
-import { ScrollView, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useInsights } from "@/src/api";
 import { shortDate } from "@/src/date-utils";
-import { Icon } from "@/src/components/ui";
+import { Icon, PrimaryButton } from "@/src/components/ui";
+import { moodEmoji, moodLabel } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 
@@ -18,22 +20,45 @@ export default function ProgressScreen() {
   const styles = useStyles();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { userId } = useUser();
   const { data } = useInsights(userId);
 
   const workouts = Object.entries(data?.workoutBreakdown ?? {}).sort((a, b) => b[1] - a[1]);
   const maxW = Math.max(1, ...workouts.map(([, v]) => v));
+  const moods = Object.entries(data?.moodBreakdown ?? {}).sort((a, b) => Number(b[0]) - Number(a[0]));
+  const maxM = Math.max(1, ...moods.map(([, v]) => v));
 
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.title}>Progress</Text>
-        {data ? <Text style={styles.subtitle}>Journeying since {shortDate(data.signupDate)}</Text> : null}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Progress</Text>
+          {data ? <Text style={styles.subtitle}>Journeying since {shortDate(data.signupDate)}</Text> : null}
+        </View>
+        <Pressable onPress={() => router.push("/settings")} hitSlop={10} testID="open-settings">
+          <Icon name="settings" size={24} color={colors.onSurface} />
+        </Pressable>
       </View>
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
       >
+        <Pressable
+          testID="weekly-recap-btn"
+          onPress={() => router.push("/recap")}
+          style={({ pressed }) => [styles.recapCard, pressed && { opacity: 0.9 }]}
+        >
+          <View style={styles.recapIcon}>
+            <Icon name="share-2" size={22} color={colors.onBrandPrimary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.recapTitle}>Weekly Recap</Text>
+            <Text style={styles.recapSub}>See & share your week's wins</Text>
+          </View>
+          <Icon name="chevron-right" size={22} color={colors.brand} />
+        </Pressable>
+
         <View style={styles.hero}>
           <Icon name="zap" size={26} color={colors.warning} />
           <Text style={styles.heroNum}>{data?.currentStreak ?? 0}</Text>
@@ -70,6 +95,27 @@ export default function ProgressScreen() {
             ))
           )}
         </View>
+        <Text style={styles.sectionTitle}>Mood breakdown</Text>
+        <View style={styles.workoutCard}>
+          {moods.length === 0 ? (
+            <Text style={styles.emptyText}>Log your mood in the daily check-in to spot patterns here.</Text>
+          ) : (
+            moods.map(([key, count]) => (
+              <View key={key} style={styles.workoutRow}>
+                <Text style={styles.moodStatEmoji}>{moodEmoji(key)}</Text>
+                <View style={{ flex: 1, gap: 6 }}>
+                  <View style={styles.workoutLabelRow}>
+                    <Text style={styles.workoutName}>{moodLabel(key)}</Text>
+                    <Text style={styles.workoutCount}>{count}</Text>
+                  </View>
+                  <View style={styles.barTrack}>
+                    <View style={[styles.barFill, { width: `${(count / maxM) * 100}%` }]} />
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -90,12 +136,36 @@ function StatCard({ icon, value, label }: { icon: any; value: string; label: str
 const useStyles = makeStyles((c) => ({
   root: { flex: 1, backgroundColor: c.surface },
   header: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingHorizontal: 20,
     paddingBottom: 12,
     backgroundColor: c.surface,
     borderBottomWidth: 1,
     borderBottomColor: c.divider,
   },
+  recapCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  recapIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: c.brandPrimary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recapTitle: { fontFamily: fonts.semibold, fontSize: 16, color: c.onSurface },
+  recapSub: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, marginTop: 2 },
+  moodStatEmoji: { fontSize: 26, width: 36, textAlign: "center" },
   title: { fontFamily: fonts.displayBold, fontSize: 28, color: c.onSurface },
   subtitle: { fontFamily: fonts.regular, fontSize: 14, color: c.muted, marginTop: 2 },
   hero: {
