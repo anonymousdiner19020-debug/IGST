@@ -95,6 +95,15 @@ export default function SettingsScreen() {
                 variant="secondary"
                 onPress={signOut}
               />
+              <Pressable
+                testID="account-safety-btn"
+                onPress={() => router.push("/account")}
+                style={styles.linkRow}
+              >
+                <Icon name="shield" size={18} color={colors.onSurface} />
+                <Text style={styles.linkText}>Account safety & password</Text>
+                <Icon name="chevron-right" size={20} color={colors.muted} />
+              </Pressable>
             </>
           ) : (
             <>
@@ -210,6 +219,8 @@ const useStyles = makeStyles((c) => ({
   },
   accountName: { fontFamily: fonts.semibold, fontSize: 16, color: c.onSurface },
   accountEmail: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, marginTop: 2 },
+  linkRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  linkText: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: c.onSurface },
   reminderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   timeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   timeLabel: { fontFamily: fonts.medium, fontSize: 15, color: c.onSurface },

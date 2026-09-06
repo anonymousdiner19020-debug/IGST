@@ -48,6 +48,7 @@ export default function RootLayout() {
                     <Stack.Screen name="day/[date]" options={{ presentation: "card" }} />
                     <Stack.Screen name="settings" options={{ presentation: "card" }} />
                     <Stack.Screen name="auth" options={{ presentation: "modal" }} />
+                    <Stack.Screen name="account" options={{ presentation: "card" }} />
                     <Stack.Screen name="recap" options={{ presentation: "card" }} />
                   </Stack>
                 </UserProvider>

@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 import { useDay, useSaveDay, type DayEntry } from "@/src/api";
 import { prettyDate, todayStr } from "@/src/date-utils";
 import { Chip, Icon, NumberedField, PrimaryButton, TextField } from "@/src/components/ui";
+import { PhotoPicker } from "@/src/components/photo-picker";
 import { MOODS } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -75,6 +76,7 @@ export default function FlowScreen() {
         affirmationCustom: e.affirmationCustom,
         workouts: e.workouts ?? [],
         mood: e.mood ?? "",
+        photos: e.photos ?? [],
         dailyGoals: e.dailyGoals,
         actionsYesterday: e.actionsYesterday,
         accomplishedYesterday: e.accomplishedYesterday,
@@ -385,14 +387,24 @@ export default function FlowScreen() {
           )}
 
           {stepKey === "journal" && (
-            <TextField
-              testID="journal-input"
-              value={entry.journal}
-              onChangeText={(t) => update({ journal: t })}
-              placeholder="Today I..."
-              multiline
-              style={{ minHeight: 260 }}
-            />
+            <View style={{ gap: 20 }}>
+              <TextField
+                testID="journal-input"
+                value={entry.journal}
+                onChangeText={(t) => update({ journal: t })}
+                placeholder="Today I..."
+                multiline
+                style={{ minHeight: 220 }}
+              />
+              <Text style={styles.qLabel}>Photos</Text>
+              {userId ? (
+                <PhotoPicker
+                  userId={userId}
+                  value={entry.photos}
+                  onChange={(photos) => update({ photos })}
+                />
+              ) : null}
+            </View>
           )}
 
           {stepKey === "weekly" && (

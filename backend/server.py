@@ -1,4 +1,6 @@
-from fastapi import FastAPI, APIRouter, Query, Header, Depends, HTTPException
+from fastapi import FastAPI, APIRouter, Query, Header, Depends, HTTPException, UploadFile, File
+from fastapi.responses import Response
+from starlette.concurrency import run_in_threadpool
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -9,6 +11,7 @@ import re
 import uuid
 import secrets
 import httpx
+import requests
 from pathlib import Path
 from pydantic import BaseModel, EmailStr, Field
 from passlib.context import CryptContext
@@ -24,6 +27,47 @@ db = client[os.environ["DB_NAME"]]
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 EMERGENT_OAUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+
+# ---- Object storage (managed) ----
+STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
+STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
+APP_NAME = "aura"
+_storage_key: Optional[str] = None
+
+
+def init_storage() -> Optional[str]:
+    global _storage_key
+    if _storage_key:
+        return _storage_key
+    if not EMERGENT_LLM_KEY:
+        return None
+    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
+    resp.raise_for_status()
+    _storage_key = resp.json()["storage_key"]
+    return _storage_key
+
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    global _storage_key
+    key = init_storage()
+    resp = requests.put(f"{STORAGE_URL}/objects/{path}",
+                        headers={"X-Storage-Key": key, "Content-Type": content_type},
+                        data=data, timeout=120)
+    if resp.status_code == 503:  # stale key: reset + retry once
+        _storage_key = None
+        key = init_storage()
+        resp = requests.put(f"{STORAGE_URL}/objects/{path}",
+                            headers={"X-Storage-Key": key, "Content-Type": content_type},
+                            data=data, timeout=120)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_object(path: str):
+    key = init_storage()
+    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
 
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 DUMMY_HASH = pwd.hash("timing-safe-dummy-password")
@@ -76,7 +120,7 @@ def empty_entry(user_id: str, d: str) -> Dict[str, Any]:
         "weeklyGoals": ["", "", "", "", ""],
         "blessings": ["", "", ""],
         "affirmationSelected": "", "affirmationCustom": "",
-        "workouts": [], "mood": "",
+        "workouts": [], "mood": "", "photos": [],
         "dailyGoals": ["", "", "", "", ""],
         "actionsYesterday": ["", "", "", "", ""],
         "accomplishedYesterday": None, "accomplishedCount": "",
@@ -95,6 +139,8 @@ def entry_has_content(entry: Dict[str, Any]) -> bool:
     if (entry.get("affirmationSelected") or entry.get("affirmationCustom") or "").strip():
         return True
     if [w for w in entry.get("workouts", []) if (w or "").strip()] or (entry.get("mood") or "").strip():
+        return True
+    if entry.get("photos"):
         return True
     if (entry.get("journal") or "").strip():
         return True
@@ -227,9 +273,19 @@ async def create_session(user_id: str, token: Optional[str] = None, days: int = 
     return token
 
 
-def user_public(u: Dict[str, Any]) -> Dict[str, str]:
+def user_public(u: Dict[str, Any]) -> Dict[str, Any]:
     return {"user_id": u["user_id"], "email": u.get("email", ""),
-            "name": u.get("name", ""), "picture": u.get("picture", "")}
+            "name": u.get("name", ""), "picture": u.get("picture", ""),
+            "hasPassword": bool(u.get("password_hash"))}
+
+
+async def get_current_user(account: Optional[str] = Depends(get_account_id)) -> Dict[str, Any]:
+    if not account:
+        raise HTTPException(401, "Not authenticated")
+    u = await db.users.find_one({"user_id": account})
+    if not u:
+        raise HTTPException(401, "Not authenticated")
+    return u
 
 
 async def migrate_anonymous(device_id: Optional[str], account_id: str):
@@ -251,6 +307,7 @@ async def migrate_anonymous(device_id: Optional[str], account_id: str):
             earliest = min(dev_p["signupDate"], acct_p["signupDate"])
             await db.profiles.update_one({"userId": account_id}, {"$set": {"signupDate": earliest}})
             await db.profiles.delete_one({"userId": device_id})
+    await db.uploads.update_many({"userId": device_id}, {"$set": {"userId": account_id}})
 
 
 # --------------------------------------------------------------------------
@@ -268,6 +325,7 @@ class DayEntry(BaseModel):
     affirmationCustom: str = ""
     workouts: List[str] = Field(default_factory=list)
     mood: str = ""
+    photos: List[str] = Field(default_factory=list)
     dailyGoals: List[str] = Field(default_factory=lambda: ["", "", "", "", ""])
     actionsYesterday: List[str] = Field(default_factory=lambda: ["", "", "", "", ""])
     accomplishedYesterday: Optional[bool] = None
@@ -294,6 +352,20 @@ class LoginReq(BaseModel):
 class SessionReq(BaseModel):
     session_id: str
     deviceUserId: Optional[str] = None
+
+
+class ChangePasswordReq(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class SetPasswordReq(BaseModel):
+    new_password: str
+
+
+class DeleteAccountReq(BaseModel):
+    confirmation: str
+    current_password: Optional[str] = None
 
 
 # --------------------------------------------------------------------------
@@ -370,7 +442,7 @@ async def google_session(req: SessionReq):
 async def me(account: Optional[str] = Depends(get_account_id)):
     if not account:
         raise HTTPException(401, "Not authenticated")
-    u = await db.users.find_one({"user_id": account}, {"_id": 0, "password_hash": 0})
+    u = await db.users.find_one({"user_id": account}, {"_id": 0})
     if not u:
         raise HTTPException(401, "Not authenticated")
     return {"user": user_public(u)}
@@ -381,6 +453,54 @@ async def logout(authorization: Optional[str] = Header(None)):
     if authorization and authorization.lower().startswith("bearer "):
         token = authorization.split(" ", 1)[1].strip()
         await db.user_sessions.delete_one({"session_token": token})
+    return {"ok": True}
+
+
+@api_router.post("/auth/change-password")
+async def change_password(req: ChangePasswordReq, authorization: Optional[str] = Header(None),
+                          user: Dict[str, Any] = Depends(get_current_user)):
+    if not user.get("password_hash"):
+        raise HTTPException(409, "No password set — use set-password to add one")
+    if not pwd.verify(req.current_password, user["password_hash"]):
+        raise HTTPException(401, "Current password is incorrect")
+    if len(req.new_password) < 6:
+        raise HTTPException(422, "Password must be at least 6 characters")
+    if pwd.verify(req.new_password, user["password_hash"]):
+        raise HTTPException(422, "New password must be different")
+    await db.users.update_one({"user_id": user["user_id"]},
+                              {"$set": {"password_hash": pwd.hash(req.new_password)}})
+    cur = (authorization.split(" ", 1)[1].strip()
+           if authorization and authorization.lower().startswith("bearer ") else None)
+    q: Dict[str, Any] = {"user_id": user["user_id"]}
+    if cur:
+        q["session_token"] = {"$ne": cur}
+    await db.user_sessions.delete_many(q)
+    return {"ok": True}
+
+
+@api_router.post("/auth/set-password")
+async def set_password(req: SetPasswordReq, user: Dict[str, Any] = Depends(get_current_user)):
+    if user.get("password_hash"):
+        raise HTTPException(409, "Password already set — use change-password")
+    if len(req.new_password) < 6:
+        raise HTTPException(422, "Password must be at least 6 characters")
+    await db.users.update_one({"user_id": user["user_id"]},
+                              {"$set": {"password_hash": pwd.hash(req.new_password)}})
+    return {"ok": True}
+
+
+@api_router.post("/auth/delete")
+async def delete_account(req: DeleteAccountReq, user: Dict[str, Any] = Depends(get_current_user)):
+    if req.confirmation != "DELETE MY ACCOUNT":
+        raise HTTPException(422, "Type DELETE MY ACCOUNT exactly")
+    if user.get("password_hash"):
+        if not req.current_password or not pwd.verify(req.current_password, user["password_hash"]):
+            raise HTTPException(401, "Current password is incorrect")
+    uid = user["user_id"]
+    for coll in (db.entries, db.daily_content, db.logins, db.profiles, db.uploads):
+        await coll.delete_many({"userId": uid})
+    await db.user_sessions.delete_many({"user_id": uid})
+    await db.users.delete_one({"user_id": uid})
     return {"ok": True}
 
 
@@ -419,6 +539,7 @@ async def get_day(d: str, userId: Optional[str] = Query(None),
     else:
         entry.setdefault("mood", "")
         entry.setdefault("workouts", [])
+        entry.setdefault("photos", [])
     content = await get_or_create_content(uid, d)
     day_no = day_number(profile["signupDate"], d)
     return {"date": d, "dayNumber": day_no, "isSpecial": is_special(day_no),
@@ -547,10 +668,60 @@ async def weekly_recap(userId: Optional[str] = Query(None), offset: int = Query(
         if c and c.get("quote"):
             highlight = c["quote"]
             break
+    best = None
+    for md in moods_by_day:
+        if md["mood"]:
+            try:
+                v = int(md["mood"])
+            except ValueError:
+                continue
+            if best is None or v >= best["moodValue"]:
+                best = {"date": md["date"], "mood": md["mood"], "moodValue": v}
+    if best:
+        best.pop("moodValue", None)
     streak = await compute_streak(uid)
     return {"startDate": start.strftime("%Y-%m-%d"), "endDate": end.strftime("%Y-%m-%d"),
             "entriesCount": entries_count, "moodCounts": mood_counts, "moodsByDay": moods_by_day,
-            "wins": wins[:5], "highlightQuote": highlight, "currentStreak": streak["currentStreak"]}
+            "wins": wins[:5], "highlightQuote": highlight, "bestDay": best,
+            "currentStreak": streak["currentStreak"]}
+
+
+@api_router.post("/upload")
+async def upload(file: UploadFile = File(...), userId: Optional[str] = Query(None),
+                 account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    data = await file.read()
+    if len(data) > 8 * 1024 * 1024:
+        raise HTTPException(413, "Image too large (max 8MB)")
+    ext = "jpg"
+    if file.filename and "." in file.filename:
+        ext = file.filename.rsplit(".", 1)[-1].lower()[:5]
+    ct = file.content_type or "image/jpeg"
+    path = f"{APP_NAME}/uploads/{uid}/{uuid.uuid4().hex}.{ext}"
+    try:
+        await run_in_threadpool(put_object, path, data, ct)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("upload failed: %s", e)
+        raise HTTPException(502, "Upload failed")
+    await db.uploads.insert_one({"path": path, "userId": uid, "contentType": ct, "createdAt": now_iso()})
+    return {"path": path}
+
+
+@api_router.get("/files/{path:path}")
+async def files(path: str, uid: Optional[str] = Query(None),
+                account: Optional[str] = Depends(get_account_id)):
+    requester = account or uid
+    if not requester:
+        raise HTTPException(401, "Not authorized")
+    rec = await db.uploads.find_one({"path": path}, {"_id": 0})
+    if not rec or rec.get("userId") != requester:
+        raise HTTPException(404, "Not found")
+    try:
+        content, ct = await run_in_threadpool(get_object, path)
+    except Exception:  # noqa: BLE001
+        raise HTTPException(404, "Not found")
+    return Response(content=content, media_type=ct,
+                    headers={"Cache-Control": "public, max-age=31536000"})
 
 
 app.include_router(api_router)
@@ -566,8 +737,14 @@ async def ensure_indexes():
         await db.users.create_index("user_id", unique=True)
         await db.user_sessions.create_index("session_token", unique=True)
         await db.user_sessions.create_index("user_id")
+        await db.uploads.create_index("path", unique=True)
+        await db.uploads.create_index("userId")
     except Exception as e:  # noqa: BLE001
         logger.warning("index setup: %s", e)
+    try:
+        await run_in_threadpool(init_storage)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("storage init: %s", e)
 
 
 @app.on_event("shutdown")

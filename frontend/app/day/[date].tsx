@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Image } from "expo-image";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useDay, type DayEntry } from "@/src/api";
+import { useDay, fileUrl, type DayEntry } from "@/src/api";
 import { prettyDate } from "@/src/date-utils";
 import { EmptyState, Icon, PrimaryButton } from "@/src/components/ui";
 import { moodEmoji, moodLabel } from "@/src/mood";
@@ -86,6 +87,24 @@ export default function DayDetailScreen() {
             <SectionText title="Notes" icon="edit" text={nonEmpty(e.tomorrowNotes).join("\n")} />
           ) : null}
           {e.journal.trim() ? <SectionText title="Journal" icon="book-open" text={e.journal} /> : null}
+          {e.photos && e.photos.length ? (
+            <View style={styles.card}>
+              <SectionHeader title="Photos" icon="image" />
+              <View style={styles.photoGrid}>
+                {e.photos.map((p) =>
+                  userId ? (
+                    <Image
+                      key={p}
+                      source={{ uri: fileUrl(p, userId) }}
+                      style={styles.photo}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  ) : null,
+                )}
+              </View>
+            </View>
+          ) : null}
           {(e.weekly.wentWell || e.weekly.improve || e.weekly.learned) ? (
             <View style={styles.card}>
               <SectionHeader title="Weekly Reflection" icon="award" />
@@ -177,5 +196,7 @@ const useStyles = makeStyles((c) => ({
   bulletNum: { fontFamily: fonts.bold, fontSize: 14, color: c.muted, width: 18 },
   bulletText: { flex: 1, fontFamily: fonts.regular, fontSize: 16, color: c.onSurface, lineHeight: 23 },
   bodyText: { fontFamily: fonts.regular, fontSize: 16, color: c.onSurface, lineHeight: 24 },
+  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  photo: { width: 100, height: 100, borderRadius: 12 },
   subLabel: { fontFamily: fonts.semibold, fontSize: 13, color: c.onSurfaceTertiary },
 }));

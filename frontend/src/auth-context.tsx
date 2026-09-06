@@ -18,6 +18,7 @@ type AuthState = {
   signInEmail: (email: string, password: string) => Promise<void>;
   signInGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState>({
@@ -27,6 +28,7 @@ const AuthContext = createContext<AuthState>({
   signInEmail: async () => {},
   signInGoogle: async () => {},
   signOut: async () => {},
+  refreshUser: async () => {},
 });
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -135,9 +137,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     queryClient.invalidateQueries();
   };
 
+  const refreshUser = async () => {
+    try {
+      const me = await api.me();
+      setUser(me.user);
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, signUpEmail, signInEmail, signInGoogle, signOut }}
+      value={{ user, loading, signUpEmail, signInEmail, signInGoogle, signOut, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

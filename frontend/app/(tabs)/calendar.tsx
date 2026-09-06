@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -20,44 +20,20 @@ export default function CalendarScreen() {
   const { userId } = useUser();
   const { data } = useCalendar(userId);
 
-  const marked = useMemo(() => {
-    const m: Record<string, any> = {};
-    const completed = new Set((data?.days ?? []).filter((d) => d.completed).map((d) => d.date));
-    const special = new Set((data?.days ?? []).filter((d) => d.isSpecial).map((d) => d.date));
-    (data?.loginDates ?? []).forEach((date) => {
-      m[date] = {
-        customStyles: {
-          container: { backgroundColor: completed.has(date) ? colors.brandPrimary : colors.brandTertiary },
-          text: { color: completed.has(date) ? colors.onBrandPrimary : colors.onBrandTertiary, fontFamily: fonts.semibold },
-        },
-      };
-    });
-    completed.forEach((date) => {
-      m[date] = {
-        customStyles: {
-          container: { backgroundColor: colors.brandPrimary },
-          text: { color: colors.onBrandPrimary, fontFamily: fonts.semibold },
-        },
-      };
-    });
-    special.forEach((date) => {
-      m[date] = {
-        ...(m[date] || {}),
-        customStyles: {
-          ...(m[date]?.customStyles || {}),
-          container: {
-            ...(m[date]?.customStyles?.container || {}),
-            borderWidth: 2,
-            borderColor: colors.warning,
-          },
-          text: m[date]?.customStyles?.text || { color: colors.onSurface, fontFamily: fonts.semibold },
-        },
-      };
-    });
-    return m;
-  }, [data, colors]);
+  const completedSet = useMemo(
+    () => new Set((data?.days ?? []).filter((d) => d.completed).map((d) => d.date)),
+    [data],
+  );
+  const specialSet = useMemo(
+    () => new Set((data?.days ?? []).filter((d) => d.isSpecial).map((d) => d.date)),
+    [data],
+  );
+  const loginSet = useMemo(() => new Set(data?.loginDates ?? []), [data]);
+  const moodByDate = useMemo(
+    () => new Map((data?.days ?? []).map((d) => [d.date, d.mood])),
+    [data],
+  );
 
-  const moodByDate = new Map((data?.days ?? []).map((d) => [d.date, d.mood]));
   const weekDays = Array.from({ length: 7 }).map((_, i) =>
     dayjs().day(0).add(i, "day").format("YYYY-MM-DD"),
   );
@@ -80,20 +56,52 @@ export default function CalendarScreen() {
 
         <View style={styles.calWrap}>
           <Calendar
-            markingType="custom"
             firstDay={0}
-            markedDates={marked}
             maxDate={todayStr()}
-            onDayPress={(d) => router.push(`/day/${d.dateString}`)}
+            dayComponent={({ date, state }: any) => {
+              if (!date) return <View style={styles.cell} />;
+              const ds = date.dateString;
+              const completed = completedSet.has(ds);
+              const login = loginSet.has(ds);
+              const special = specialSet.has(ds);
+              const mood = moodByDate.get(ds);
+              const disabled = state === "disabled";
+              const isToday = state === "today";
+              return (
+                <Pressable
+                  testID={`cal-day-${ds}`}
+                  disabled={disabled}
+                  onPress={() => router.push(`/day/${ds}`)}
+                  style={styles.cell}
+                >
+                  <View
+                    style={[
+                      styles.cellCircle,
+                      completed && { backgroundColor: colors.brandPrimary },
+                      login && !completed && { backgroundColor: colors.brandTertiary },
+                      special && { borderWidth: 2, borderColor: colors.warning },
+                      isToday && !completed && { borderWidth: 2, borderColor: colors.brand },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.cellNum,
+                        completed && { color: colors.onBrandPrimary },
+                        disabled && { color: colors.border },
+                      ]}
+                    >
+                      {date.day}
+                    </Text>
+                  </View>
+                  <Text style={styles.cellMood}>{mood ? moodEmoji(mood) : " "}</Text>
+                </Pressable>
+              );
+            }}
             theme={{
               calendarBackground: colors.surface,
               monthTextColor: colors.onSurface,
               textMonthFontFamily: fonts.display,
               textMonthFontSize: 18,
-              dayTextColor: colors.onSurface,
-              textDayFontFamily: fonts.medium,
-              textDisabledColor: colors.border,
-              todayTextColor: colors.brand,
               arrowColor: colors.brand,
               textDayHeaderFontFamily: fonts.semibold,
               textSectionTitleColor: colors.muted,
@@ -181,6 +189,16 @@ const useStyles = makeStyles((c) => ({
     borderWidth: 1,
     borderColor: c.border,
   },
+  cell: { alignItems: "center", justifyContent: "flex-start", width: 40, height: 46 },
+  cellCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cellNum: { fontFamily: fonts.semibold, fontSize: 14, color: c.onSurface },
+  cellMood: { fontSize: 12, height: 14, lineHeight: 14 },
   legend: { flexDirection: "row", justifyContent: "center", gap: 20, marginTop: 20, flexWrap: "wrap" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   moodStrip: {

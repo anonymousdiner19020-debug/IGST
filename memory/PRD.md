@@ -40,10 +40,15 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - Verified by testing agent (25/25 backend tests + full frontend flows). Google OAuth not auto-tested (interactive).
 
 ## Backlog / Remaining
-- **P2:** Optional login gate / account settings (change password, delete account).
-- **P2:** Calendar per-day mood emoji directly in the grid cells.
-- **P2:** Export / rich journal (photos via Emergent Object Storage).
-- Cleanup: remove legacy singular `workout` read in insights once no legacy docs remain.
+- **P2:** Calendar month-level mood insights / longer trends.
+- Note: account deletion removes all DB data + upload records; raw blobs in Emergent Object Storage can't be deleted (no delete API) — acceptable, they're orphaned & inaccessible.
+
+## Implemented — Iteration 3 (2026-09-06)
+- **Journal Photos:** up to 3 photos/day (camera or library via `expo-image-picker`, contextual permissions + Open Settings fallback) uploaded to Emergent Managed Object Storage through `/api/upload`; paths saved on `entry.photos`; displayed via ownership-checked `/api/files/{path}?uid=`. New `src/components/photo-picker.tsx`; shown in flow Journal step + Day Detail.
+- **Calendar Moods:** custom `dayComponent` renders each day's mood emoji inside the calendar square (Sunday-first, completed = brand circle, today ring, special-day border).
+- **Account Safety:** new `app/account.tsx` — change-password (verify current, invalidate other sessions), set-password (Google-only accounts), and permanent account deletion (typed `DELETE MY ACCOUNT` + current password) erasing entries/logins/daily_content/profile/uploads/sessions/user. `hasPassword` added to `/auth/me`.
+- **Recap Streaks:** weekly recap now shows a "Best day" (highest mood that week) highlight + a 7-day mood-trend bar chart.
+- Verified by testing agent (32/32 backend tests + frontend flows). Google OAuth not auto-tested (interactive).
 
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.

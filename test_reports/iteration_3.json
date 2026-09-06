@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 3 review — Photos + Calendar moods-in-cell + Account safety (change/set/delete password) + Recap best-day/mood-trend. Backend: 32/32 pytest tests passed (25 regression + 7 new). New coverage: /api/upload accepts multipart, returns {path}; /api/files/{path}?uid=<owner> serves bytes with image/* content-type; wrong uid → 404; missing bearer & missing uid → 401; other user's bearer → 404. Day entry persists `photos` array (PUT/GET) and photos alone flip calendar day to completed:true. /api/auth/change-password: wrong current→401, <6 chars→422, same-as-old→422, success→200, current token still valid on /me, login with old password→401 and with new→200. /api/auth/set-password on account that already has a password → 409. /api/auth/delete: wrong confirmation string→422, wrong current password→401, correct→200 with /me returning 401 afterwards, login with old creds→401, and file at previously-uploaded path→404 (uploads collection erased). /api/auth/me user payload includes hasPassword:true after register. /api/weekly-recap: bestDay is {date,mood} matching the highest mood day in the Sunday-Saturday window (today mood=5 → bestDay.date=today, mood='5'), moodsByDay length=7 with {date,mood} objects. Frontend (Expo web, 390x844): Journal step (Step 11 of 13) shows a dedicated Photos section with 'Take photo' + 'Choose photo' Pressables and 'Up to 3 photos' helper (testIDs photo-camera / photo-library). Calendar cells now render the day's mood emoji beneath the date circle for days with mood (verified 😀 on 2026-09-06 after saving an entry with mood=5); firstDay=0 (Sunday-first) and header reads Sun Mon Tue Wed Thu Fri Sat. Settings (signed in) shows the new 'Account safety & password' row (account-safety-btn) linking to /account. /account renders CHANGE PASSWORD (current-password, new-password, save-password) and DANGER ZONE (delete-confirm, delete-password, delete-account) with typed 'DELETE MY ACCOUNT' confirmation; posting a wrong current password surfaces the exact 'Current password is incorrect' server message inline. Weekly Recap card renders 'Best day → Sunday' with 😀 emoji and a 'Mood trend' 7-bar chart (S M T W T F S). No red screens, no deprecated Expo packages (expo-image-picker in use as intended, no expo-av / expo-barcode-scanner / expo-background-fetch usage found).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter3_features.py",
+    "/app/backend/tests/test_auth_and_features.py",
+    "/app/backend/tests/test_aura_api.py",
+    "/app/test_reports/pytest/iteration_3.xml",
+    "/app/test_reports/pytest/iteration_3_all.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py `/api/upload` correctly enforces 8MB limit, stores in `<APP_NAME>/uploads/<uid>/<uuid>.<ext>`, indexes {path, userId} and returns only the path — good.",
+    "server.py `/api/files/{path:path}` requires an identifier (account OR uid query) and cross-checks ownership before returning bytes; wrong uid → 404, missing identifier → 401 — matches spec.",
+    "server.py delete_account clears entries, daily_content, logins, profiles, uploads, user_sessions and users for the account — verified end-to-end. Note: object-storage blobs themselves are NOT deleted (only the uploads collection row); if privacy-critical, add a best-effort delete_object loop before removing the mongo records.",
+    "server.py change_password preserves the current session by excluding session_token from delete_many({user_id}) — good. Consider surfacing the invalidated-other-sessions behaviour in the UI.",
+    "server.py weekly-recap bestDay uses `>=` so on ties the LATEST day wins — sensible; matches the visual 'highlight the most recent best day' UX.",
+    "flow.tsx PhotoPicker is wired to /api/upload via api.ts; onChange updates entry.photos which is included in the PUT payload (flow.tsx:79 and payload construction) — good.",
+    "calendar.tsx custom dayComponent renders mood emoji per-cell using `moodByDate` from GET /api/calendar; Sunday-first via firstDay=0 — matches spec.",
+    "account.tsx (205 lines), photo-picker.tsx (159 lines), recap.tsx (252 lines), flow.tsx (594 lines) — all under the 700-line threshold.",
+    "photo-picker.tsx uses expo-image-picker (current, non-deprecated). No expo-av / expo-barcode-scanner / expo-background-fetch anywhere in package.json or source.",
+    "server.py:279 exposes `hasPassword` in user_public — frontend can safely branch between change-password vs set-password based on it (verified /account uses hasPassword to swap the label).",
+    "conftest.py shared `api` session sets Content-Type: application/json which breaks multipart uploads; the new iteration-3 upload tests bypass it with a local requests.post — worth documenting so future testing agents don't stumble on this."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter3_features.py (new)"
+  ],
+  "success_rate": {"backend": "100% (32/32)", "frontend": "100% of iteration-3 features verified"},
+  "seed_data_creation": "Per-test lowercase test_i3_<uuid>@aura.com accounts created via /api/auth/register; anonymous device IDs prefixed TEST_. Also created one UI-flow account tester_<ts>@aura.com and one journal entry with mood=5 on 2026-09-06 to verify calendar emoji + bestDay in recap. No production data touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 3 backend tests live in /app/backend/tests/test_iter3_features.py; run full suite with `pytest backend/tests/ -n 0` (xdist loadscope). IMPORTANT: the shared `api` fixture in conftest.py forces Content-Type: application/json, which breaks FastAPI's UploadFile parsing — use the `_upload()` helper (raw requests.post) when hitting /api/upload. testIDs for iteration-3 UI: photo-camera / photo-library / remove-photo-<suffix>; account-safety-btn (Settings); current-password / new-password / save-password / delete-confirm / delete-password / delete-account (/account); recap 'Best day' + 'Mood trend' render inside the existing weekly-recap card; calendar mood emoji renders inside each `cal-day-YYYY-MM-DD` cell using colors.brandPrimary background when completed. Journal step is Step 11 of 13 in the flow — needs 10 clicks of flow-next from a fresh /flow entry to reach the Photos section. Object storage is real; uploads/files verified with a 1x1 PNG round-trip. Server clock is Sept 2026 (2026-09-06 = Sunday).",
+  "rca_of_issue": "N/A — all requested iteration-3 features pass end-to-end."
+}

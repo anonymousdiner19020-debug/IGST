@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
+import dayjs from "dayjs";
 import { useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import ViewShot, { captureRef } from "react-native-view-shot";
@@ -98,12 +99,31 @@ export default function RecapScreen() {
                 </View>
               </View>
 
-              <View style={styles.moodRow}>
-                {data.moodsByDay.map((m) => (
-                  <Text key={m.date} style={styles.moodEmoji}>
-                    {m.mood ? moodEmoji(m.mood) : "·"}
-                  </Text>
-                ))}
+              {data.bestDay ? (
+                <View style={styles.bestBox}>
+                  <Text style={styles.bestEmoji}>{moodEmoji(data.bestDay.mood)}</Text>
+                  <View>
+                    <Text style={styles.winsTitle}>Best day</Text>
+                    <Text style={styles.bestText}>{dayjs(data.bestDay.date).format("dddd")}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              <View style={styles.trendBox}>
+                <Text style={styles.winsTitle}>Mood trend</Text>
+                <View style={styles.trendRow}>
+                  {data.moodsByDay.map((m) => {
+                    const v = m.mood ? Number(m.mood) : 0;
+                    return (
+                      <View key={m.date} style={styles.trendCol}>
+                        <View style={styles.trendTrack}>
+                          <View style={[styles.trendFill, { height: `${v ? (v / 5) * 100 : 5}%` }]} />
+                        </View>
+                        <Text style={styles.trendDay}>{dayjs(m.date).format("dd")[0]}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
 
               {data.wins.length > 0 ? (
@@ -190,6 +210,22 @@ const useStyles = makeStyles((c) => ({
   bigLabel: { fontFamily: fonts.medium, fontSize: 13, color: c.onBrandPrimary, opacity: 0.9 },
   moodRow: { flexDirection: "row", justifyContent: "space-between" },
   moodEmoji: { fontSize: 24 },
+  bestBox: { flexDirection: "row", alignItems: "center", gap: 12 },
+  bestEmoji: { fontSize: 34 },
+  bestText: { fontFamily: fonts.displayBold, fontSize: 20, color: c.onBrandPrimary },
+  trendBox: { gap: 10 },
+  trendRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 80 },
+  trendCol: { alignItems: "center", gap: 6, flex: 1 },
+  trendTrack: {
+    width: 14,
+    height: 56,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    justifyContent: "flex-end",
+    overflow: "hidden",
+  },
+  trendFill: { width: "100%", borderRadius: 999, backgroundColor: c.onBrandPrimary },
+  trendDay: { fontFamily: fonts.medium, fontSize: 11, color: c.onBrandPrimary, opacity: 0.9 },
   winsBox: { gap: 10 },
   winsTitle: { fontFamily: fonts.semibold, fontSize: 14, color: c.onBrandPrimary, opacity: 0.9 },
   winRow: { flexDirection: "row", alignItems: "center", gap: 8 },

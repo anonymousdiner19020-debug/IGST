@@ -9,14 +9,19 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.dailygrowthhub.zjacc0"
+      "bundleIdentifier": "com.emergent.dailygrowthhub.zjacc0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take photos to add to your journal entries",
+        "NSPhotoLibraryUsageDescription": "Add photos from your library to journal entries"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.emergent.dailygrowthhub.zjacc0"
+      "package": "com.emergent.dailygrowthhub.zjacc0",
+      "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
     },
     "web": {
       "bundler": "metro",
@@ -41,7 +46,14 @@
       "expo-status-bar",
       "@react-native-vector-icons/feather",
       "expo-sharing",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Add photos from your library to journal entries",
+          "cameraPermission": "Take photos to add to your journal entries"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

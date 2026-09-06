@@ -1,5 +1,6 @@
 // Aura API client + react-query hooks.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Platform } from "react-native";
 
 import { storage } from "@/src/utils/storage";
 
@@ -50,6 +51,35 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// ---- Photo upload / display ----
+export function fileUrl(path: string, userId: string): string {
+  return `${BASE}/files/${path}?uid=${encodeURIComponent(userId)}`;
+}
+
+export async function uploadPhoto(
+  userId: string,
+  asset: { uri: string; fileName?: string | null; mimeType?: string | null },
+): Promise<{ path: string }> {
+  const form = new FormData();
+  const name = asset.fileName || `photo_${Date.now()}.jpg`;
+  const type = asset.mimeType || "image/jpeg";
+  if (Platform.OS === "web") {
+    const blob = await (await fetch(asset.uri)).blob();
+    form.append("file", blob, name);
+  } else {
+    form.append("file", { uri: asset.uri, name, type } as any);
+  }
+  const headers: Record<string, string> = {};
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const res = await fetch(`${BASE}/upload?userId=${encodeURIComponent(userId)}`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+  if (!res.ok) throw new Error("Upload failed");
+  return res.json();
+}
+
 // ---- Types ----
 export type DayEntry = {
   morningRitual: string[];
@@ -59,6 +89,7 @@ export type DayEntry = {
   affirmationCustom: string;
   workouts: string[];
   mood: string;
+  photos: string[];
   dailyGoals: string[];
   actionsYesterday: string[];
   accomplishedYesterday: boolean | null;
@@ -125,10 +156,11 @@ export type RecapResponse = {
   moodsByDay: { date: string; mood: string }[];
   wins: string[];
   highlightQuote: { text: string; author: string } | null;
+  bestDay: { date: string; mood: string } | null;
   currentStreak: number;
 };
 
-export type AuthUser = { user_id: string; email: string; name: string; picture: string };
+export type AuthUser = { user_id: string; email: string; name: string; picture: string; hasPassword: boolean };
 export type AuthResponse = { session_token: string; user: AuthUser };
 
 // ---- API calls ----
@@ -168,6 +200,21 @@ export const api = {
     }),
   me: () => request<{ user: AuthUser }>("/auth/me"),
   logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" }),
+  changePassword: (current_password: string, new_password: string) =>
+    request<{ ok: boolean }>("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ current_password, new_password }),
+    }),
+  setPassword: (new_password: string) =>
+    request<{ ok: boolean }>("/auth/set-password", {
+      method: "POST",
+      body: JSON.stringify({ new_password }),
+    }),
+  deleteAccount: (confirmation: string, current_password?: string) =>
+    request<{ ok: boolean }>("/auth/delete", {
+      method: "POST",
+      body: JSON.stringify({ confirmation, current_password }),
+    }),
 };
 
 // ---- Hooks ----
