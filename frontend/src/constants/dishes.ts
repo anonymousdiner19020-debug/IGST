@@ -123,6 +123,13 @@ export const INGREDIENTS: Record<string, Ingredient> = {
   blackberry: { id: "blackberry", emoji: "🫐", color: "#3A2A4D", label: "Blackberry" },
   apple: { id: "apple", emoji: "🍎", color: "#D62828", label: "Apple" },
   plum: { id: "plum", emoji: "🟣", color: "#7B4B94", label: "Plum" },
+
+  // Level 17 — More Philly candy.
+  mike_and_ikes: { id: "mike_and_ikes", emoji: "🍬", color: "#F2542D", label: "Mike and Ikes" },
+  hot_tamales: { id: "hot_tamales", emoji: "🌶️", color: "#C1121F", label: "Hot Tamales" },
+  chocolate_drop: { id: "chocolate_drop", emoji: "🍫", color: "#4E2A1E", label: "Chocolate Drop" },
+  red_licorice: { id: "red_licorice", emoji: "🟥", color: "#D62828", label: "Red Licorice" },
+  peanut_butter_cups: { id: "peanut_butter_cups", emoji: "🥜", color: "#C68A3E", label: "Peanut Butter Cups" },
 };
 
 export type Dish = {
@@ -332,6 +339,19 @@ export const FALLBACK_DISHES: Dish[] = [
     special_options: [],
     verb: "fry",
     reward_coins: 255,
+    moves: 36,
+    customers_per_level: 10,
+  },
+  {
+    id: "candy_shop",
+    name: "Candy Shop",
+    emoji: "🍬",
+    unlock_level: 17,
+    base_recipe: { mike_and_ikes: 2, hot_tamales: 2, chocolate_drop: 2, red_licorice: 2, peanut_butter_cups: 2 },
+    topping_options: [],
+    special_options: [],
+    verb: "box",
+    reward_coins: 265,
     moves: 36,
     customers_per_level: 10,
   },

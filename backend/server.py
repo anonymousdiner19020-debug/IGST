@@ -54,6 +54,8 @@ DISH_CATALOG = [
      "recipe": {"good_and_plenty": 2, "double_bubble": 2, "easter_eggs": 2, "mallo_cups": 2, "peppermint_patties": 2}, "reward_coins": 245, "moves": 36},
     {"id": "fruit_pierogies", "name": "Fruit Pierogies", "emoji": "🥟", "unlock_level": 16,
      "recipe": {"strawberry": 2, "blueberry": 2, "blackberry": 2, "apple": 2, "cherry": 2}, "reward_coins": 255, "moves": 36},
+    {"id": "candy_shop", "name": "Candy Shop", "emoji": "🍬", "unlock_level": 17,
+     "recipe": {"mike_and_ikes": 2, "hot_tamales": 2, "chocolate_drop": 2, "red_licorice": 2, "peanut_butter_cups": 2}, "reward_coins": 265, "moves": 36},
     {"id": "donuts", "name": "Donuts", "emoji": "🍩", "unlock_level": 4,
      "recipe": {"vanilla_donut": 2, "chocolate_donut": 2, "strawberry_donut": 2, "sprinkles": 2}, "reward_coins": 210, "moves": 36},
 ]
