@@ -62,6 +62,7 @@ export default function RootLayout() {
           <Stack.Screen name="eagles-flip" />
           <Stack.Screen name="hockey-shootout" />
           <Stack.Screen name="word-search" />
+          <Stack.Screen name="mini-games" />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

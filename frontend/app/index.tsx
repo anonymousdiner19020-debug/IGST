@@ -312,6 +312,12 @@ export default function Home() {
               onPress={() => router.push("/level-map")}
             />
             <SecondaryButton
+              testID="minis-button"
+              emoji="🎮"
+              label="Minis"
+              onPress={() => router.push("/mini-games")}
+            />
+            <SecondaryButton
               testID="gallery-button"
               emoji="🏛️"
               label="Badges"

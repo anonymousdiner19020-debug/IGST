@@ -231,4 +231,8 @@ export const api = {
         body: JSON.stringify(payload),
       }
     ),
+  replayMini: (id: string) =>
+    req<{ cost: number; player: PlayerDTO }>(`/players/${id}/replay-mini`, {
+      method: "POST",
+    }),
 };

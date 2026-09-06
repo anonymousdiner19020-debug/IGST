@@ -861,6 +861,20 @@ async def word_search_reward(player_id: str, payload: dict = Body(...)):
     return {"coins_awarded": coins_awarded, "completed": completed, "found": found, "player": player_public(updated)}
 
 
+@api_router.post("/players/{player_id}/replay-mini")
+async def replay_mini(player_id: str, payload: dict = Body(default={})):
+    doc = await db.players.find_one({"id": player_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Player not found")
+    REPLAY_COST = 25
+    if doc.get("coins", 0) < REPLAY_COST:
+        raise HTTPException(status_code=400, detail="Not enough coins")
+    new_coins = doc["coins"] - REPLAY_COST
+    await db.players.update_one({"id": player_id}, {"$set": {"coins": new_coins}})
+    doc["coins"] = new_coins
+    return {"cost": REPLAY_COST, "player": player_public(doc)}
+
+
 @api_router.post("/revenuecat/webhook")
 async def revenuecat_webhook(request: Request, authorization: str | None = Header(default=None)):
     expected = os.environ.get("REVENUECAT_WEBHOOK_AUTH")
