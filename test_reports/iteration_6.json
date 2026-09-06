@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 6 review — streak-freeze (monthly rest day), Today's rest-day pill + recurring-gratitude card, Affirmation moved to step 2, page-9 wording 'Today's Actions'. Backend: 62/62 pytest pass (53 regression + 9 new iter6). Streak-freeze scenarios verified against server clock 2026-09-06: (a) logins 09-06,05,03,02 → currentStreak=4, restDayAvailable=false, longestStreak=2 (via /calendar + /insights); (b) logins 09-06,05,02 (two gaps in same month) → currentStreak=2, restDayAvailable=false; (c) logins 09-06,05,04 (no gaps) → currentStreak=3, restDayAvailable=true, longestStreak=3; (d) POST /api/init returns restDayAvailable=true; (e) longestStreak strict-consecutive: logins 09-01..03 + 09-05..06 → longestStreak=3 while currentStreak=5 via freeze; (f) cursor stops at earliest login. /api/weekly-recap.currentStreak also uses the new logic. /api/search page-9 label is now 'Today's Actions' and old 'Tomorrow's Actions' wording is gone. /api/gratitude-trends still returns top blessing (family time, count=2) for the Today card. Frontend (Expo web, 390x844) seeded uid TEST_i6_ui_* with two entries (2026-09-05, 2026-09-06, blessing='family time'): Today screen renders rest-day-pill 'Rest day ready' (coffee icon, freeze unused for lonely 09-06 login) and gratitude-reminder card 'A recurring gratitude — family time — You've been grateful for this 2 times'. Daily flow verified end-to-end: step 1 title 'How are you feeling?' with 5 mood options, step 2 shows PAGE 4 'Affirmation' with 3 selectable affirmations + custom TextInput (testID affirmation-0..2, affirmation-custom); selecting an affirmation and advancing displays affirmation-banner near bottom on later steps. Page 9 renders title 'Today's Actions', subtitle 'What will you do today to reach your goals?', label 'Actions I will take today' with 5 numbered inputs — old 'Tomorrow' wording is gone. No deprecated Expo packages detected, no red screens, no console errors (only benign expo-notifications web warnings).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter6_features.py",
+    "/app/test_reports/pytest/iteration_6.xml",
+    "/app/test_reports/pytest/iteration_6_all.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py:221-252 compute_streak — starts cursor at today (UTC), walks backwards. If cursor date is in login set: current+=1. Else if cursor<earliest: break; else record month freeze; break on second miss in same month. rest_day_available = current_month not in freezes_used. longestStreak computed separately via strict consecutive run. Matches spec exactly.",
+    "server.py:534 POST /api/init upserts today's login THEN calls compute_streak → freeze semantics correct (init always contributes today, so freeze is only spent on a legitimate gap).",
+    "server.py:107-112 SEARCH_FIELDS entry for actionsTomorrow uses label 'Today's Actions' (page 9) — old 'Tomorrow's Actions' wording is gone. Verified via /api/search response.",
+    "flow.tsx:94-96 step order builder pushes 'mood' then 'affirmations' first (before day-1 quote/final tail), then blessings/workout/dailyGoals/quote/actionsYesterday/actionsTomorrow/journal — Affirmation is now step 2 as spec required.",
+    "flow.tsx:47 actionsTomorrow step meta uses title 'Today's Actions' + subtitle 'What will you do today to reach your goals?' and flow.tsx:398 label 'Actions I will take today' — all three matches spec.",
+    "flow.tsx:488-495 mid-flow affirmation-banner shown when affirmationText truthy AND step ∉ {affirmations, final} — unchanged from iter5 and still correct.",
+    "(tabs)/index.tsx:31 restDayAvailable prefers init value, falls back to calendar value, defaults to true. Rest-day pill (testID rest-day-pill) swaps icon+text between 'Rest day ready' (coffee) and 'Rest day used' (check). Gratitude reminder card (testID gratitude-reminder) gates on gratitude.blessings[0] — hidden when no repeats.",
+    "compute_streak walks by UTC 'today' which matches server-fixed clock 2026-09-06. Cursor stopping condition (cursor<earliest) prevents phantom freezes off the front of history."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter6_features.py (new — 9 test cases covering freeze, longestStreak, wrap endpoints, page-9 label, gratitude top blessing)"
+  ],
+  "success_rate": {"backend": "100% (62/62, 9/9 iter6)", "frontend": "100% of iteration-6 features verified end-to-end"},
+  "seed_data_creation": "Backend iter6 tests use per-test anonymous userIds prefixed TEST_i6_ and seed synthetic logins directly into db.logins via pymongo (since PUT /api/day does NOT create a login and there is no dedicated seed endpoint). Each test cleans its own login set. Frontend: seeded uid TEST_i6_ui_* via two PUT /api/day calls (2026-09-05, 2026-09-06 with blessing='family time') then localStorage.setItem('aura.userId', ...) before reload — /api/init upserts today's login so restDayAvailable=true is exercised. No production data touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter6 backend tests in /app/backend/tests/test_iter6_features.py. To seed streak scenarios: insert docs {userId, date:'YYYY-MM-DD', at:<iso>} directly into db.logins (PUT /api/day does NOT touch logins). Server clock is fixed to 2026-09-06 (Sunday). Freeze semantics: currentStreak walks back from today; a single missed day per calendar month is forgiven; second miss in same month breaks streak; cursor stops at earliest login. restDayAvailable=false only if THIS month's freeze was consumed to keep streak alive. longestStreak is strict-consecutive (unaffected by freeze). All streak-returning endpoints (/init, /calendar, /insights, /weekly-recap uses currentStreak) include restDayAvailable except weekly-recap which only exposes currentStreak. /api/search page 9 label is 'Today's Actions'. Flow.tsx step order: mood → affirmations → (day-1 injected content) → blessings → workout → dailyGoals → quote → actionsYesterday → actionsTomorrow → journal → final.",
+  "rca_of_issue": "N/A — all iteration-6 features pass end-to-end."
+}

@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useCalendar, useDay, useOnThisDay } from "@/src/api";
+import { useCalendar, useDay, useOnThisDay, useGratitudeTrends } from "@/src/api";
 import { greeting, prettyDate, todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
 import { moodEmoji } from "@/src/mood";
@@ -26,6 +26,9 @@ export default function TodayScreen() {
   const { data: day, isLoading } = useDay(userId, today);
   const { data: cal } = useCalendar(userId);
   const { data: otd } = useOnThisDay(userId);
+  const { data: gratitude } = useGratitudeTrends(userId);
+  const topBlessing = gratitude?.blessings?.[0];
+  const restDayAvailable = init?.restDayAvailable ?? cal?.restDayAvailable ?? true;
 
   const quote = day?.content.quote;
   const done = day?.hasContent;
@@ -98,8 +101,14 @@ export default function TodayScreen() {
               <View style={styles.streakFlame}>
                 <Icon name="zap" size={18} color={colors.warning} />
                 <Text style={styles.streakNum}>{streak}</Text>
+                <Text style={styles.streakLabel}>day streak</Text>
               </View>
-              <Text style={styles.streakLabel}>day streak</Text>
+              <View style={styles.restPill} testID="rest-day-pill">
+                <Icon name={restDayAvailable ? "coffee" : "check"} size={13} color={restDayAvailable ? colors.brand : colors.muted} />
+                <Text style={[styles.restPillText, !restDayAvailable && { color: colors.muted }]}>
+                  {restDayAvailable ? "Rest day ready" : "Rest day used"}
+                </Text>
+              </View>
             </View>
             <View style={styles.dotsRow}>
               {last7.map((d) => {
@@ -115,6 +124,17 @@ export default function TodayScreen() {
               })}
             </View>
           </View>
+          {topBlessing ? (
+            <View style={styles.gratCard} testID="gratitude-reminder">
+              <View style={styles.gratHead}>
+                <Icon name="heart" size={16} color={colors.brand} />
+                <Text style={styles.gratLabel}>A recurring gratitude</Text>
+              </View>
+              <Text style={styles.gratText}>{topBlessing.text}</Text>
+              <Text style={styles.gratCount}>You've been grateful for this {topBlessing.count} times</Text>
+            </View>
+          ) : null}
+
           {otd?.found ? (
             <Pressable
               testID="on-this-day-card"
@@ -195,10 +215,22 @@ const useStyles = makeStyles((c) => ({
     borderWidth: 1,
     borderColor: c.border,
   },
-  streakHeader: { flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 18 },
-  streakFlame: { flexDirection: "row", alignItems: "center", gap: 6 },
+  streakHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  streakFlame: { flexDirection: "row", alignItems: "baseline", gap: 6 },
   streakNum: { fontFamily: fonts.displayBold, fontSize: 26, color: c.onSurface },
   streakLabel: { fontFamily: fonts.medium, fontSize: 15, color: c.muted },
+  restPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  restPillText: { fontFamily: fonts.semibold, fontSize: 12, color: c.brand },
   dotsRow: { flexDirection: "row", justifyContent: "space-between" },
   dotCol: { alignItems: "center", gap: 6 },
   dot: {
@@ -220,6 +252,17 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.border,
     gap: 8,
   },
+  gratCard: {
+    marginTop: 20,
+    backgroundColor: c.brandTertiary,
+    borderRadius: 20,
+    padding: 20,
+    gap: 8,
+  },
+  gratHead: { flexDirection: "row", alignItems: "center", gap: 8 },
+  gratLabel: { fontFamily: fonts.semibold, fontSize: 13, color: c.onBrandTertiary, textTransform: "uppercase", letterSpacing: 0.5 },
+  gratText: { fontFamily: fonts.display, fontSize: 20, lineHeight: 28, color: c.onBrandTertiary },
+  gratCount: { fontFamily: fonts.regular, fontSize: 13, color: c.onBrandTertiary, opacity: 0.8 },
   otdHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   otdLabel: { fontFamily: fonts.semibold, fontSize: 13, color: c.brand },
   otdSnippet: { fontFamily: fonts.display, fontSize: 17, lineHeight: 25, color: c.onSurface },

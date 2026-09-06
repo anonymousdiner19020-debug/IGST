@@ -44,7 +44,7 @@ const STEP_META: Record<StepKey, { page?: number; title: string; subtitle: strin
   dailyGoals: { page: 6, title: "Currently Working Towards", subtitle: "Your goals for today — up to five." },
   quote: { page: 7, title: "Daily Inspiration", subtitle: "A moment to pause and reflect." },
   actionsYesterday: { page: 8, title: "Yesterday's Actions", subtitle: "What did you do yesterday to reach your goals?" },
-  actionsTomorrow: { page: 9, title: "Tomorrow's Actions", subtitle: "What will you do tomorrow to reach your goals?" },
+  actionsTomorrow: { page: 9, title: "Today's Actions", subtitle: "What will you do today to reach your goals?" },
   journal: { page: 10, title: "Journal", subtitle: "Write freely — no rules, just you." },
   weekly: { page: 11, title: "Weekly Reflection", subtitle: "Look back on the week that was." },
   final: { title: "Your Affirmation", subtitle: "Carry this with you today." },
@@ -91,9 +91,9 @@ export default function FlowScreen() {
 
   const steps = useMemo<StepKey[]>(() => {
     const special = data?.isSpecial;
-    const s: StepKey[] = ["mood"];
+    const s: StepKey[] = ["mood", "affirmations"];
     if (special) s.push("morningRitual", "weeklyGoals");
-    s.push("blessings", "affirmations", "workout", "dailyGoals", "quote", "actionsYesterday", "actionsTomorrow", "journal");
+    s.push("blessings", "workout", "dailyGoals", "quote", "actionsYesterday", "actionsTomorrow", "journal");
     if (special) s.push("weekly");
     s.push("final");
     return s;
@@ -395,7 +395,7 @@ export default function FlowScreen() {
                 multiline
               />
 
-              <Text style={styles.qLabel}>Actions I will take tomorrow</Text>
+              <Text style={styles.qLabel}>Actions I will take today</Text>
               {entry.actionsTomorrow.map((v, i) => (
                 <NumberedField
                   key={i}

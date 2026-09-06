@@ -66,5 +66,12 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Goal reminders:** `GET /api/day` now returns `prevGoals`; flow shows yesterday's goals on the Yesterday step (page 8) and today's goals on the Tomorrow step (page 9).
 - Verified by testing agent (53/53 backend tests + frontend flows) + curl/screenshot for the goal reminders.
 
+## Implemented — Iteration 6 (2026-09-06)
+- **Streak Freeze:** `compute_streak` forgives one missed day per calendar month (a monthly "rest day"); endpoints now return `restDayAvailable`. Longest streak stays strict.
+- **Theme Reminders:** Today shows a "recurring gratitude" card (top repeated blessing) + a rest-day pill on the streak widget.
+- **Wording:** Page 9 changed from "Tomorrow" to "Today" (title/label/search label).
+- **Flow order:** the Affirmation step is now the 2nd step (right after Mood), reinforced by the mid-flow affirmation banner.
+- Verified by testing agent (62/62 backend tests + frontend flows).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.

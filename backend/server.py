@@ -108,7 +108,7 @@ SEARCH_FIELDS = [
     ("workouts", 5, "Workout", "list"),
     ("dailyGoals", 6, "Daily Goals", "list"),
     ("actionsYesterday", 8, "Yesterday's Actions", "list"),
-    ("actionsTomorrow", 9, "Tomorrow's Actions", "list"),
+    ("actionsTomorrow", 9, "Today's Actions", "list"),
     ("journal", 10, "Journal", "text"),
 ]
 
@@ -218,21 +218,38 @@ async def get_or_create_profile(user_id: str) -> Dict[str, Any]:
     return profile
 
 
-async def compute_streak(user_id: str) -> Dict[str, int]:
+async def compute_streak(user_id: str) -> Dict[str, Any]:
     dates = await db.logins.distinct("date", {"userId": user_id})
     date_set = set(dates)
     login_days = len(date_set)
+    sorted_dates = sorted(parse_date(x) for x in date_set)
+    earliest = sorted_dates[0] if sorted_dates else None
+    # Current streak with a monthly "rest day": one missed day per calendar
+    # month is forgiven and won't break the streak.
     current = 0
+    freezes_used: set = set()
     cursor = datetime.now(timezone.utc).date()
-    while cursor.strftime("%Y-%m-%d") in date_set:
-        current += 1
+    while earliest is not None:
+        ds = cursor.strftime("%Y-%m-%d")
+        if ds in date_set:
+            current += 1
+        else:
+            if cursor < earliest:
+                break
+            month = ds[:7]
+            if month in freezes_used:
+                break
+            freezes_used.add(month)
         cursor = cursor - timedelta(days=1)
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    rest_day_available = current_month not in freezes_used
     longest, run, prev = 0, 0, None
-    for dt in sorted(parse_date(x) for x in date_set):
+    for dt in sorted_dates:
         run = run + 1 if (prev is not None and (dt - prev).days == 1) else 1
         longest = max(longest, run)
         prev = dt
-    return {"loginDays": login_days, "currentStreak": current, "longestStreak": longest}
+    return {"loginDays": login_days, "currentStreak": current, "longestStreak": longest,
+            "restDayAvailable": rest_day_available}
 
 
 # --------------------------------------------------------------------------

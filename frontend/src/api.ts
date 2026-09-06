@@ -119,6 +119,7 @@ export type InitResponse = {
   loginDays: number;
   currentStreak: number;
   longestStreak: number;
+  restDayAvailable: boolean;
 };
 
 export type CalendarResponse = {
@@ -128,6 +129,7 @@ export type CalendarResponse = {
   loginDays: number;
   currentStreak: number;
   longestStreak: number;
+  restDayAvailable: boolean;
 };
 
 export type SearchResponse = {

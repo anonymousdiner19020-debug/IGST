@@ -85,7 +85,7 @@ export default function DayDetailScreen() {
               text={e.accomplishedYesterday ? `Yes${e.accomplishedCount ? ` — ${e.accomplishedCount}` : ""}` : "No"}
             />
           ) : null}
-          <Section title="Tomorrow's Actions" icon="arrow-right-circle" items={nonEmpty(e.actionsTomorrow)} />
+          <Section title="Today's Actions" icon="arrow-right-circle" items={nonEmpty(e.actionsTomorrow)} />
           {nonEmpty(e.tomorrowNotes).length ? (
             <SectionText title="Notes" icon="edit" text={nonEmpty(e.tomorrowNotes).join("\n")} />
           ) : null}
