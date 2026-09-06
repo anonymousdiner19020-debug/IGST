@@ -285,7 +285,13 @@ export default function Game() {
                       isFlash && styles.tileFlash,
                     ]}
                   >
-                    <IngredientIcon id={cell} emoji={ing?.emoji} size={TILE * 0.82} />
+                    <IngredientIcon id={cell} emoji={ing?.emoji} size={TILE * 0.6} />
+                    <Text
+                      style={[styles.tileLabel, { fontSize: Math.max(6, TILE * 0.16) }]}
+                      numberOfLines={1}
+                    >
+                      {ing?.label || cell}
+                    </Text>
                     {isFlash && (
                       <View style={styles.burstOverlay} pointerEvents="none">
                         <Text style={[styles.burstStar, { fontSize: TILE * 0.55 }]}>✨</Text>
@@ -439,6 +445,13 @@ const styles = StyleSheet.create({
     margin: 2,
     alignItems: "center",
     justifyContent: "center",
+    gap: 1,
+  },
+  tileLabel: {
+    fontWeight: "800",
+    color: colors.surfaceInverse,
+    textAlign: "center",
+    maxWidth: "98%",
   },
   tileSelected: { borderWidth: 3, borderColor: colors.brand, borderRadius: radius.md, transform: [{ scale: 1.12 }] },
   tileFlash: {
