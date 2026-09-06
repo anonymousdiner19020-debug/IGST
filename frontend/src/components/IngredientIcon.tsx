@@ -15,12 +15,12 @@ const BUTTERSCOTCH_CAKE = require("../../assets/butterscotch_cake.jpeg");
 const CHOCOLATE_CAKE = require("../../assets/chocolate_cake.png");
 const MINI_PIE = require("../../assets/glazed_pie.png");
 const APPLE_PIE = require("../../assets/apple_pie.png");
-const SPRINKLES = require("../../assets/sprinkles.webp");
-const ROOTBEER = require("../../assets/rootbeer.webp");
+const SPRINKLES = require("../../assets/sprinkles.png");
+const ROOTBEER = require("../../assets/rootbeer.png");
 const MAYO = require("../../assets/mayo.png");
 const SALAMI = require("../../assets/salami.jpg");
 const HAM = require("../../assets/ham.jpg");
-const OIL_VINEGAR = require("../../assets/oil_vinegar.webp");
+const OIL_VINEGAR = require("../../assets/oil_vinegar.png");
 const BOLOGNA = require("../../assets/bologna.jpeg");
 
 type Props = {

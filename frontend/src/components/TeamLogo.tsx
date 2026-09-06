@@ -4,7 +4,7 @@ import { Image, StyleSheet, Text, View } from "react-native";
 type Props = { code?: string; size?: number; fallback?: string };
 
 const LOGOS: Record<string, any> = {
-  eagles: require("../../assets/eagles_logo.webp"),
+  eagles: require("../../assets/eagles_logo.png"),
   phillies: require("../../assets/phillies_logo.png"),
   flyers: require("../../assets/flyers_logo.png"),
   sixers: require("../../assets/sixers_logo.png"),

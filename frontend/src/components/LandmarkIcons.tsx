@@ -54,7 +54,7 @@ export function LoveStatue({ size = 24 }: IconProps) {
 }
 
 // William Penn statue atop City Hall tower.
-const CITYHALL_SRC = require("../../assets/cityhall_penn.webp");
+const CITYHALL_SRC = require("../../assets/cityhall_penn.png");
 
 export function CityHallPenn({ size = 24 }: IconProps) {
   return (

@@ -11,7 +11,7 @@ import { Donut } from "./FoodIcons";
 const AMERICAN_HOAGIE = require("../../assets/american_hoagie.png");
 const ITALIAN_HOAGIE = require("../../assets/italian_hoagie.png");
 const TOMATO_PIE = require("../../assets/tomato_pie.png");
-const SEASONED_FRIES = require("../../assets/seasoned_fries.webp");
+const SEASONED_FRIES = require("../../assets/seasoned_fries.png");
 const SCRAPPLE_EC = require("../../assets/scrapple_ec.png");
 const PORKROLL_EC = require("../../assets/porkroll_ec.png");
 

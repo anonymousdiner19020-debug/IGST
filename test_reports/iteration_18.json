@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only verification of Level 1 (soft_pretzel) serve-screen crash fix. Reproduced the flow at /serve?dishId=soft_pretzel&level=1 on mobile viewport (375x667). Ran two full 10-customer perfect-run play-throughs, exercised fan-badge (TeamLogo) rendering on 5+ rounds, triggered SparkleBurst (PERFECT!) and the Hot Streak Jackpot popup (testID jackpot-popup) which renders 3 rotating TeamLogo badges (Eagles/Phillies/Flyers). No red-box, no uncaught 'The operation is not supported.' error, no crash on any SERVE tap. Round 10 navigates cleanly to /cooking-result with stars=3, perfectBonus=200. Fix confirmed working: TeamLogo.tsx was changed from require('../../assets/eagles_logo.webp') to require('../../assets/eagles_logo.png') — the webp asset was the root cause (WebKit/Safari/older Chromium web preview cannot decode webp and throws a MediaError-like exception when React Native <Image> mounts, message rendered as 'The operation is not supported.' pointing at serve.tsx render path where TeamLogo mounts inside fan-badge and jackpot-badge).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "sound.ts (expo-audio)", "issue": "All game SFX are .ogg files hosted at actions.google.com. On web preview WebKit does not support Ogg Vorbis and even Chromium can fail intermittently, producing pageerror events 'Failed to load because no supported source was found.' / 'The element has no supported sources.' The errors are swallowed by the try/catch inside sound.play() so the game does NOT crash, but they show as red pageerror lines and no sound plays on web. Reference: frontend/src/sound.ts:5-11. Consider swapping to .mp3 (universally supported) or gating sound to native only via Platform.OS !== 'web'."}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_18.json"],
+  "action_items": [
+    "No further code change required for the reported 'The operation is not supported.' crash — root cause (eagles_logo.webp require in TeamLogo.tsx) is already fixed by main agent (git diff: webp -> png).",
+    "OPTIONAL follow-up: replace the six .ogg URLs in frontend/src/sound.ts with .mp3 equivalents (or gate with Platform.OS !== 'web') to eliminate the noisy 'no supported source' pageerror lines on the web preview. Not user-facing, silently caught, but pollutes logs."
+  ],
+  "critical_code_review_comments": [
+    "serve.tsx is 1116 lines — over the 700-line guideline. Consider extracting the customer/jackpot/celebration logic (buildCustomers, TEAM_STYLE, JACKPOT_TEAMS, celebration effects) into hooks/components.",
+    "serve.tsx line 300: nextCustomer useCallback deps intentionally exclude idx-mutating branches, safe but flagged by react-hooks/exhaustive-deps eslint-disable — acceptable.",
+    "serve.tsx line 328-333: alternate-celebration refactor (jackpotEligible/showPerfect/celebFlipRef) is correct — PERFECT! and JACKPOT never render on the same serve, and celebFlipRef persists across renders via useRef.",
+    "TeamLogo.tsx correctly uses static require() for each asset (Metro requires literal strings) and falls back to an emoji Text when code is unknown — safe."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only request)", "frontend": "100%"},
+  "seed_data_creation": "None — anonymous UUID player, no auth needed for /serve deep-link.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Level 1 serve flow (soft_pretzel) is fully green. Perfect 10/10 run reaches /cooking-result. Hot Streak Jackpot popup (testID=jackpot-popup) renders 3 TeamLogo badges without error. Fan badge (testID=fan-badge) renders TeamLogo without error. SparkleBurst (testID=sparkle-burst) renders. Only remaining pageerror noise is from .ogg audio sources — pre-existing, silently caught, not related to this bug.",
+  "rca_of_issue": "RCA: The 'The operation is not supported.' runtime error the user hit while serving on Level 1 originated in the fan-badge / jackpot-badge render path in serve.tsx, which mounts <TeamLogo code='eagles' ... /> via the new shared component. TeamLogo.tsx previously required 'eagles_logo.webp'. When rendered by react-native-web the underlying HTMLImageElement rejects the webp source on browsers that don't decode it (Safari <=13, some WebViews), which surfaces as DOMException 'The operation is not supported.'. Because Eagles fans appear frequently (25% base, 100% during Fan Rush) and Eagles is JACKPOT_TEAMS[0], the error fires on nearly every serve. Reproduction steps: (1) open /serve?dishId=soft_pretzel&level=1 in a browser without webp support, (2) get an Eagles fan customer or reach 4+ perfect serves to open the jackpot, (3) TeamLogo mounts and throws. Mitigation applied by main agent: switch require to eagles_logo.png (git status shows the png added, TeamLogo.tsx updated). Verified today: two full 10-customer perfect runs on mobile viewport with jackpot and fan-badge both triggered and rendered cleanly, zero uncaught exceptions in page.on('pageerror') matching the operation-not-supported string. Only pageerrors observed are the unrelated .ogg audio load failures."
+}
