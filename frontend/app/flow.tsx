@@ -72,7 +72,9 @@ export default function FlowScreen() {
         morningRitual: e.morningRitual,
         weeklyGoals: e.weeklyGoals,
         blessings: e.blessings,
-        affirmationSelected: e.affirmationSelected,
+        affirmationSelected:
+          e.affirmationSelected ||
+          (data && !data.affirmationDay ? data.carriedAffirmation : ""),
         affirmationCustom: e.affirmationCustom,
         workouts: e.workouts ?? [],
         mood: e.mood ?? "",
@@ -91,13 +93,14 @@ export default function FlowScreen() {
 
   const steps = useMemo<StepKey[]>(() => {
     const special = data?.isSpecial;
-    const s: StepKey[] = ["mood", "affirmations"];
+    const s: StepKey[] = ["mood"];
+    if (data?.affirmationDay) s.push("affirmations");
     if (special) s.push("morningRitual", "weeklyGoals");
     s.push("blessings", "workout", "dailyGoals", "quote", "actionsYesterday", "actionsTomorrow", "journal");
     if (special) s.push("weekly");
     s.push("final");
     return s;
-  }, [data?.isSpecial]);
+  }, [data?.isSpecial, data?.affirmationDay]);
 
   if (isLoading || !entry || !data) {
     return (

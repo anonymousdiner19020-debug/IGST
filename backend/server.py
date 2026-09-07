@@ -562,9 +562,22 @@ async def get_day(d: str, userId: Optional[str] = Query(None),
     prev = (parse_date(d) - timedelta(days=1)).strftime("%Y-%m-%d")
     prev_entry = await db.entries.find_one({"userId": uid, "date": prev}, {"_id": 0})
     prev_goals = [g for g in (prev_entry or {}).get("dailyGoals", []) if (g or "").strip()]
+    # Affirmation is chosen on day 1 and every Monday (weekday 0); it carries over
+    # to the rest of the days until the next Monday.
+    affirmation_day = day_no == 1 or parse_date(d).weekday() == 0
+    carried = ""
+    recent = await db.entries.find(
+        {"userId": uid, "date": {"$lte": d}}, {"_id": 0}
+    ).sort("date", -1).to_list(400)
+    for ce in recent:
+        a = (ce.get("affirmationCustom") or "").strip() or (ce.get("affirmationSelected") or "").strip()
+        if a:
+            carried = a
+            break
     return {"date": d, "dayNumber": day_no, "isSpecial": is_special(day_no),
             "entry": entry, "content": content, "hasContent": entry_has_content(entry),
-            "prevGoals": prev_goals}
+            "prevGoals": prev_goals, "affirmationDay": affirmation_day,
+            "carriedAffirmation": carried}
 
 
 @api_router.put("/day/{d}")

@@ -1,0 +1,32 @@
+{
+  "summary": "Iteration 8 review — Affirmation step (Page 4) is gated to Day 1 or Mondays, carries over the rest of the week as a banner + on the final page. Inspirational Quote (Page 7) remains ungated on every day. Backend: 12/12 new iter8 pytest pass (4 affirmationDay flag, 3 carriedAffirmation, 2 quote-always, 3 regression). Verified: /api/day for Day 1 → affirmationDay=true; /api/day/2026-09-07 (Monday) → true; /api/day/2026-09-08 (Tue) & 09-12 (Sat) → false. After seeding affirmationSelected='I am calm and focused' on Mon 09-07, Tue/Sat responses return carriedAffirmation exactly equal to Monday's affirmation. affirmationCustom takes precedence over affirmationSelected. Users with no history get carriedAffirmation=''. Quote content is present in both affirmation-day and non-affirmation-day payloads. Regressions green: /api/calendar includes currentStreak/longestStreak/restDayAvailable; /api/gratitude-wall works; PUT /api/day persists. Frontend (Expo web, 390x844): (a) Day 1 (fresh user) flow order = mood → affirmation(step 2) → morningRitual → weeklyGoals → blessings → workout → dailyGoals → **Daily Inspiration (step 8, quote)** → yesterday → today → journal → weekly → final (13 steps); affirmation-0 & affirmation-custom testIDs present; final page shows the picked affirmation. (b) Non-affirmation-day: seeded uid with Monday affirmation, opened /flow?date=2026-09-08 (Tue, Day 2 — non-special) → 9 steps total, affirmation step is ABSENT, Quote step 'Daily Inspiration' present at step 5, banner with carried text 'I am calm and focused' appears on all 8 non-excluded steps (mood/blessings/workout/dailyGoals/quote/yesterday/today/journal), final 'Your Affirmation' page shows the carried text. 'Today's Actions' is page 9 per STEP_META (regression pass). No deprecated Expo packages, no red-screen errors. Pre-existing note: 4 iter6 streak-freeze tests still fail (unchanged from prior iterations, unrelated to iter8 feature).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter8_features.py",
+    "/app/test_reports/pytest/iteration_8.xml",
+    "/app/test_reports/pytest/iteration_8_all.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py:567 `affirmation_day = day_no == 1 or parse_date(d).weekday() == 0` — Python weekday() Mon=0, correct.",
+    "server.py:568-576 carriedAffirmation loop scans up to 400 entries with date<=d, sorted desc — first non-empty affirmationCustom OR affirmationSelected wins. Custom preferred over selected (matches DayEntry precedence used in flow.tsx line 151). Correct.",
+    "flow.tsx:97 `if (data?.affirmationDay) s.push('affirmations')` — cleanly gates the step. When false, initial entry hydration on flow.tsx:76-78 seeds affirmationSelected from data.carriedAffirmation so the banner + final page display the carry text via existing affirmationText computed on line 151.",
+    "flow.tsx:491 banner exclusion list = {affirmations, final, morningRitual} — banner shows on mood step too, which is not called out in the spec but matches 'appears near the bottom of steps'. Not a bug.",
+    "Iteration-6 streak-freeze tests (4 fails, pre-existing) unrelated to this iteration; not introduced by this change."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter8_features.py (new — 12 pytest cases)"
+  ],
+  "success_rate": {"backend": "100% (12/12 iter8; 79/83 overall — 4 pre-existing iter6 fails unrelated)", "frontend": "100% of iteration-8 features verified end-to-end"},
+  "seed_data_creation": "Backend: per-test anonymous userIds prefixed TEST_i8_, seeded via POST /api/init + PUT /api/day. Frontend: (Day 1 path) fresh anonymous uid TEST_i8_fresh_ff11aa22 → server treats as Day 1 (also happens to be Monday server-side 2026-09-07) → affirmationDay=true. (Carry path) uid TEST_i8_carry_ab77cc, seeded affirmationSelected='I am calm and focused' on Mon 2026-09-07, then opened /flow?date=2026-09-08 (Tue). All data isolated by userId prefix.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter8 tests at /app/backend/tests/test_iter8_features.py. Frontend flow file /app/frontend/app/flow.tsx: step-list computed on line 94-103 with `if (data?.affirmationDay) s.push('affirmations')`; carriedAffirmation hydrated into affirmationSelected on load (line 76-78). Banner exclusion on line 491 = {affirmations, final, morningRitual}. Server today drifted to 2026-09-07 (Monday) during this run — so both Day-1 and Monday conditions trigger for a fresh user simultaneously; both branches independently verified. Note the 4 pre-existing iter6 streak-freeze test failures continue and are unrelated to any iteration-8 change.",
+  "rca_of_issue": "N/A — all iteration-8 features (affirmationDay gating, carriedAffirmation persistence, quote-always) pass end-to-end on both backend and frontend."
+}
