@@ -78,5 +78,14 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Tweak:** the mid-flow affirmation banner is now also hidden on the "Taking Control" (Page 1) step.
 - Verified by testing agent (71/71 backend tests + frontend flows).
 
+## Implemented — Iteration 9 (2026-06)
+- **Custom Page Backgrounds:** Settings → Appearance → "Change background" opens a new `app/background.tsx` screen.
+  - 10 curated motivational gradient backgrounds (Sunrise Resolve, Golden Hour, Ocean Calm, Sky Dream, Forest Focus, Mint Fresh, Lavender Peace, Rose Bloom, Sand Dune, Twilight) defined in `src/backgrounds.ts`.
+  - Users can add their own photos (camera/library) via the existing `/api/upload` object storage; up to 12.
+  - Rotation modes: Fixed (pick one), Daily, or Weekly — rotating through App backgrounds, My photos, or All. Deterministic per-date resolution in `resolveActive()`.
+  - Preference persisted locally (`aura.background`) via `BackgroundProvider` (`src/background-context.tsx`).
+  - `src/components/page-background.tsx` renders the active gradient/photo behind the journaling flow pages (photos get a soft scrim for text readability). Verified via screenshots (gradient renders across flow; picker + rotation work). Camera/library capture requires a native build for full validation.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
+- Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

@@ -10,6 +10,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { AuthProvider } from "@/src/auth-context";
+import { BackgroundProvider } from "@/src/background-context";
 import { queryClient } from "@/src/query-client";
 import { UserProvider } from "@/src/user-context";
 
@@ -42,17 +43,20 @@ export default function RootLayout() {
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
                 <UserProvider>
-                  <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="flow" options={{ presentation: "card", animation: "slide_from_bottom" }} />
-                    <Stack.Screen name="day/[date]" options={{ presentation: "card" }} />
-                    <Stack.Screen name="settings" options={{ presentation: "card" }} />
-                    <Stack.Screen name="auth" options={{ presentation: "modal" }} />
-                    <Stack.Screen name="account" options={{ presentation: "card" }} />
-                    <Stack.Screen name="recap" options={{ presentation: "card" }} />
-                    <Stack.Screen name="yearly-wrap" options={{ presentation: "card" }} />
-                    <Stack.Screen name="gratitude-wall" options={{ presentation: "card" }} />
-                  </Stack>
+                  <BackgroundProvider>
+                    <Stack screenOptions={{ headerShown: false }}>
+                      <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="flow" options={{ presentation: "card", animation: "slide_from_bottom" }} />
+                      <Stack.Screen name="day/[date]" options={{ presentation: "card" }} />
+                      <Stack.Screen name="settings" options={{ presentation: "card" }} />
+                      <Stack.Screen name="background" options={{ presentation: "card" }} />
+                      <Stack.Screen name="auth" options={{ presentation: "modal" }} />
+                      <Stack.Screen name="account" options={{ presentation: "card" }} />
+                      <Stack.Screen name="recap" options={{ presentation: "card" }} />
+                      <Stack.Screen name="yearly-wrap" options={{ presentation: "card" }} />
+                      <Stack.Screen name="gratitude-wall" options={{ presentation: "card" }} />
+                    </Stack>
+                  </BackgroundProvider>
                 </UserProvider>
               </AuthProvider>
             </QueryClientProvider>

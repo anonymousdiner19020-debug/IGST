@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 import { useDay, useSaveDay, type DayEntry } from "@/src/api";
 import { prettyDate, todayStr } from "@/src/date-utils";
 import { Chip, Icon, NumberedField, PrimaryButton, TextField } from "@/src/components/ui";
+import { PageBackground } from "@/src/components/page-background";
 import { PhotoPicker } from "@/src/components/photo-picker";
 import { MOODS } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
@@ -152,6 +153,7 @@ export default function FlowScreen() {
 
   return (
     <View style={styles.root}>
+      <PageBackground date={date} />
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerRow}>

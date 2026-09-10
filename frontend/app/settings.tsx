@@ -133,6 +133,23 @@ export default function SettingsScreen() {
           )}
         </View>
 
+        {/* Appearance */}
+        <Text style={styles.sectionLabel}>Appearance</Text>
+        <View style={styles.card}>
+          <Pressable
+            testID="change-background-btn"
+            onPress={() => router.push("/background")}
+            style={styles.linkRow}
+          >
+            <Icon name="image" size={18} color={colors.onSurface} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.accountName}>Change background</Text>
+              <Text style={styles.accountEmail}>Motivational themes or your own photos</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={colors.muted} />
+          </Pressable>
+        </View>
+
         {/* Daily reminder */}
         <Text style={styles.sectionLabel}>Daily reminder</Text>
         <View style={styles.card}>
