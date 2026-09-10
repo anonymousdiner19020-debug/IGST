@@ -153,7 +153,7 @@ export default function FlowScreen() {
 
   return (
     <View style={styles.root}>
-      <PageBackground date={date} />
+      <PageBackground date={date} mood={entry.mood} />
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerRow}>

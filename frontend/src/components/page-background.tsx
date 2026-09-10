@@ -13,11 +13,11 @@ import { useUser } from "@/src/user-context";
 // Soft wash over photos so dark journal text stays readable.
 const PHOTO_SCRIM = "rgba(253,251,247,0.80)";
 
-export function PageBackground({ date }: { date?: string }) {
+export function PageBackground({ date, mood }: { date?: string; mood?: string }) {
   const { prefs } = useBackground();
   const { userId } = useUser();
 
-  const item = resolveActive(prefs, date ?? todayStr());
+  const item = resolveActive(prefs, date ?? todayStr(), mood);
   if (item.kind === "none") return null;
 
   return (

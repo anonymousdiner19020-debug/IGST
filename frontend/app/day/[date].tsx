@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDay, fileUrl, type DayEntry } from "@/src/api";
 import { PhotoLightbox } from "@/src/components/photo-lightbox";
+import { PageBackground } from "@/src/components/page-background";
 import { prettyDate } from "@/src/date-utils";
 import { EmptyState, Icon, PrimaryButton } from "@/src/components/ui";
 import { moodEmoji, moodLabel } from "@/src/mood";
@@ -31,6 +32,7 @@ export default function DayDetailScreen() {
 
   return (
     <View style={styles.root}>
+      <PageBackground date={date} mood={e?.mood} />
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable onPress={() => router.back()} hitSlop={10} testID="day-back">
           <Icon name="arrow-left" size={24} color={colors.onSurface} />

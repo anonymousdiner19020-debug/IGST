@@ -14,28 +14,32 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { fileUrl, uploadPhoto } from "@/src/api";
+import { fileUrl, uploadPhoto, useDay } from "@/src/api";
 import { useBackground } from "@/src/background-context";
 import {
   APP_BACKGROUNDS,
+  MOOD_BACKGROUNDS,
   resolveActive,
   type RotationMode,
   type RotationPool,
 } from "@/src/backgrounds";
 import { Chip, Icon } from "@/src/components/ui";
 import { todayStr } from "@/src/date-utils";
+import { MOODS } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 
 const MODES: { key: RotationMode; label: string; icon: React.ComponentProps<typeof Icon>["name"] }[] = [
   { key: "fixed", label: "Fixed", icon: "square" },
+  { key: "mood", label: "By Mood", icon: "smile" },
   { key: "daily", label: "Daily", icon: "sunrise" },
   { key: "weekly", label: "Weekly", icon: "calendar" },
 ];
 
 const POOLS: { key: RotationPool; label: string }[] = [
-  { key: "app", label: "App backgrounds" },
+  { key: "app", label: "App" },
   { key: "mine", label: "My photos" },
+  { key: "favorites", label: "Favorites" },
   { key: "all", label: "All" },
 ];
 
@@ -52,7 +56,16 @@ export default function BackgroundScreen() {
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState(false);
 
-  const active = resolveActive(prefs, todayStr());
+  const { data: todayData } = useDay(userId, todayStr());
+  const todayMood = todayData?.entry?.mood;
+  const active = resolveActive(prefs, todayStr(), todayMood);
+
+  const toggleFav = (id: string) => {
+    const favSet = new Set(prefs.favorites || []);
+    if (favSet.has(id)) favSet.delete(id);
+    else favSet.add(id);
+    update({ favorites: Array.from(favSet) });
+  };
 
   const addAsset = async (asset: ImagePicker.ImagePickerAsset) => {
     if (!userId) return;
@@ -105,7 +118,7 @@ export default function BackgroundScreen() {
     update(patch);
   };
 
-  const isRotating = prefs.mode !== "fixed";
+  const isRotating = prefs.mode === "daily" || prefs.mode === "weekly";
 
   return (
     <View style={styles.root}>
@@ -135,7 +148,11 @@ export default function BackgroundScreen() {
               {active.kind === "gradient" ? active.name : active.kind === "photo" ? "Your photo" : "Default (theme)"}
             </Text>
             <Text style={styles.previewSub}>
-              {isRotating
+              {prefs.mode === "mood"
+                ? todayMood
+                  ? "Matching today's mood"
+                  : "Log today's mood to see it here"
+                : isRotating
                 ? `Rotates ${prefs.mode} · showing today`
                 : "This is how your pages will look"}
             </Text>
@@ -159,18 +176,22 @@ export default function BackgroundScreen() {
         <Text style={styles.note}>
           {prefs.mode === "fixed"
             ? "Pick one background below to use on every page."
+            : prefs.mode === "mood"
+            ? "Your pages take on a color that matches the mood you log each day — days without a mood use your Fixed pick below."
             : prefs.mode === "daily"
             ? "A fresh background is chosen automatically each day."
             : "A fresh background is chosen automatically each week."}
         </Text>
 
-        {/* Rotating: which pool */}
+        {/* Rotating: which pool + favorites */}
         {isRotating ? (
           <View style={{ gap: 12 }}>
             <Text style={styles.sectionLabel}>Rotate through</Text>
             <View style={styles.chipRow}>
               {POOLS.map((p) => {
-                const disabled = p.key === "mine" && prefs.custom.length === 0;
+                const disabled =
+                  (p.key === "mine" && prefs.custom.length === 0) ||
+                  (p.key === "favorites" && (prefs.favorites?.length ?? 0) === 0);
                 return (
                   <Chip
                     key={p.key}
@@ -188,6 +209,86 @@ export default function BackgroundScreen() {
             {prefs.pool === "mine" && prefs.custom.length === 0 ? (
               <Text style={styles.note}>Add your own photos below to rotate through them.</Text>
             ) : null}
+
+            {/* Favorite themes (star to curate the Favorites pool) */}
+            <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Favorite themes</Text>
+            <Text style={styles.note}>Tap the star on any background to add it to your Favorites.</Text>
+            <View style={styles.grid}>
+              {APP_BACKGROUNDS.map((b) => (
+                <Swatch
+                  key={b.id}
+                  testID={`bg-fav-${b.id}`}
+                  starMode
+                  selected={(prefs.favorites || []).includes(b.id)}
+                  onPress={() => toggleFav(b.id)}
+                  label={b.name}
+                >
+                  <LinearGradient colors={b.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.swatchFill} />
+                </Swatch>
+              ))}
+              {prefs.custom.map((c) => (
+                <Swatch
+                  key={c.id}
+                  testID={`bg-fav-${c.id}`}
+                  starMode
+                  selected={(prefs.favorites || []).includes(c.id)}
+                  onPress={() => toggleFav(c.id)}
+                  label="My photo"
+                >
+                  {userId ? (
+                    <Image source={{ uri: fileUrl(c.path, userId) }} style={styles.swatchFill} contentFit="cover" />
+                  ) : (
+                    <View style={styles.swatchFill} />
+                  )}
+                </Swatch>
+              ))}
+            </View>
+          </View>
+        ) : prefs.mode === "mood" ? (
+          /* By Mood: show the palette + fixed fallback picker */
+          <View style={{ gap: 14 }}>
+            <Text style={styles.sectionLabel}>Mood palette</Text>
+            <View style={styles.grid}>
+              {MOODS.map((m) => (
+                <View key={m.key} style={styles.swatchWrap}>
+                  <View style={styles.swatch}>
+                    <LinearGradient
+                      colors={MOOD_BACKGROUNDS[m.key].colors}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.swatchFill}
+                    >
+                      <Text style={{ fontSize: 26 }}>{m.emoji}</Text>
+                    </LinearGradient>
+                  </View>
+                  <Text style={styles.swatchLabel} numberOfLines={1}>{m.label}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Fallback (no mood logged)</Text>
+            <View style={styles.grid}>
+              <Swatch
+                testID="bg-swatch-none"
+                selected={prefs.selectedId === "none"}
+                onPress={() => update({ selectedId: "none" })}
+                label="Default"
+              >
+                <View style={[styles.swatchFill, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
+                  <Icon name="slash" size={20} color={colors.muted} />
+                </View>
+              </Swatch>
+              {APP_BACKGROUNDS.map((b) => (
+                <Swatch
+                  key={b.id}
+                  testID={`bg-swatch-${b.id}`}
+                  selected={prefs.selectedId === b.id}
+                  onPress={() => update({ selectedId: b.id })}
+                  label={b.name}
+                >
+                  <LinearGradient colors={b.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.swatchFill} />
+                </Swatch>
+              ))}
+            </View>
           </View>
         ) : (
           /* Fixed: choose a background */
@@ -294,12 +395,14 @@ function Swatch({
   onPress,
   label,
   testID,
+  starMode,
 }: {
   children: React.ReactNode;
   selected: boolean;
   onPress: () => void;
   label: string;
   testID?: string;
+  starMode?: boolean;
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -307,7 +410,11 @@ function Swatch({
     <Pressable testID={testID} onPress={onPress} style={styles.swatchWrap}>
       <View style={[styles.swatch, selected && styles.swatchSelected]}>
         {children}
-        {selected ? (
+        {starMode ? (
+          <View style={[styles.checkBadge, !selected && styles.starBadgeIdle]}>
+            <Icon name="star" size={13} color={selected ? colors.onBrandPrimary : colors.muted} />
+          </View>
+        ) : selected ? (
           <View style={styles.checkBadge}>
             <Icon name="check" size={14} color={colors.onBrandPrimary} />
           </View>
@@ -376,6 +483,7 @@ const useStyles = makeStyles((c) => ({
     alignItems: "center",
     justifyContent: "center",
   },
+  starBadgeIdle: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
   myThumb: { width: 96, height: 68, borderRadius: 14, overflow: "hidden", position: "relative", borderWidth: 1, borderColor: c.border },
   loadingThumb: { alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceTertiary },
   removeBtn: {

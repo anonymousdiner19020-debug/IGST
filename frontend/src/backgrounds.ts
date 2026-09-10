@@ -33,14 +33,15 @@ export const APP_BACKGROUNDS: GradientBg[] = [
   { id: "twilight", kind: "gradient", name: "Twilight", quote: "Rest is part of the work.", colors: ["#E0DEEB", "#ECEBF3", "#D0CDDF"] },
 ];
 
-export type RotationMode = "fixed" | "daily" | "weekly";
-export type RotationPool = "app" | "mine" | "all";
+export type RotationMode = "fixed" | "mood" | "daily" | "weekly";
+export type RotationPool = "app" | "mine" | "favorites" | "all";
 
 export type BackgroundPrefs = {
   mode: RotationMode;
-  selectedId: string; // used in "fixed" mode
+  selectedId: string; // used in "fixed" mode (and as fallback in "mood" mode)
   pool: RotationPool; // used in daily/weekly rotation
   custom: { id: string; path: string }[]; // user photos
+  favorites: string[]; // starred background ids for "favorites" rotation
 };
 
 export const DEFAULT_BG_PREFS: BackgroundPrefs = {
@@ -48,7 +49,23 @@ export const DEFAULT_BG_PREFS: BackgroundPrefs = {
   selectedId: "none",
   pool: "app",
   custom: [],
+  favorites: [],
 };
+
+// Mood -> gradient (light so dark journal text stays readable) + a solid tint
+// used to color calendar day cells so the calendar "feels alive".
+export const MOOD_BACKGROUNDS: Record<string, { colors: [string, string, ...string[]]; tint: string }> = {
+  "1": { colors: ["#DFE3EA", "#ECEEF3", "#D2D7E0"], tint: "#C7CFDE" }, // Rough
+  "2": { colors: ["#E5E1EC", "#EEECF4", "#D8D2E6"], tint: "#D3CBE2" }, // Low
+  "3": { colors: ["#ECE7DB", "#F4EFE4", "#DFD6C4"], tint: "#E2D6BE" }, // Okay
+  "4": { colors: ["#DDECE3", "#EBF4EF", "#CBE4D6"], tint: "#BFE0CE" }, // Good
+  "5": { colors: ["#FCE7C6", "#FDF1DC", "#F7DDA6"], tint: "#F5D69B" }, // Great
+};
+
+export function moodTint(mood: string | undefined): string | null {
+  if (!mood) return null;
+  return MOOD_BACKGROUNDS[mood]?.tint ?? null;
+}
 
 const KEY = "aura.background";
 
@@ -65,28 +82,40 @@ function dayIndex(date: string): number {
   return Math.floor(dayjs(date).valueOf() / 86400000);
 }
 
-// Resolve the background that should be shown for a given date.
-export function resolveActive(prefs: BackgroundPrefs, date: string): BgItem {
+// Resolve the background that should be shown for a given date (and optional mood).
+export function resolveActive(prefs: BackgroundPrefs, date: string, mood?: string): BgItem {
   const customItems: PhotoBg[] = (prefs.custom || []).map((c) => ({
     id: c.id,
     kind: "photo",
     path: c.path,
   }));
 
-  if (prefs.mode === "fixed") {
+  const findFixed = (): BgItem => {
     if (prefs.selectedId === "none") return NONE_BG;
     const app = APP_BACKGROUNDS.find((b) => b.id === prefs.selectedId);
     if (app) return app;
     const own = customItems.find((c) => c.id === prefs.selectedId);
     return own ?? NONE_BG;
+  };
+
+  if (prefs.mode === "fixed") return findFixed();
+
+  if (prefs.mode === "mood") {
+    if (mood && MOOD_BACKGROUNDS[mood]) {
+      return { id: `mood_${mood}`, kind: "gradient", name: "Mood", quote: "", colors: MOOD_BACKGROUNDS[mood].colors };
+    }
+    return findFixed(); // no mood logged yet -> fall back to fixed pick
   }
 
   let pool: BgItem[] = [];
   if (prefs.pool === "app") pool = APP_BACKGROUNDS;
   else if (prefs.pool === "mine") pool = customItems;
-  else pool = [...APP_BACKGROUNDS, ...customItems];
+  else if (prefs.pool === "favorites") {
+    const favSet = new Set(prefs.favorites || []);
+    pool = [...APP_BACKGROUNDS, ...customItems].filter((b) => favSet.has(b.id));
+  } else pool = [...APP_BACKGROUNDS, ...customItems];
 
-  if (pool.length === 0) return NONE_BG;
+  if (pool.length === 0) return findFixed();
 
   const di = dayIndex(date);
   const idx = prefs.mode === "weekly" ? Math.floor(di / 7) : di;

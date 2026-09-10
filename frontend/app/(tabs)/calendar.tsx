@@ -7,7 +7,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCalendar } from "@/src/api";
 import { todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
+import { PageBackground } from "@/src/components/page-background";
 import { moodEmoji } from "@/src/mood";
+import { moodTint } from "@/src/backgrounds";
 import dayjs from "dayjs";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -40,6 +42,7 @@ export default function CalendarScreen() {
 
   return (
     <View style={styles.root}>
+      <PageBackground date={todayStr()} mood={moodByDate.get(todayStr())} />
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.title}>Calendar</Text>
         <Text style={styles.subtitle}>Tap any day to view or edit that entry</Text>
@@ -65,6 +68,7 @@ export default function CalendarScreen() {
               const login = loginSet.has(ds);
               const special = specialSet.has(ds);
               const mood = moodByDate.get(ds);
+              const tint = moodTint(mood);
               const disabled = state === "disabled";
               const isToday = state === "today";
               return (
@@ -77,16 +81,18 @@ export default function CalendarScreen() {
                   <View
                     style={[
                       styles.cellCircle,
-                      completed && { backgroundColor: colors.brandPrimary },
-                      login && !completed && { backgroundColor: colors.brandTertiary },
+                      completed && !tint && { backgroundColor: colors.brandPrimary },
+                      login && !completed && !tint && { backgroundColor: colors.brandTertiary },
+                      tint && { backgroundColor: tint },
                       special && { borderWidth: 2, borderColor: colors.warning },
-                      isToday && !completed && { borderWidth: 2, borderColor: colors.brand },
+                      completed && tint && !special && { borderWidth: 2, borderColor: colors.brandPrimary },
+                      isToday && !completed && !tint && { borderWidth: 2, borderColor: colors.brand },
                     ]}
                   >
                     <Text
                       style={[
                         styles.cellNum,
-                        completed && { color: colors.onBrandPrimary },
+                        completed && !tint && { color: colors.onBrandPrimary },
                         disabled && { color: colors.border },
                       ]}
                     >

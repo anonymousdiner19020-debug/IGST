@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCalendar, useDay, useOnThisDay, useGratitudeTrends } from "@/src/api";
 import { greeting, prettyDate, todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
+import { PageBackground } from "@/src/components/page-background";
 import { moodEmoji } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -41,6 +42,7 @@ export default function TodayScreen() {
 
   return (
     <View style={styles.root}>
+      <PageBackground date={today} mood={day?.entry?.mood} />
       <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}

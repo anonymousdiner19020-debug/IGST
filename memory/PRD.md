@@ -86,6 +86,12 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
   - Preference persisted locally (`aura.background`) via `BackgroundProvider` (`src/background-context.tsx`).
   - `src/components/page-background.tsx` renders the active gradient/photo behind the journaling flow pages (photos get a soft scrim for text readability). Verified via screenshots (gradient renders across flow; picker + rotation work). Camera/library capture requires a native build for full validation.
 
+## Implemented — Iteration 10 (2026-06)
+- **Per-Mood Backgrounds:** new "By Mood" background mode — each day's pages take on a gradient matching the logged mood (5-mood palette in `MOOD_BACKGROUNDS`); updates live as the mood is picked in the flow; falls back to the Fixed pick when no mood is logged. Calendar day cells are now tinted by their mood (`moodTint`) so the calendar "feels alive".
+- **Favorite Themes:** `favorites` added to `BackgroundPrefs`; star any theme in the background screen; daily/weekly rotation gains a "Favorites" pool that cycles only through starred backgrounds.
+- **Whole-App Theme:** `PageBackground` now also renders behind the Today, Calendar, and Day-detail screens (each resolving for its own date/mood), not just the check-in flow.
+- Verified via screenshots (By Mood live swap Great↔Rough, favorites rotation, whole-app rendering) + lint clean.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.
