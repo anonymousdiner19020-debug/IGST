@@ -8,6 +8,7 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useWeeklyRecap } from "@/src/api";
+import { MOOD_BACKGROUNDS } from "@/src/backgrounds";
 import { shortDate } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
 import { moodEmoji } from "@/src/mood";
@@ -108,6 +109,29 @@ export default function RecapScreen() {
                   </View>
                 </View>
               ) : null}
+
+              <View style={styles.trendBox}>
+                <Text style={styles.winsTitle}>Your week in color</Text>
+                <LinearGradient
+                  colors={
+                    data.moodsByDay.map((m) =>
+                      m.mood && MOOD_BACKGROUNDS[m.mood]
+                        ? MOOD_BACKGROUNDS[m.mood].tint
+                        : "rgba(255,255,255,0.30)",
+                    ) as unknown as readonly [string, string, ...string[]]
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.strip}
+                />
+                <View style={styles.stripLabels}>
+                  {data.moodsByDay.map((m) => (
+                    <Text key={m.date} style={styles.stripDay}>
+                      {dayjs(m.date).format("dd")[0]}
+                    </Text>
+                  ))}
+                </View>
+              </View>
 
               <View style={styles.trendBox}>
                 <Text style={styles.winsTitle}>Mood trend</Text>
@@ -214,6 +238,9 @@ const useStyles = makeStyles((c) => ({
   bestEmoji: { fontSize: 34 },
   bestText: { fontFamily: fonts.displayBold, fontSize: 20, color: c.onBrandPrimary },
   trendBox: { gap: 10 },
+  strip: { height: 30, borderRadius: 999, width: "100%" },
+  stripLabels: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 4 },
+  stripDay: { fontFamily: fonts.medium, fontSize: 11, color: c.onBrandPrimary, opacity: 0.9, flex: 1, textAlign: "center" },
   trendRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 80 },
   trendCol: { alignItems: "center", gap: 6, flex: 1 },
   trendTrack: {

@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import dayjs from "dayjs";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,9 +11,13 @@ import { useCalendar, useDay, useOnThisDay, useGratitudeTrends } from "@/src/api
 import { greeting, prettyDate, todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
 import { PageBackground } from "@/src/components/page-background";
+import { StreakCelebration, STREAK_MILESTONES } from "@/src/components/streak-celebration";
 import { moodEmoji } from "@/src/mood";
+import { storage } from "@/src/utils/storage";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
+
+const CELEB_KEY = "aura.lastCelebratedStreak";
 
 const HERO =
   "https://images.unsplash.com/photo-1490735891913-40897cdaafd1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHx3YXJtJTIwc3VucmlzZSUyMGFlc3RoZXRpYyUyMHNreXxlbnwwfHx8fDE3ODg3MTY0NjB8MA&ixlib=rb-4.1.0&q=85";
@@ -35,6 +40,25 @@ export default function TodayScreen() {
   const done = day?.hasContent;
   const streak = init?.currentStreak ?? cal?.currentStreak ?? 0;
   const loginDates = new Set(cal?.loginDates ?? []);
+
+  const [celebrate, setCelebrate] = useState<number | null>(null);
+  useEffect(() => {
+    if (!init) return;
+    let cancelled = false;
+    (async () => {
+      const last = (await storage.getItem<number>(CELEB_KEY, 0)) ?? 0;
+      if (cancelled) return;
+      if (streak > last && STREAK_MILESTONES.includes(streak)) {
+        setCelebrate(streak);
+        await storage.setItem(CELEB_KEY, streak);
+      } else if (streak < last) {
+        await storage.setItem(CELEB_KEY, streak);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [streak, init]);
 
   const last7 = Array.from({ length: 7 }).map((_, i) =>
     dayjs().day(0).add(i, "day").format("YYYY-MM-DD"),
@@ -163,6 +187,9 @@ export default function TodayScreen() {
           ) : null}
         </View>
       </ScrollView>
+      {celebrate ? (
+        <StreakCelebration streak={celebrate} onClose={() => setCelebrate(null)} />
+      ) : null}
     </View>
   );
 }

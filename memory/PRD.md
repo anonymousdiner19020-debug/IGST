@@ -92,6 +92,12 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Whole-App Theme:** `PageBackground` now also renders behind the Today, Calendar, and Day-detail screens (each resolving for its own date/mood), not just the check-in flow.
 - Verified via screenshots (By Mood live swap Great↔Rough, favorites rotation, whole-app rendering) + lint clean.
 
+## Implemented — Iteration 11 (2026-06)
+- **Mood Legend:** Calendar now has a "Day colors by mood" key (5 mood tints + emoji + label) so the mood-colored day cells are self-explanatory.
+- **Streak Celebration:** `src/components/streak-celebration.tsx` — a warm animated modal (reanimated ZoomIn/FadeIn + sparkles + success haptic) fires on the Today screen when the streak reaches a milestone (3,7,14,21,30,50,75,100,150,200,365). Guarded via `aura.lastCelebratedStreak` in storage so it shows once per new milestone (baseline resets if streak drops).
+- **Weekly Mood Recap strip:** Recap card gains a "Your week in color" horizontal gradient built from each day's mood tint — captured in the shareable recap image.
+- Verified via seeded-streak screenshots (3-day celebration), calendar legend + mood tints, and colorful recap strip + best day.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

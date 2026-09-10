@@ -8,8 +8,8 @@ import { useCalendar } from "@/src/api";
 import { todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
 import { PageBackground } from "@/src/components/page-background";
-import { moodEmoji } from "@/src/mood";
-import { moodTint } from "@/src/backgrounds";
+import { moodEmoji, MOODS } from "@/src/mood";
+import { moodTint, MOOD_BACKGROUNDS } from "@/src/backgrounds";
 import dayjs from "dayjs";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -135,6 +135,20 @@ export default function CalendarScreen() {
           <LegendItem color={colors.brandTertiary} label="Logged in" />
           <LegendItem color={colors.surface} border={colors.warning} label="Special day" />
         </View>
+
+        <View style={styles.moodLegend}>
+          <Text style={styles.moodLegendTitle}>Day colors by mood</Text>
+          <View style={styles.moodLegendRow}>
+            {MOODS.map((m) => (
+              <View key={m.key} style={styles.moodLegendItem}>
+                <View style={[styles.moodLegendDot, { backgroundColor: MOOD_BACKGROUNDS[m.key].tint }]}>
+                  <Text style={styles.moodLegendEmoji}>{m.emoji}</Text>
+                </View>
+                <Text style={styles.moodLegendLabel}>{m.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -223,4 +237,25 @@ const useStyles = makeStyles((c) => ({
   moodDayLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
   legendDot: { width: 16, height: 16, borderRadius: 999 },
   legendLabel: { fontFamily: fonts.medium, fontSize: 12, color: c.onSurfaceTertiary },
+  moodLegend: {
+    marginTop: 16,
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: c.border,
+    gap: 12,
+  },
+  moodLegendTitle: { fontFamily: fonts.semibold, fontSize: 14, color: c.onSurface },
+  moodLegendRow: { flexDirection: "row", justifyContent: "space-between" },
+  moodLegendItem: { alignItems: "center", gap: 6, flex: 1 },
+  moodLegendDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  moodLegendEmoji: { fontSize: 16 },
+  moodLegendLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.onSurfaceTertiary },
 }));
