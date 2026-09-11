@@ -574,9 +574,18 @@ async def get_day(d: str, userId: Optional[str] = Query(None),
         if a:
             carried = a
             break
+    # Weekly goals set on the most recent special day carry through the week so
+    # they can be shown as a reminder on the daily "Currently Working Towards" page.
+    week_goals = []
+    for ce in recent:
+        wg = [g for g in ce.get("weeklyGoals", []) if (g or "").strip()]
+        if wg:
+            week_goals = wg
+            break
     return {"date": d, "dayNumber": day_no, "isSpecial": is_special(day_no),
             "entry": entry, "content": content, "hasContent": entry_has_content(entry),
-            "prevGoals": prev_goals, "affirmationDay": affirmation_day,
+            "prevGoals": prev_goals, "weekGoals": week_goals,
+            "affirmationDay": affirmation_day,
             "carriedAffirmation": carried}
 
 

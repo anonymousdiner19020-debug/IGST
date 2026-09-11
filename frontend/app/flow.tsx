@@ -296,17 +296,28 @@ export default function FlowScreen() {
             </View>
           )}
 
-          {stepKey === "dailyGoals" &&
-            entry.dailyGoals.map((v, i) => (
-              <NumberedField
-                key={i}
-                index={i + 1}
-                testID={`daily-goal-${i}`}
-                value={v}
-                onChangeText={(t) => setList("dailyGoals", i, t)}
-                placeholder={`Goal ${i + 1}`}
-              />
-            ))}
+          {stepKey === "dailyGoals" && (
+            <View style={{ gap: 16 }}>
+              {data.weekGoals.length > 0 ? (
+                <View style={styles.refCard}>
+                  <Text style={styles.refTitle}>This week's goals</Text>
+                  {data.weekGoals.map((g, i) => (
+                    <Text key={i} style={styles.refItem}>•  {g}</Text>
+                  ))}
+                </View>
+              ) : null}
+              {entry.dailyGoals.map((v, i) => (
+                <NumberedField
+                  key={i}
+                  index={i + 1}
+                  testID={`daily-goal-${i}`}
+                  value={v}
+                  onChangeText={(t) => setList("dailyGoals", i, t)}
+                  placeholder={`Goal ${i + 1}`}
+                />
+              ))}
+            </View>
+          )}
 
           {stepKey === "quote" && (
             <View style={styles.quoteBox}>

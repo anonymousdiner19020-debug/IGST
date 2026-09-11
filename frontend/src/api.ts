@@ -108,6 +108,7 @@ export type DayResponse = {
   content: { affirmations: string[]; quote: { text: string; author: string } };
   hasContent: boolean;
   prevGoals: string[];
+  weekGoals: string[];
   affirmationDay: boolean;
   carriedAffirmation: string;
 };
