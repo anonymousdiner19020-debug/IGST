@@ -101,6 +101,9 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 ## Implemented — Iteration 12 (2026-06)
 - **Page 6 weekly-goal reminder:** `GET /api/day` now returns `weekGoals` (the most recent non-empty `weeklyGoals`, i.e. the current week's goals set on the last special day). Flow Page 6 ("Currently Working Towards") shows a "This week's goals" reference card above the daily goal fields so users remember what they set for the week. Verified end-to-end via a seeded special-day entry showing on a later non-special day.
 
+## Implemented — Iteration 13 (2026-06)
+- **Manlier backgrounds:** Replaced the pastel theme catalog with bolder, masculine tones — Slate, Gunmetal, Midnight, Storm, Deep Sea, Forest, Olive Drab, Timber, Bronze, Graphite (deeper slate/steel/earth gradients, still light enough for readable dark text). IDs changed; any previously-selected pastel id falls back to Default gracefully.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

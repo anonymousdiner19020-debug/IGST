@@ -19,18 +19,19 @@ export type BgItem = GradientBg | PhotoBg | NoneBg;
 
 export const NONE_BG: NoneBg = { id: "none", kind: "none" };
 
-// Light, elegant motivational gradients — tuned so dark journal text stays readable.
+// Bold, masculine gradients — deeper slate / steel / earth tones, tuned so
+// dark journal text stays readable.
 export const APP_BACKGROUNDS: GradientBg[] = [
-  { id: "sunrise", kind: "gradient", name: "Sunrise Resolve", quote: "Rise and begin again.", colors: ["#FFE7D0", "#FDF2E6", "#F8DFC2"] },
-  { id: "golden", kind: "gradient", name: "Golden Hour", quote: "You are your own light.", colors: ["#FCEAC4", "#FCF3DC", "#F6DCA2"] },
-  { id: "ocean", kind: "gradient", name: "Ocean Calm", quote: "Flow, don't force.", colors: ["#D8E9F1", "#EAF3F8", "#C7DDE9"] },
-  { id: "sky", kind: "gradient", name: "Sky Dream", quote: "Dream in wide open spaces.", colors: ["#DCE6F6", "#EEF2FB", "#CAD7F0"] },
-  { id: "forest", kind: "gradient", name: "Forest Focus", quote: "Grow steady, grow deep.", colors: ["#DFE8D5", "#EEF2E6", "#CFDCC0"] },
-  { id: "mint", kind: "gradient", name: "Mint Fresh", quote: "Breathe. Reset. Begin.", colors: ["#D5EEE4", "#E8F6F0", "#BFE4D5"] },
-  { id: "lavender", kind: "gradient", name: "Lavender Peace", quote: "Be gentle with yourself.", colors: ["#E8DFEF", "#F1ECF7", "#D9CCEB"] },
-  { id: "rose", kind: "gradient", name: "Rose Bloom", quote: "Bloom where you are planted.", colors: ["#F6DBE0", "#FBEBEF", "#EFC6D0"] },
-  { id: "sand", kind: "gradient", name: "Sand Dune", quote: "One step at a time.", colors: ["#EEE4D3", "#F5EEE0", "#E2D3BB"] },
-  { id: "twilight", kind: "gradient", name: "Twilight", quote: "Rest is part of the work.", colors: ["#E0DEEB", "#ECEBF3", "#D0CDDF"] },
+  { id: "slate", kind: "gradient", name: "Slate", quote: "Steady as stone.", colors: ["#C4CDD8", "#D6DDE5", "#A9B6C4"] },
+  { id: "gunmetal", kind: "gradient", name: "Gunmetal", quote: "Forged, not given.", colors: ["#C6CBD0", "#D8DCE0", "#ABB2BA"] },
+  { id: "midnight", kind: "gradient", name: "Midnight", quote: "Discipline over mood.", colors: ["#C0C9DA", "#D2D9E6", "#A4B0C8"] },
+  { id: "storm", kind: "gradient", name: "Storm", quote: "Push through the weather.", colors: ["#B9C2CC", "#CDD5DD", "#9BA8B6"] },
+  { id: "deepsea", kind: "gradient", name: "Deep Sea", quote: "Calm runs deep.", colors: ["#BAD0D1", "#D0DFDF", "#9FBCBE"] },
+  { id: "forest", kind: "gradient", name: "Forest", quote: "Grow tall, hold firm.", colors: ["#BFCFBA", "#D3DECE", "#A2B69C"] },
+  { id: "olive", kind: "gradient", name: "Olive Drab", quote: "Earn it every day.", colors: ["#CBCDAF", "#DDDECB", "#B0B48C"] },
+  { id: "timber", kind: "gradient", name: "Timber", quote: "Build with your hands.", colors: ["#D6C7AF", "#E5DAC7", "#BFA985"] },
+  { id: "bronze", kind: "gradient", name: "Bronze", quote: "Sharpen your edge.", colors: ["#DBC9A9", "#EADCC5", "#C6AC80"] },
+  { id: "graphite", kind: "gradient", name: "Graphite", quote: "Own the grind.", colors: ["#C7C7C4", "#D9D9D6", "#ABABA7"] },
 ];
 
 export type RotationMode = "fixed" | "mood" | "daily" | "weekly";
