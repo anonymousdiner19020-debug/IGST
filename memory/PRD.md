@@ -109,6 +109,10 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Milestone Badges:** Profile screen shows a "Milestone badges" grid (3/7/14/21/30/50/75/100/150/200/365-day medals). Earned = best-ever streak (max of longest/current) ≥ milestone; earned medals highlighted, locked ones greyed, with progress text to the next milestone. Uses `STREAK_MILESTONES` (no backend change — reuses `longestStreak` from insights).
 - Verified end-to-end with a seeded 7-day streak + 3 weekly goals (2/3 toggled on Today, 3- & 7-day badges earned on Profile).
 
+## Implemented — Iteration 15 (2026-06)
+- **Page 6 weekly-goals = read-only:** Reverted the flow's "This week's goals" reminder to a plain list (no tick circles). The interactive tick-off progress remains on the Today dashboard.
+- **Notes moved to bottom:** On the "Actions I will take today" step (Page 9), the Notes field now appears below the accomplished question and the action fields, instead of in the middle.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

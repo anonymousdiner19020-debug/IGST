@@ -8,11 +8,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
-import { useDay, useSaveDay, useToggleWeeklyGoal, type DayEntry } from "@/src/api";
+import { useDay, useSaveDay, type DayEntry } from "@/src/api";
 import { prettyDate, todayStr } from "@/src/date-utils";
 import { Chip, Icon, NumberedField, PrimaryButton, TextField } from "@/src/components/ui";
 import { PageBackground } from "@/src/components/page-background";
-import { WeeklyGoalProgress } from "@/src/components/weekly-goal-progress";
 import { PhotoPicker } from "@/src/components/photo-picker";
 import { MOODS } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
@@ -63,7 +62,6 @@ export default function FlowScreen() {
 
   const { data, isLoading } = useDay(userId, date);
   const saveMutation = useSaveDay(userId);
-  const toggleGoal = useToggleWeeklyGoal(userId);
 
   const [entry, setEntry] = useState<DayEntry | null>(null);
   const [index, setIndex] = useState(0);
@@ -301,13 +299,12 @@ export default function FlowScreen() {
           {stepKey === "dailyGoals" && (
             <View style={{ gap: 16 }}>
               {data.weekGoals.length > 0 ? (
-                <WeeklyGoalProgress
-                  goals={data.weekGoals}
-                  done={data.weekGoalsDone}
-                  onToggle={(i) =>
-                    toggleGoal.mutate({ date, anchor: data.weekGoalsAnchor, index: i })
-                  }
-                />
+                <View style={styles.refCard}>
+                  <Text style={styles.refTitle}>This week’s goals</Text>
+                  {data.weekGoals.map((g, i) => (
+                    <Text key={i} style={styles.refItem}>•  {g}</Text>
+                  ))}
+                </View>
               ) : null}
               {entry.dailyGoals.map((v, i) => (
                 <NumberedField
@@ -335,7 +332,7 @@ export default function FlowScreen() {
           {stepKey === "actionsYesterday" && (
             <View style={{ gap: 16 }}>
               <View style={styles.refCard}>
-                <Text style={styles.refTitle}>Yesterday's goals</Text>
+                <Text style={styles.refTitle}>Yesterday’s goals</Text>
                 {data.prevGoals.length > 0 ? (
                   data.prevGoals.map((g, i) => (
                     <Text key={i} style={styles.refItem}>•  {g}</Text>
@@ -360,7 +357,7 @@ export default function FlowScreen() {
           {stepKey === "actionsTomorrow" && (
             <View style={{ gap: 18 }}>
               <View style={styles.refCard}>
-                <Text style={styles.refTitle}>Today's goals</Text>
+                <Text style={styles.refTitle}>Today’s goals</Text>
                 {entry.dailyGoals.filter((g) => g.trim()).length > 0 ? (
                   entry.dailyGoals
                     .filter((g) => g.trim())
@@ -405,15 +402,6 @@ export default function FlowScreen() {
                 )}
               </View>
 
-              <Text style={styles.qLabel}>Notes</Text>
-              <TextField
-                testID="tomorrow-notes"
-                value={entry.tomorrowNotes.join("\n")}
-                onChangeText={(t) => update({ tomorrowNotes: t.split("\n") })}
-                placeholder="A few lines for tomorrow..."
-                multiline
-              />
-
               <Text style={styles.qLabel}>Actions I will take today</Text>
               {entry.actionsTomorrow.map((v, i) => (
                 <NumberedField
@@ -425,6 +413,15 @@ export default function FlowScreen() {
                   placeholder={`Action ${i + 1}`}
                 />
               ))}
+
+              <Text style={styles.qLabel}>Notes</Text>
+              <TextField
+                testID="tomorrow-notes"
+                value={entry.tomorrowNotes.join("\n")}
+                onChangeText={(t) => update({ tomorrowNotes: t.split("\n") })}
+                placeholder="A few lines for tomorrow..."
+                multiline
+              />
             </View>
           )}
 
@@ -490,13 +487,13 @@ export default function FlowScreen() {
                 <>
                   <Icon name="sunrise" size={30} color={colors.brand} />
                   <Text style={styles.finalText}>{affirmationText}</Text>
-                  <Text style={styles.finalHint}>Repeat it to yourself. You've got this.</Text>
+                  <Text style={styles.finalHint}>Repeat it to yourself. You’ve got this.</Text>
                 </>
               ) : (
                 <>
                   <Icon name="sunrise" size={30} color={colors.muted} />
                   <Text style={styles.finalHint}>
-                    You didn't pick an affirmation today — go back to page 4 to choose one.
+                    You didn’t pick an affirmation today — go back to page 4 to choose one.
                   </Text>
                 </>
               )}
