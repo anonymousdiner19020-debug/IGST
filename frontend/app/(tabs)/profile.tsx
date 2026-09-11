@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInsights, useMoodTrend, useGratitudeTrends } from "@/src/api";
 import { shortDate } from "@/src/date-utils";
 import { Icon, PrimaryButton } from "@/src/components/ui";
+import { STREAK_MILESTONES } from "@/src/components/streak-celebration";
 import { moodEmoji, moodLabel } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -102,6 +103,30 @@ export default function ProgressScreen() {
           <StatCard icon="calendar" value={`${data?.dayNumber ?? 0}`} label="Days on journey" />
           <StatCard icon="log-in" value={`${data?.loginDays ?? 0}`} label="Days logged in" />
           <StatCard icon="book-open" value={`${data?.totalEntries ?? 0}`} label="Entries written" />
+        </View>
+
+        <Text style={styles.sectionTitle}>Milestone badges</Text>
+        <View style={styles.badgeCard}>
+          {(() => {
+            const best = Math.max(data?.longestStreak ?? 0, data?.currentStreak ?? 0);
+            const earnedCount = STREAK_MILESTONES.filter((m) => best >= m).length;
+            const next = STREAK_MILESTONES.find((m) => best < m);
+            return (
+              <>
+                <Text style={styles.badgeIntro}>
+                  {earnedCount > 0
+                    ? `You've earned ${earnedCount} of ${STREAK_MILESTONES.length} keepsakes.`
+                    : "Keep your streak going to earn your first keepsake."}
+                  {next ? `  Next: ${next}-day streak.` : "  You've collected them all! 🏆"}
+                </Text>
+                <View style={styles.badgeGrid}>
+                  {STREAK_MILESTONES.map((m) => (
+                    <Badge key={m} milestone={m} earned={best >= m} />
+                  ))}
+                </View>
+              </>
+            );
+          })()}
         </View>
 
         <Text style={styles.sectionTitle}>Workout breakdown</Text>
@@ -212,6 +237,24 @@ export default function ProgressScreen() {
   );
 }
 
+function Badge({ milestone, earned }: { milestone: number; earned: boolean }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  return (
+    <View style={styles.badge}>
+      <View style={[styles.badgeMedal, earned ? styles.badgeMedalOn : styles.badgeMedalOff]}>
+        {earned ? (
+          <Icon name="award" size={22} color={colors.onBrandPrimary} />
+        ) : (
+          <Icon name="lock" size={18} color={colors.muted} />
+        )}
+      </View>
+      <Text style={[styles.badgeNum, !earned && { color: colors.muted }]}>{milestone}</Text>
+      <Text style={styles.badgeDays}>days</Text>
+    </View>
+  );
+}
+
 function StatCard({ icon, value, label }: { icon: any; value: string; label: string }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -318,4 +361,27 @@ const useStyles = makeStyles((c) => ({
   workoutCount: { fontFamily: fonts.semibold, fontSize: 15, color: c.brand },
   barTrack: { height: 8, borderRadius: 999, backgroundColor: c.surfaceTertiary, overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 999, backgroundColor: c.brandPrimary },
+  badgeCard: {
+    backgroundColor: c.surface,
+    borderRadius: 20,
+    padding: 20,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  badgeIntro: { fontFamily: fonts.regular, fontSize: 14, color: c.muted, lineHeight: 20 },
+  badgeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16, justifyContent: "flex-start" },
+  badge: { width: 66, alignItems: "center", gap: 4 },
+  badgeMedal: {
+    width: 54,
+    height: 54,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  badgeMedalOn: { backgroundColor: c.brandPrimary, borderColor: c.brand },
+  badgeMedalOff: { backgroundColor: c.surfaceTertiary, borderColor: c.border },
+  badgeNum: { fontFamily: fonts.displayBold, fontSize: 16, color: c.onSurface },
+  badgeDays: { fontFamily: fonts.regular, fontSize: 11, color: c.muted, marginTop: -2 },
 }));

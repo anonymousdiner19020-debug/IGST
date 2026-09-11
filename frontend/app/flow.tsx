@@ -8,10 +8,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
-import { useDay, useSaveDay, type DayEntry } from "@/src/api";
+import { useDay, useSaveDay, useToggleWeeklyGoal, type DayEntry } from "@/src/api";
 import { prettyDate, todayStr } from "@/src/date-utils";
 import { Chip, Icon, NumberedField, PrimaryButton, TextField } from "@/src/components/ui";
 import { PageBackground } from "@/src/components/page-background";
+import { WeeklyGoalProgress } from "@/src/components/weekly-goal-progress";
 import { PhotoPicker } from "@/src/components/photo-picker";
 import { MOODS } from "@/src/mood";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
@@ -62,6 +63,7 @@ export default function FlowScreen() {
 
   const { data, isLoading } = useDay(userId, date);
   const saveMutation = useSaveDay(userId);
+  const toggleGoal = useToggleWeeklyGoal(userId);
 
   const [entry, setEntry] = useState<DayEntry | null>(null);
   const [index, setIndex] = useState(0);
@@ -299,12 +301,13 @@ export default function FlowScreen() {
           {stepKey === "dailyGoals" && (
             <View style={{ gap: 16 }}>
               {data.weekGoals.length > 0 ? (
-                <View style={styles.refCard}>
-                  <Text style={styles.refTitle}>This week's goals</Text>
-                  {data.weekGoals.map((g, i) => (
-                    <Text key={i} style={styles.refItem}>•  {g}</Text>
-                  ))}
-                </View>
+                <WeeklyGoalProgress
+                  goals={data.weekGoals}
+                  done={data.weekGoalsDone}
+                  onToggle={(i) =>
+                    toggleGoal.mutate({ date, anchor: data.weekGoalsAnchor, index: i })
+                  }
+                />
               ) : null}
               {entry.dailyGoals.map((v, i) => (
                 <NumberedField

@@ -577,14 +577,22 @@ async def get_day(d: str, userId: Optional[str] = Query(None),
     # Weekly goals set on the most recent special day carry through the week so
     # they can be shown as a reminder on the daily "Currently Working Towards" page.
     week_goals = []
+    week_anchor = ""
     for ce in recent:
         wg = [g for g in ce.get("weeklyGoals", []) if (g or "").strip()]
         if wg:
             week_goals = wg
+            week_anchor = ce["date"]
             break
+    week_done = []
+    if week_anchor:
+        prog = await db.weekly_goal_progress.find_one(
+            {"userId": uid, "anchor": week_anchor}, {"_id": 0})
+        week_done = [i for i in (prog or {}).get("done", []) if 0 <= i < len(week_goals)]
     return {"date": d, "dayNumber": day_no, "isSpecial": is_special(day_no),
             "entry": entry, "content": content, "hasContent": entry_has_content(entry),
             "prevGoals": prev_goals, "weekGoals": week_goals,
+            "weekGoalsAnchor": week_anchor, "weekGoalsDone": week_done,
             "affirmationDay": affirmation_day,
             "carriedAffirmation": carried}
 
@@ -603,6 +611,32 @@ async def save_day(d: str, entry: DayEntry, userId: Optional[str] = Query(None),
                                 upsert=True)
     saved = await db.entries.find_one({"userId": uid, "date": d}, {"_id": 0})
     return {"ok": True, "entry": saved}
+
+
+class WeeklyGoalToggleReq(BaseModel):
+    anchor: str
+    index: int
+    userId: Optional[str] = None
+
+
+@api_router.post("/weekly-goals/toggle")
+async def toggle_weekly_goal(req: WeeklyGoalToggleReq,
+                             account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, req.userId)
+    prog = await db.weekly_goal_progress.find_one(
+        {"userId": uid, "anchor": req.anchor}, {"_id": 0})
+    done = set((prog or {}).get("done", []))
+    if req.index in done:
+        done.discard(req.index)
+    else:
+        done.add(req.index)
+    done_list = sorted(done)
+    await db.weekly_goal_progress.update_one(
+        {"userId": uid, "anchor": req.anchor},
+        {"$set": {"userId": uid, "anchor": req.anchor, "done": done_list,
+                  "updatedAt": now_iso()}},
+        upsert=True)
+    return {"ok": True, "done": done_list}
 
 
 @api_router.get("/calendar")

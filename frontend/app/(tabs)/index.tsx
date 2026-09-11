@@ -7,10 +7,11 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useCalendar, useDay, useOnThisDay, useGratitudeTrends } from "@/src/api";
+import { useCalendar, useDay, useOnThisDay, useGratitudeTrends, useToggleWeeklyGoal } from "@/src/api";
 import { greeting, prettyDate, todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
 import { PageBackground } from "@/src/components/page-background";
+import { WeeklyGoalProgress } from "@/src/components/weekly-goal-progress";
 import { StreakCelebration, STREAK_MILESTONES } from "@/src/components/streak-celebration";
 import { moodEmoji } from "@/src/mood";
 import { storage } from "@/src/utils/storage";
@@ -30,6 +31,7 @@ export default function TodayScreen() {
   const { userId, init } = useUser();
   const today = todayStr();
   const { data: day, isLoading } = useDay(userId, today);
+  const toggleGoal = useToggleWeeklyGoal(userId);
   const { data: cal } = useCalendar(userId);
   const { data: otd } = useOnThisDay(userId);
   const { data: gratitude } = useGratitudeTrends(userId);
@@ -150,6 +152,17 @@ export default function TodayScreen() {
               })}
             </View>
           </View>
+          {day && day.weekGoals.length > 0 ? (
+            <View style={{ marginTop: 20 }} testID="today-week-goals">
+              <WeeklyGoalProgress
+                goals={day.weekGoals}
+                done={day.weekGoalsDone}
+                onToggle={(i) =>
+                  toggleGoal.mutate({ date: today, anchor: day.weekGoalsAnchor, index: i })
+                }
+              />
+            </View>
+          ) : null}
           {topBlessing ? (
             <Pressable
               testID="gratitude-reminder"

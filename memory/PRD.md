@@ -104,6 +104,11 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 ## Implemented — Iteration 13 (2026-06)
 - **Manlier backgrounds:** Replaced the pastel theme catalog with bolder, masculine tones — Slate, Gunmetal, Midnight, Storm, Deep Sea, Forest, Olive Drab, Timber, Bronze, Graphite (deeper slate/steel/earth gradients, still light enough for readable dark text). IDs changed; any previously-selected pastel id falls back to Default gracefully.
 
+## Implemented — Iteration 14 (2026-06)
+- **Goal Progress (tick off weekly goals):** New `weekly_goal_progress` collection keyed by userId + week anchor date. `GET /api/day` now returns `weekGoalsAnchor` + `weekGoalsDone`; `POST /api/weekly-goals/toggle` flips a goal's done state. New `src/components/weekly-goal-progress.tsx` shows a checkable list + a progress bar that fills as goals complete, rendered on flow Page 6 and on the Today screen (optimistic toggle via `useToggleWeeklyGoal`).
+- **Milestone Badges:** Profile screen shows a "Milestone badges" grid (3/7/14/21/30/50/75/100/150/200/365-day medals). Earned = best-ever streak (max of longest/current) ≥ milestone; earned medals highlighted, locked ones greyed, with progress text to the next milestone. Uses `STREAK_MILESTONES` (no backend change — reuses `longestStreak` from insights).
+- Verified end-to-end with a seeded 7-day streak + 3 weekly goals (2/3 toggled on Today, 3- & 7-day badges earned on Profile).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

@@ -109,6 +109,8 @@ export type DayResponse = {
   hasContent: boolean;
   prevGoals: string[];
   weekGoals: string[];
+  weekGoalsAnchor: string;
+  weekGoalsDone: number[];
   affirmationDay: boolean;
   carriedAffirmation: string;
 };
@@ -244,6 +246,11 @@ export const api = {
     request<GratitudeWallResponse>(`/gratitude-wall?userId=${encodeURIComponent(userId)}`),
   yearlyWrap: (userId: string, year: number) =>
     request<YearlyWrapResponse>(`/yearly-wrap?userId=${encodeURIComponent(userId)}&year=${year}`),
+  toggleWeeklyGoal: (userId: string, anchor: string, index: number) =>
+    request<{ ok: boolean; done: number[] }>("/weekly-goals/toggle", {
+      method: "POST",
+      body: JSON.stringify({ userId, anchor, index }),
+    }),
   // auth
   register: (email: string, password: string, deviceUserId: string, name?: string) =>
     request<AuthResponse>("/auth/register", {
@@ -379,5 +386,33 @@ export function useYearlyWrap(userId: string | null, year: number) {
     queryKey: ["yearly-wrap", userId, year],
     queryFn: () => api.yearlyWrap(userId!, year),
     enabled: !!userId,
+  });
+}
+
+export function useToggleWeeklyGoal(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ anchor, index }: { date: string; anchor: string; index: number }) =>
+      api.toggleWeeklyGoal(userId!, anchor, index),
+    onMutate: async ({ date, index }) => {
+      await qc.cancelQueries({ queryKey: ["day", userId, date] });
+      const prev = qc.getQueryData<DayResponse>(["day", userId, date]);
+      if (prev) {
+        const done = new Set(prev.weekGoalsDone ?? []);
+        if (done.has(index)) done.delete(index);
+        else done.add(index);
+        qc.setQueryData<DayResponse>(["day", userId, date], {
+          ...prev,
+          weekGoalsDone: Array.from(done).sort((a, b) => a - b),
+        });
+      }
+      return { prev, date };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["day", userId, ctx.date], ctx.prev);
+    },
+    onSettled: (_d, _e, vars) => {
+      qc.invalidateQueries({ queryKey: ["day", userId, vars.date] });
+    },
   });
 }
