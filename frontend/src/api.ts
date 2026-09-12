@@ -112,6 +112,7 @@ export type DayResponse = {
   weekGoalsAnchor: string;
   weekGoalsDone: number[];
   affirmationDay: boolean;
+  reflectionDay: boolean;
   carriedAffirmation: string;
 };
 

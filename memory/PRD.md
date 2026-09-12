@@ -113,6 +113,15 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Page 6 weekly-goals = read-only:** Reverted the flow's "This week's goals" reminder to a plain list (no tick circles). The interactive tick-off progress remains on the Today dashboard.
 - **Notes moved to bottom:** On the "Actions I will take today" step (Page 9), the Notes field now appears below the accomplished question and the action fields, instead of in the middle.
 
+## Implemented — Iteration 16 (2026-06)
+- **Weekly cadence anchored to real weekdays (was signup-based every-7th-day):**
+  - "Taking Control" (morning ritual) + "Weekly Goals" now show only on **Mondays** (and day 1) — the week starts Monday. Gated by `affirmationDay`.
+  - Weekly Reflection ("Look back on the week") now shows only on **Sundays**. Backend `GET /api/day` adds `reflectionDay` (weekday==6); flow gates the `weekly` step by it.
+  - `isSpecial` is still returned but no longer drives the flow step order.
+- **Today "This week's goals" is view-only:** removed tick circles/progress on the Today dashboard (plain reminder list via `WeeklyGoalProgress readOnly`). Page 6 was already reverted to read-only.
+- **Notes moved to bottom** of the "Actions I will take today" step.
+- Verified via date-param flow: Sunday → Weekly Reflection only; Monday → Taking Control + Weekly Goals.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

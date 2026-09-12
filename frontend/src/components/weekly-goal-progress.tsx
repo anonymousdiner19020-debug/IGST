@@ -8,11 +8,13 @@ export function WeeklyGoalProgress({
   done,
   onToggle,
   title = "This week's goals",
+  readOnly = false,
 }: {
   goals: string[];
   done: number[];
-  onToggle: (index: number) => void;
+  onToggle?: (index: number) => void;
   title?: string;
+  readOnly?: boolean;
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -20,6 +22,19 @@ export function WeeklyGoalProgress({
   const completed = goals.filter((_, i) => doneSet.has(i)).length;
   const pct = goals.length ? (completed / goals.length) * 100 : 0;
   const allDone = completed === goals.length && goals.length > 0;
+
+  if (readOnly) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>{title}</Text>
+        <View style={{ gap: 4 }}>
+          {goals.map((g, i) => (
+            <Text key={i} style={styles.bullet}>•  {g}</Text>
+          ))}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.card}>
@@ -40,7 +55,7 @@ export function WeeklyGoalProgress({
             <Pressable
               key={i}
               testID={`week-goal-toggle-${i}`}
-              onPress={() => onToggle(i)}
+              onPress={() => onToggle?.(i)}
               style={styles.row}
               hitSlop={6}
             >
@@ -81,4 +96,5 @@ const useStyles = makeStyles((c) => ({
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8 },
   goalText: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: c.onSurface, lineHeight: 21 },
   goalDone: { color: c.muted, textDecorationLine: "line-through" },
+  bullet: { fontFamily: fonts.medium, fontSize: 15, color: c.onSurface, lineHeight: 24 },
 }));

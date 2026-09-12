@@ -93,15 +93,16 @@ export default function FlowScreen() {
   }, [data, entry]);
 
   const steps = useMemo<StepKey[]>(() => {
-    const special = data?.isSpecial;
     const s: StepKey[] = ["mood"];
     if (data?.affirmationDay) s.push("affirmations");
-    if (special) s.push("morningRitual", "weeklyGoals");
+    // "Taking Control" (morning ritual) and "Weekly Goals" show on Mondays (and day 1).
+    if (data?.affirmationDay) s.push("morningRitual", "weeklyGoals");
     s.push("blessings", "workout", "dailyGoals", "quote", "actionsYesterday", "actionsTomorrow", "journal");
-    if (special) s.push("weekly");
+    // Weekly reflection ("look back on the week") shows only on Sundays.
+    if (data?.reflectionDay) s.push("weekly");
     s.push("final");
     return s;
-  }, [data?.isSpecial, data?.affirmationDay]);
+  }, [data?.affirmationDay, data?.reflectionDay]);
 
   if (isLoading || !entry || !data) {
     return (

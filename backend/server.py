@@ -563,8 +563,10 @@ async def get_day(d: str, userId: Optional[str] = Query(None),
     prev_entry = await db.entries.find_one({"userId": uid, "date": prev}, {"_id": 0})
     prev_goals = [g for g in (prev_entry or {}).get("dailyGoals", []) if (g or "").strip()]
     # Affirmation is chosen on day 1 and every Monday (weekday 0); it carries over
-    # to the rest of the days until the next Monday.
+    # to the rest of the days until the next Monday. The weekly reflection
+    # ("look back on the week") is shown only on Sundays (weekday 6).
     affirmation_day = day_no == 1 or parse_date(d).weekday() == 0
+    reflection_day = parse_date(d).weekday() == 6
     carried = ""
     recent = await db.entries.find(
         {"userId": uid, "date": {"$lte": d}}, {"_id": 0}
@@ -594,6 +596,7 @@ async def get_day(d: str, userId: Optional[str] = Query(None),
             "prevGoals": prev_goals, "weekGoals": week_goals,
             "weekGoalsAnchor": week_anchor, "weekGoalsDone": week_done,
             "affirmationDay": affirmation_day,
+            "reflectionDay": reflection_day,
             "carriedAffirmation": carried}
 
 
