@@ -61,8 +61,13 @@ export default function TodayScreen() {
     };
   }, [streak, init]);
 
+  const monday = (() => {
+    const dow = dayjs().day(); // 0=Sun .. 6=Sat
+    const offset = dow === 0 ? -6 : 1 - dow; // days back to Monday
+    return dayjs().add(offset, "day");
+  })();
   const last7 = Array.from({ length: 7 }).map((_, i) =>
-    dayjs().day(0).add(i, "day").format("YYYY-MM-DD"),
+    monday.add(i, "day").format("YYYY-MM-DD"),
   );
 
   return (

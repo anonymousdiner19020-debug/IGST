@@ -132,6 +132,9 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
   - Hooks in api.ts: `useMilestones`, `useCreateMilestone`, `useToggleMilestone`, `useDeleteMilestone`; `Milestone` type added.
 - Verified end-to-end (add w/ past start date → 38 days in + progress; mark complete → completed view + reopen).
 
+## Implemented — Iteration 19 (2026-06)
+- **Today streak week starts Monday:** The 7-day streak row on the Today screen now runs Mon→Sun (ISO week) instead of Sun→Sat. Computed Monday offset in `index.tsx` (handles Sunday correctly). Verified labels show M T W T F S S.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.
