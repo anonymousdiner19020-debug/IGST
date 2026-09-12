@@ -122,6 +122,9 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Notes moved to bottom** of the "Actions I will take today" step.
 - Verified via date-param flow: Sunday → Weekly Reflection only; Monday → Taking Control + Weekly Goals.
 
+## Implemented — Iteration 17 (2026-06)
+- **Reordered flow:** "Daily Inspiration" (quote step) now appears immediately after the Workout page (Blessings → Workout → Daily Inspiration → Currently Working Towards). Verified by walking the flow.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

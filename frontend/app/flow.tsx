@@ -97,7 +97,7 @@ export default function FlowScreen() {
     if (data?.affirmationDay) s.push("affirmations");
     // "Taking Control" (morning ritual) and "Weekly Goals" show on Mondays (and day 1).
     if (data?.affirmationDay) s.push("morningRitual", "weeklyGoals");
-    s.push("blessings", "workout", "dailyGoals", "quote", "actionsYesterday", "actionsTomorrow", "journal");
+    s.push("blessings", "workout", "quote", "dailyGoals", "actionsYesterday", "actionsTomorrow", "journal");
     // Weekly reflection ("look back on the week") shows only on Sundays.
     if (data?.reflectionDay) s.push("weekly");
     s.push("final");
