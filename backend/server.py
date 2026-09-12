@@ -642,6 +642,79 @@ async def toggle_weekly_goal(req: WeeklyGoalToggleReq,
     return {"ok": True, "done": done_list}
 
 
+class MilestoneCreateReq(BaseModel):
+    title: str
+    startDate: str
+    userId: Optional[str] = None
+
+
+class MilestoneIdReq(BaseModel):
+    userId: Optional[str] = None
+
+
+@api_router.get("/milestones")
+async def list_milestones(userId: Optional[str] = Query(None),
+                          account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    items = await db.milestones.find({"userId": uid}, {"_id": 0}).to_list(500)
+    active = [m for m in items if not m.get("completed")]
+    done = [m for m in items if m.get("completed")]
+    active.sort(key=lambda m: m.get("startDate", ""), reverse=True)
+    done.sort(key=lambda m: m.get("completedDate", ""), reverse=True)
+    return {"milestones": active + done}
+
+
+@api_router.post("/milestones")
+async def create_milestone(req: MilestoneCreateReq,
+                           account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, req.userId)
+    title = (req.title or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Title is required")
+    try:
+        parse_date(req.startDate)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid start date")
+    doc = {
+        "id": uuid.uuid4().hex,
+        "userId": uid,
+        "title": title,
+        "startDate": req.startDate,
+        "completed": False,
+        "completedDate": None,
+        "createdAt": now_iso(),
+    }
+    await db.milestones.insert_one(doc)
+    doc.pop("_id", None)
+    return {"ok": True, "milestone": doc}
+
+
+@api_router.post("/milestones/{mid}/toggle")
+async def toggle_milestone(mid: str, req: MilestoneIdReq,
+                           account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, req.userId)
+    m = await db.milestones.find_one({"userId": uid, "id": mid}, {"_id": 0})
+    if not m:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+    completed = not m.get("completed", False)
+    await db.milestones.update_one(
+        {"userId": uid, "id": mid},
+        {"$set": {"completed": completed,
+                  "completedDate": today_str() if completed else None,
+                  "updatedAt": now_iso()}})
+    m["completed"] = completed
+    m["completedDate"] = today_str() if completed else None
+    return {"ok": True, "milestone": m}
+
+
+@api_router.delete("/milestones/{mid}")
+async def delete_milestone(mid: str, userId: Optional[str] = Query(None),
+                           account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    await db.milestones.delete_one({"userId": uid, "id": mid})
+    return {"ok": True}
+
+
 @api_router.get("/calendar")
 async def calendar(userId: Optional[str] = Query(None),
                    account: Optional[str] = Depends(get_account_id)):

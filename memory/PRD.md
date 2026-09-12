@@ -125,6 +125,13 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 ## Implemented — Iteration 17 (2026-06)
 - **Reordered flow:** "Daily Inspiration" (quote step) now appears immediately after the Workout page (Blessings → Workout → Daily Inspiration → Currently Working Towards). Verified by walking the flow.
 
+## Implemented — Iteration 18 (2026-06)
+- **Milestones tab (new):** New bottom-tab screen `app/(tabs)/milestones.tsx` (flag icon, between Search and Progress). Users add milestones with a title + start date (custom in-app month-grid `MonthPicker`, future dates disabled). Backend `milestones` collection + CRUD: `GET/POST /api/milestones`, `POST /api/milestones/{id}/toggle`, `DELETE /api/milestones/{id}` (uses get_account_id + require_id like other endpoints).
+  - Active card: big "days in" counter (days since start) + progress bar toward the next marker (7/14/30/60/100/180/365/730) + Mark complete.
+  - Completed card (grouped under "Completed"): shows "Completed <date> · N days ago", "Lasted N days from start", and Reopen.
+  - Hooks in api.ts: `useMilestones`, `useCreateMilestone`, `useToggleMilestone`, `useDeleteMilestone`; `Milestone` type added.
+- Verified end-to-end (add w/ past start date → 38 days in + progress; mark complete → completed view + reopen).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

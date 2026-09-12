@@ -100,6 +100,15 @@ export type DayEntry = {
   weekly: { wentWell: string; improve: string; learned: string };
 };
 
+export type Milestone = {
+  id: string;
+  title: string;
+  startDate: string;
+  completed: boolean;
+  completedDate: string | null;
+  createdAt: string;
+};
+
 export type DayResponse = {
   date: string;
   dayNumber: number;
@@ -251,6 +260,22 @@ export const api = {
     request<{ ok: boolean; done: number[] }>("/weekly-goals/toggle", {
       method: "POST",
       body: JSON.stringify({ userId, anchor, index }),
+    }),
+  listMilestones: (userId: string) =>
+    request<{ milestones: Milestone[] }>(`/milestones?userId=${encodeURIComponent(userId)}`),
+  createMilestone: (userId: string, title: string, startDate: string) =>
+    request<{ ok: boolean; milestone: Milestone }>("/milestones", {
+      method: "POST",
+      body: JSON.stringify({ userId, title, startDate }),
+    }),
+  toggleMilestone: (userId: string, id: string) =>
+    request<{ ok: boolean; milestone: Milestone }>(`/milestones/${id}/toggle`, {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+    }),
+  deleteMilestone: (userId: string, id: string) =>
+    request<{ ok: boolean }>(`/milestones/${id}?userId=${encodeURIComponent(userId)}`, {
+      method: "DELETE",
     }),
   // auth
   register: (email: string, password: string, deviceUserId: string, name?: string) =>
@@ -415,5 +440,39 @@ export function useToggleWeeklyGoal(userId: string | null) {
     onSettled: (_d, _e, vars) => {
       qc.invalidateQueries({ queryKey: ["day", userId, vars.date] });
     },
+  });
+}
+
+
+export function useMilestones(userId: string | null) {
+  return useQuery({
+    queryKey: ["milestones", userId],
+    queryFn: () => api.listMilestones(userId!),
+    enabled: !!userId,
+  });
+}
+
+export function useCreateMilestone(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ title, startDate }: { title: string; startDate: string }) =>
+      api.createMilestone(userId!, title, startDate),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["milestones", userId] }),
+  });
+}
+
+export function useToggleMilestone(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.toggleMilestone(userId!, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["milestones", userId] }),
+  });
+}
+
+export function useDeleteMilestone(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteMilestone(userId!, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["milestones", userId] }),
   });
 }

@@ -26,6 +26,10 @@ export default function TabsLayout() {
           <NativeIcon sf="magnifyingglass" />
           <Label>Search</Label>
         </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="milestones">
+          <NativeIcon sf="flag" />
+          <Label>Milestones</Label>
+        </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
           <NativeIcon sf="rosette" />
           <Label>Progress</Label>
@@ -68,6 +72,13 @@ export default function TabsLayout() {
         options={{
           title: "Search",
           tabBarIcon: ({ color, size }) => <Feather name="search" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="milestones"
+        options={{
+          title: "Milestones",
+          tabBarIcon: ({ color, size }) => <Feather name="flag" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
