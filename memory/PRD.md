@@ -189,6 +189,10 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Manage subscription**: new Settings row — opens the store's manage/cancel page via `customerInfo.managementURL` when subscribed, else routes to the paywall; shows trial days left when applicable.
 - **Separate Private-tracker tier — NOT possible** with Emergent-managed RevenueCat (single `pro` entitlement + `default` offering only; all packages grant the same entitlement, and fake/backend grants are forbidden). Premium continues to unlock everything incl. the Private tracker. Told the user.
 
+## Updated — Iteration 27 (2026-06)
+- **Best Value tag**: yearly plan now shows a green "BEST VALUE" badge alongside the auto-computed "SAVE %" badge.
+- **Trial timer/nudge**: the one-time reminder modal now begins from **3 days out** (fires once each at 3/2/1 days left, and once when ended) with adaptive copy ("3 days left…", "ends tomorrow", "has ended"). The days-left banner on Today remains.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

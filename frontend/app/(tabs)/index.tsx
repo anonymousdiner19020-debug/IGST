@@ -41,8 +41,8 @@ export default function TodayScreen() {
   const [trialNudge, setTrialNudge] = useState(false);
   useEffect(() => {
     if (resolving || isSubscribed) return;
-    if (inTrial && trialDaysLeft > 1) return; // nudge only on the final day / after it ends
-    const state = inTrial ? `last-${trialDaysLeft}` : "ended";
+    if (inTrial && trialDaysLeft > 3) return; // start nudging from 3 days out
+    const state = inTrial ? `left-${trialDaysLeft}` : "ended";
     (async () => {
       const seen = await storage.getItem<string>("aura.trialNudge", "");
       if (seen !== state) {
@@ -283,11 +283,15 @@ export default function TodayScreen() {
               <Icon name={inTrial ? "clock" : "lock"} size={28} color={colors.brand} />
             </View>
             <Text style={styles.nudgeTitle}>
-              {inTrial ? "Your free trial ends today" : "Your free trial has ended"}
+              {inTrial
+                ? trialDaysLeft === 1
+                  ? "Your free trial ends tomorrow"
+                  : `${trialDaysLeft} days left in your free trial`
+                : "Your free trial has ended"}
             </Text>
             <Text style={styles.nudgeBody}>
               {inTrial
-                ? "This is the last day of your free trial. Upgrade to Aura Premium to keep every feature without interruption."
+                ? "Upgrade to Aura Premium to keep every feature — journaling, insights, backgrounds and the private tracker — without interruption."
                 : "Upgrade to Aura Premium to keep journaling, insights, backgrounds and the private tracker."}
             </Text>
             <View style={{ width: "100%", gap: 10, marginTop: 6 }}>

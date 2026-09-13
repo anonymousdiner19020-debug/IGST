@@ -155,6 +155,11 @@ export default function PaywallScreen() {
                   <View style={{ flex: 1 }}>
                     <View style={styles.planNameRow}>
                       <Text style={styles.planName}>{packageLabel(pkg)}</Text>
+                      {isAnnual ? (
+                        <View style={styles.bestBadge}>
+                          <Text style={styles.bestBadgeText}>BEST VALUE</Text>
+                        </View>
+                      ) : null}
                       {isAnnual && savingsPct > 0 ? (
                         <View style={styles.saveBadge}>
                           <Text style={styles.saveBadgeText}>SAVE {savingsPct}%</Text>
@@ -223,9 +228,11 @@ const useStyles = makeStyles((c) => ({
   perkText: { fontFamily: fonts.medium, fontSize: 15, color: c.onSurface, flex: 1 },
   planCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 18, borderRadius: 16, backgroundColor: c.surfaceSecondary, borderWidth: 1, borderColor: c.borderStrong },
   planCardHighlight: { borderColor: c.brandPrimary, borderWidth: 2 },
-  planNameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  saveBadge: { backgroundColor: c.brandPrimary, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  saveBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: c.onBrandPrimary, letterSpacing: 0.5 },
+  planNameRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  bestBadge: { backgroundColor: c.brand, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  bestBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: c.onBrand, letterSpacing: 0.5 },
+  saveBadge: { backgroundColor: c.surfaceTertiary, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  saveBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: c.onSurfaceTertiary, letterSpacing: 0.5 },
   planName: { fontFamily: fonts.displayBold, fontSize: 18, color: c.onSurface },
   planDesc: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, marginTop: 2 },
   planPrice: { fontFamily: fonts.displayBold, fontSize: 20, color: c.brand },
