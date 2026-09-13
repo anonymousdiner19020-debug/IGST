@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -33,6 +33,7 @@ import {
 } from "@/src/api";
 import { Icon, PrimaryButton, TextField } from "@/src/components/ui";
 import { prettyDate, shortDate, todayStr } from "@/src/date-utils";
+import { useAccess } from "@/src/revenuecat";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 import { storage } from "@/src/utils/storage";
@@ -59,6 +60,7 @@ function emptyInput(): IntimacyInput {
 
 export default function IntimacyScreen() {
   const [unlocked, setUnlocked] = useState(false);
+  const { hasAccess, resolving } = useAccess();
 
   // Require the PIN again any time this screen is not active — whether the user
   // switches tabs or sends the app to the background.
@@ -74,8 +76,30 @@ export default function IntimacyScreen() {
     }, []),
   );
 
+  if (!hasAccess && !resolving) return <PremiumGate />;
   if (!unlocked) return <PinGate onUnlock={() => setUnlocked(true)} />;
   return <Tracker onLock={() => setUnlocked(false)} />;
+}
+
+function PremiumGate() {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  return (
+    <View style={[styles.root, { paddingTop: insets.top + 40 }]}>
+      <View style={styles.lockIconWrap}>
+        <Icon name="lock" size={30} color={colors.brand} />
+      </View>
+      <Text style={styles.gateTitle}>Premium feature</Text>
+      <Text style={styles.gateSub}>
+        The private tracker is part of Aura Premium. Upgrade to unlock it along with every other feature.
+      </Text>
+      <View style={{ width: "100%", maxWidth: 320, marginTop: 24 }}>
+        <PrimaryButton label="See Premium" icon="unlock" onPress={() => router.push("/paywall")} testID="private-upgrade" />
+      </View>
+    </View>
+  );
 }
 
 // --------------------------------------------------------------------------

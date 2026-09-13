@@ -14,6 +14,7 @@ import { PageBackground } from "@/src/components/page-background";
 import { WeeklyGoalProgress } from "@/src/components/weekly-goal-progress";
 import { StreakCelebration, STREAK_MILESTONES } from "@/src/components/streak-celebration";
 import { moodEmoji } from "@/src/mood";
+import { useAccess } from "@/src/revenuecat";
 import { storage } from "@/src/utils/storage";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -35,6 +36,7 @@ export default function TodayScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId, init } = useUser();
+  const { hasAccess, isSubscribed, inTrial, trialDaysLeft } = useAccess();
   const today = todayStr();
   const { data: day, isLoading } = useDay(userId, today);
   const { data: habitStats } = useHabitStats(userId);
@@ -114,10 +116,34 @@ export default function TodayScreen() {
             )}
           </View>
 
+          {/* Trial / upgrade banner */}
+          {!isSubscribed ? (
+            <Pressable
+              testID="premium-banner"
+              onPress={() => router.push("/paywall")}
+              style={({ pressed }) => [styles.premiumBanner, pressed && styles.pressed]}
+            >
+              <View style={styles.premiumIcon}>
+                <Icon name={inTrial ? "clock" : "lock"} size={20} color={colors.onBrandPrimary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.premiumTitle}>
+                  {inTrial
+                    ? `${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left in your free trial`
+                    : "Your free trial has ended"}
+                </Text>
+                <Text style={styles.premiumSub}>
+                  {inTrial ? "Tap to unlock Aura Premium for good" : "Upgrade to keep using all features"}
+                </Text>
+              </View>
+              <Icon name="chevron-right" size={22} color={colors.brand} />
+            </Pressable>
+          ) : null}
+
           {/* Begin check-in */}
           <Pressable
             testID="begin-checkin-card"
-            onPress={() => router.push("/flow")}
+            onPress={() => router.push(hasAccess ? "/flow" : "/paywall")}
             style={({ pressed }) => [styles.beginCard, pressed && styles.pressed]}
           >
             <View style={styles.beginIcon}>
@@ -179,7 +205,7 @@ export default function TodayScreen() {
           ) : null}
           {day && day.weekHabits.length > 0 ? (
             <View style={styles.habitRemindCard} testID="today-habits">
-              <Text style={styles.habitRemindTitle}>This week's habits</Text>
+              <Text style={styles.habitRemindTitle}>This week’s habits</Text>
               {day.weekHabits.map((h, i) => (
                 <View key={i} style={styles.habitRemindRow}>
                   <Icon
@@ -277,6 +303,27 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.border,
   },
   pressed: { opacity: 0.9 },
+  premiumBanner: {
+    marginTop: 20,
+    backgroundColor: c.brandTertiary,
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    borderWidth: 1,
+    borderColor: c.brandSecondary,
+  },
+  premiumIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: c.brandPrimary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  premiumTitle: { fontFamily: fonts.semibold, fontSize: 15, color: c.onSurface },
+  premiumSub: { fontFamily: fonts.regular, fontSize: 13, color: c.onSurfaceSecondary, marginTop: 2 },
   beginIcon: {
     width: 52,
     height: 52,

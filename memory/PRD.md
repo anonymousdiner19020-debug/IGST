@@ -170,6 +170,18 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Private tracker — Partners can have a picture:** partners are stored as `{ name, photo }`. In Field options → Partners, add a partner then tap the image or camera icon to attach a photo (Emergent Object Storage upload via existing `uploadPhoto`/`fileUrl`, with proper media/camera permission handling + Open Settings fallback). Partner avatars appear in the partner dropdown, in log/calendar entry cards, and in the Stats "by partner" list.
 - Backend `IntimacyEntryReq.type: List[str]`, `IntimacySettingsReq.partners: List[Any]`; `_clean_partners` dedupes by name and accepts legacy strings. Verified via curl (multi-type save/read, partner objects + legacy string) and UI screenshots (multi-select checkboxes, partner add with photo/camera controls).
 
+## Implemented — Iteration 25 (2026-06) — Subscriptions (RevenueCat)
+- **Emergent-managed RevenueCat** in-app subscriptions. Provisioned `pro` entitlement + `default` offering; packages `$rc_monthly` ($9.99/mo) and `$rc_annual` ($79.99/yr). Keys in frontend/.env. Details persisted in `/app/memory/revenuecat.md`.
+- **10-day free trial** (app-level, computed from profile `signupDate` in `src/revenuecat.tsx` → `useAccess`). After the trial, an active `pro` entitlement is required.
+- **Gating (client-side only; entitlement is source of truth):**
+  - Today screen shows a trial/upgrade banner (days left, or "trial ended") → routes to `/paywall`.
+  - Daily check-in flow (`app/flow.tsx`) redirects to paywall when locked.
+  - Private tab (`app/(tabs)/intimacy.tsx`) shows a PremiumGate when locked.
+- **Paywall** (`app/paywall.tsx`): monthly + yearly packages from offerings (never hardcoded), deliberate confirm modal (labeled "simulated" in dev/Test Store), Restore purchases, graceful "unavailable" state.
+- Identity bound via `Purchases.logIn(userId)` (stable account id or persisted device id) inside `SubscriptionProvider`.
+- **IMPORTANT scope note:** the managed proxy provisions exactly ONE entitlement + ONE offering, so the user's request for a *separate* independent price for the Private tracker is not supported — instead **Premium unlocks everything including the Private tracker**. Revisit if a truly separate tier is needed.
+- Verified in web preview: offerings load with real prices, trial banner, paywall UI, gating. Real purchase completion needs a device/Expo Go build (Test Store checkout) or a release build.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

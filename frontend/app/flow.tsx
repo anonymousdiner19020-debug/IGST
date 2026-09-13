@@ -14,6 +14,7 @@ import { Chip, Icon, NumberedField, PrimaryButton, TextField } from "@/src/compo
 import { PageBackground } from "@/src/components/page-background";
 import { PhotoPicker } from "@/src/components/photo-picker";
 import { MOODS } from "@/src/mood";
+import { useAccess } from "@/src/revenuecat";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 
@@ -62,8 +63,14 @@ export default function FlowScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId } = useUser();
+  const { hasAccess, resolving } = useAccess();
   const params = useLocalSearchParams<{ date?: string }>();
   const date = params.date || todayStr();
+
+  // After the free trial, the check-in flow requires Premium.
+  useEffect(() => {
+    if (!resolving && !hasAccess) router.replace("/paywall");
+  }, [resolving, hasAccess, router]);
 
   const { data, isLoading } = useDay(userId, date);
   const saveMutation = useSaveDay(userId);
