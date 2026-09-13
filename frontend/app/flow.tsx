@@ -24,6 +24,7 @@ type StepKey =
   | "mood"
   | "morningRitual"
   | "weeklyGoals"
+  | "habits"
   | "blessings"
   | "affirmations"
   | "workout"
@@ -39,6 +40,7 @@ const STEP_META: Record<StepKey, { page?: number; title: string; subtitle: strin
   mood: { title: "How are you feeling?", subtitle: "Check in with your mood before you begin." },
   morningRitual: { page: 1, title: "Taking Control", subtitle: "Set three intentions for your morning ritual." },
   weeklyGoals: { page: 2, title: "Weekly Goals", subtitle: "What do you want to achieve this week?" },
+  habits: { title: "Creating Habits", subtitle: "Build good habits or break bad ones — up to five for this week." },
   blessings: { page: 3, title: "Blessings", subtitle: "Three things you are grateful for today." },
   affirmations: { page: 4, title: "Affirmation", subtitle: "Choose one to carry with you — or write your own." },
   workout: { page: 5, title: "Workout", subtitle: "How will you move your body today? Select all that apply." },
@@ -88,16 +90,17 @@ export default function FlowScreen() {
         tomorrowNotes: e.tomorrowNotes,
         journal: e.journal,
         weekly: e.weekly,
+        habits: e.habits ?? [],
       });
     }
   }, [data, entry]);
 
   const steps = useMemo<StepKey[]>(() => {
-    const s: StepKey[] = ["mood"];
+    const s: StepKey[] = ["blessings", "mood"];
     if (data?.affirmationDay) s.push("affirmations");
-    // "Taking Control" (morning ritual) and "Weekly Goals" show on Mondays (and day 1).
-    if (data?.affirmationDay) s.push("morningRitual", "weeklyGoals");
-    s.push("blessings", "workout", "quote", "dailyGoals", "actionsYesterday", "actionsTomorrow", "journal");
+    // "Taking Control", "Weekly Goals" and "Creating Habits" show on Mondays (and day 1).
+    if (data?.affirmationDay) s.push("morningRitual", "weeklyGoals", "habits");
+    s.push("workout", "quote", "dailyGoals", "actionsYesterday", "actionsTomorrow", "journal");
     // Weekly reflection ("look back on the week") shows only on Sundays.
     if (data?.reflectionDay) s.push("weekly");
     s.push("final");
@@ -125,6 +128,24 @@ export default function FlowScreen() {
       return { ...(prev as DayEntry), [key]: arr };
     });
   };
+
+  const setHabit = (i: number, patch: Partial<DayEntry["habits"][number]>) =>
+    setEntry((prev) => {
+      const arr = [...(prev as DayEntry).habits];
+      arr[i] = { ...arr[i], ...patch };
+      return { ...(prev as DayEntry), habits: arr };
+    });
+  const addHabit = () =>
+    setEntry((prev) => {
+      const p = prev as DayEntry;
+      if (p.habits.length >= 5) return p;
+      return { ...p, habits: [...p.habits, { text: "", type: "create", days: "" }] };
+    });
+  const removeHabit = (i: number) =>
+    setEntry((prev) => ({
+      ...(prev as DayEntry),
+      habits: (prev as DayEntry).habits.filter((_, idx) => idx !== i),
+    }));
 
   const save = async () => {
     if (!entry) return;
@@ -227,6 +248,63 @@ export default function FlowScreen() {
                 placeholder={`Goal ${i + 1}`}
               />
             ))}
+
+          {stepKey === "habits" && (
+            <View style={{ gap: 16 }}>
+              {entry.habits.map((h, i) => (
+                <View key={i} style={styles.habitCard}>
+                  <View style={styles.habitTop}>
+                    <View style={styles.habitTypeRow}>
+                      <Chip
+                        label="Create"
+                        icon="plus-circle"
+                        selected={h.type === "create"}
+                        onPress={() => setHabit(i, { type: "create" })}
+                        testID={`habit-type-create-${i}`}
+                      />
+                      <Chip
+                        label="Eliminate"
+                        icon="x-circle"
+                        selected={h.type === "eliminate"}
+                        onPress={() => setHabit(i, { type: "eliminate" })}
+                        testID={`habit-type-eliminate-${i}`}
+                      />
+                    </View>
+                    <Pressable onPress={() => removeHabit(i)} hitSlop={8} testID={`habit-remove-${i}`}>
+                      <Icon name="trash-2" size={18} color={colors.muted} />
+                    </Pressable>
+                  </View>
+                  <TextField
+                    testID={`habit-text-${i}`}
+                    value={h.text}
+                    onChangeText={(t) => setHabit(i, { text: t })}
+                    placeholder={h.type === "create" ? "Good habit to build..." : "Bad habit to eliminate..."}
+                  />
+                  <View style={styles.habitDaysRow}>
+                    <Text style={styles.habitDaysLabel}>For how many days?</Text>
+                    <TextField
+                      testID={`habit-days-${i}`}
+                      value={h.days}
+                      onChangeText={(t) => setHabit(i, { days: t.replace(/[^0-9]/g, "") })}
+                      placeholder="30"
+                      keyboardType="number-pad"
+                      style={styles.habitDaysInput}
+                    />
+                  </View>
+                </View>
+              ))}
+              {entry.habits.length < 5 ? (
+                <Pressable onPress={addHabit} style={styles.addHabitBtn} testID="habit-add">
+                  <Icon name="plus" size={18} color={colors.brand} />
+                  <Text style={styles.addHabitText}>
+                    {entry.habits.length === 0 ? "Add a habit" : "Add another habit"}
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.habitHint}>You've added the maximum of 5 habits.</Text>
+              )}
+            </View>
+          )}
 
           {stepKey === "blessings" &&
             entry.blessings.map((v, i) => (
@@ -614,6 +692,33 @@ const useStyles = makeStyles((c) => ({
   bigQuote: { fontFamily: fonts.display, fontSize: 24, lineHeight: 34, color: c.onSurface, textAlign: "center" },
   bigQuoteAuthor: { fontFamily: fonts.medium, fontSize: 15, color: c.muted },
   qBox: { gap: 12 },
+  habitCard: {
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  habitTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  habitTypeRow: { flexDirection: "row", gap: 8 },
+  habitDaysRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  habitDaysLabel: { fontFamily: fonts.medium, fontSize: 15, color: c.onSurface, flex: 1 },
+  habitDaysInput: { width: 90, textAlign: "center" },
+  addHabitBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
+    borderStyle: "dashed",
+  },
+  addHabitText: { fontFamily: fonts.semibold, fontSize: 15, color: c.brand },
+  habitHint: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, textAlign: "center" },
+
   refCard: { backgroundColor: c.brandTertiary, borderRadius: 14, padding: 16, gap: 6 },
   refTitle: { fontFamily: fonts.semibold, fontSize: 13, color: c.onBrandTertiary, textTransform: "uppercase", letterSpacing: 0.5 },
   refItem: { fontFamily: fonts.medium, fontSize: 15, color: c.onBrandTertiary, lineHeight: 22 },

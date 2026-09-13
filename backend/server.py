@@ -128,6 +128,7 @@ def empty_entry(user_id: str, d: str) -> Dict[str, Any]:
         "tomorrowNotes": ["", "", ""],
         "journal": "",
         "weekly": {"wentWell": "", "improve": "", "learned": ""},
+        "habits": [],
     }
 
 
@@ -351,6 +352,7 @@ class DayEntry(BaseModel):
     tomorrowNotes: List[str] = Field(default_factory=lambda: ["", "", ""])
     journal: str = ""
     weekly: Dict[str, str] = Field(default_factory=lambda: {"wentWell": "", "improve": "", "learned": ""})
+    habits: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class RegisterReq(BaseModel):

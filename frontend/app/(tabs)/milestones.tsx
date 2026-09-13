@@ -106,7 +106,7 @@ export default function MilestonesScreen() {
           ))}
           {done.length > 0 ? (
             <>
-              <Text style={styles.sectionLabel}>Completed</Text>
+              <Text style={styles.sectionLabel}>Ended</Text>
               {done.map((m) => (
                 <MilestoneCard
                   key={m.id}
@@ -203,7 +203,7 @@ function MilestoneCard({
           </Pressable>
         </View>
         <Text style={styles.completedLine}>
-          Completed {prettyDate(m.completedDate)} · {sinceDone === 0 ? "today" : `${sinceDone} day${sinceDone === 1 ? "" : "s"} ago`}
+          Ended {prettyDate(m.completedDate)} · {sinceDone === 0 ? "today" : `${sinceDone} day${sinceDone === 1 ? "" : "s"} ago`}
         </Text>
         <Text style={styles.metaLine}>Lasted {lasted} day{lasted === 1 ? "" : "s"} from start</Text>
         <Pressable onPress={onToggle} style={styles.reopenBtn} testID={`milestone-toggle-${m.id}`}>
@@ -242,7 +242,7 @@ function MilestoneCard({
 
       <Pressable onPress={onToggle} style={styles.completeBtn} testID={`milestone-toggle-${m.id}`}>
         <Icon name="check-circle" size={16} color={colors.onBrandPrimary} />
-        <Text style={styles.completeText}>Mark complete</Text>
+        <Text style={styles.completeText}>Mark as ended</Text>
       </Pressable>
     </View>
   );

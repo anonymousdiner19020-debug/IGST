@@ -36,8 +36,13 @@ export default function CalendarScreen() {
     [data],
   );
 
+  const weekMonday = (() => {
+    const dow = dayjs().day(); // 0=Sun .. 6=Sat
+    const offset = dow === 0 ? -6 : 1 - dow; // days back to Monday
+    return dayjs().add(offset, "day");
+  })();
   const weekDays = Array.from({ length: 7 }).map((_, i) =>
-    dayjs().day(0).add(i, "day").format("YYYY-MM-DD"),
+    weekMonday.add(i, "day").format("YYYY-MM-DD"),
   );
 
   return (
@@ -116,7 +121,7 @@ export default function CalendarScreen() {
         </View>
 
         <View style={styles.moodStrip}>
-          <Text style={styles.moodStripTitle}>This week's mood</Text>
+          <Text style={styles.moodStripTitle}>This week’s mood</Text>
           <View style={styles.moodRow}>
             {weekDays.map((d) => {
               const m = moodByDate.get(d);

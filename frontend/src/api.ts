@@ -98,6 +98,13 @@ export type DayEntry = {
   tomorrowNotes: string[];
   journal: string;
   weekly: { wentWell: string; improve: string; learned: string };
+  habits: Habit[];
+};
+
+export type Habit = {
+  text: string;
+  type: "create" | "eliminate";
+  days: string;
 };
 
 export type Milestone = {

@@ -135,6 +135,12 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 ## Implemented — Iteration 19 (2026-06)
 - **Today streak week starts Monday:** The 7-day streak row on the Today screen now runs Mon→Sun (ISO week) instead of Sun→Sat. Computed Monday offset in `index.tsx` (handles Sunday correctly). Verified labels show M T W T F S S.
 
+## Implemented — Iteration 20 (2026-06)
+- **Calendar "This week's mood" strip starts Monday** (Mon→Sun), matching the Today streak.
+- **Milestones wording:** "Completed" → "Ended" (section label, completed line "Ended <date>", button "Mark as ended").
+- **Creating Habits (new flow step):** Shows on Mondays (and day 1), gated by `affirmationDay`. Users add up to 5 habits, each toggled Create (build) or Eliminate (break), with a "how many days" target. Stored on the day entry as `habits: {text,type,days}[]` (backend `DayEntry` model + `empty_entry` updated; frontend `Habit` type + flow step/UI/helpers). Verified persistence.
+- **Blessings is now the first page** of the check-in (order: Blessings → Mood → [Mon: Affirmation, Taking Control, Weekly Goals, Creating Habits] → Workout → Daily Inspiration → Currently Working Towards → Yesterday's Actions → Today's Actions → Journal → [Sun: Weekly Reflection] → Affirmation).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.
