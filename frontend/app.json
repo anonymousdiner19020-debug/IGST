@@ -21,7 +21,10 @@
         "backgroundColor": "#000000"
       },
       "package": "com.emergent.dailygrowthhub.zjacc0",
-      "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -52,6 +55,13 @@
         {
           "photosPermission": "Add photos from your library to journal entries",
           "cameraPermission": "Take photos to add to your journal entries"
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ]
     ],

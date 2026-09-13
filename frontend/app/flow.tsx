@@ -14,6 +14,7 @@ import { Chip, Icon, NumberedField, PrimaryButton, TextField } from "@/src/compo
 import { PageBackground } from "@/src/components/page-background";
 import { PhotoPicker } from "@/src/components/photo-picker";
 import { MOODS } from "@/src/mood";
+import { maybeShowInterstitial } from "@/src/ads";
 import { useAccess } from "@/src/revenuecat";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -63,7 +64,7 @@ export default function FlowScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId } = useUser();
-  const { hasAccess, resolving } = useAccess();
+  const { hasAccess, resolving, inTrial, isSubscribed } = useAccess();
   const params = useLocalSearchParams<{ date?: string }>();
   const date = params.date || todayStr();
 
@@ -176,6 +177,8 @@ export default function FlowScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (isLast) {
       await save();
+      // Trial users see one full-screen ad here (Premium users never do).
+      await maybeShowInterstitial(inTrial && !isSubscribed);
       router.back();
       return;
     }

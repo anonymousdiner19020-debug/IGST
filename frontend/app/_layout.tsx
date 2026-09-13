@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/src/components/error-boundary";
 import { AuthProvider } from "@/src/auth-context";
 import { BackgroundProvider } from "@/src/background-context";
 import { queryClient } from "@/src/query-client";
+import { initializeAds, preloadInterstitial } from "@/src/ads";
 import { initializeRevenueCat, SubscriptionProvider } from "@/src/revenuecat";
 import { UserProvider } from "@/src/user-context";
 
@@ -39,6 +40,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) SplashScreen.hideAsync().catch(() => {});
   }, [loaded]);
+
+  useEffect(() => {
+    initializeAds().then(preloadInterstitial).catch(() => {});
+  }, []);
 
   if (!loaded) return null;
 

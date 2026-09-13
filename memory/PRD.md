@@ -193,6 +193,15 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Best Value tag**: yearly plan now shows a green "BEST VALUE" badge alongside the auto-computed "SAVE %" badge.
 - **Trial timer/nudge**: the one-time reminder modal now begins from **3 days out** (fires once each at 3/2/1 days left, and once when ended) with adaptive copy ("3 days left…", "ends tomorrow", "has ended"). The days-left banner on Today remains.
 
+## Implemented — Iteration 28 (2026-06) — AdMob interstitial ads
+- **Google AdMob** via `react-native-google-mobile-ads` (config plugin in app.json). Currently uses **Google TEST App IDs** (`ca-app-pub-3940256099942544~…`) and `TestIds.INTERSTITIAL` in dev.
+- **Format:** full-screen **interstitial**, shown after completing the daily check-in (isLast step of `app/flow.tsx`).
+- **Audience:** only trial users (`inTrial && !isSubscribed`); Premium subscribers never see ads. Re-checked at show time.
+- **Frequency cap:** ≤ 1 interstitial / 20 min (AsyncStorage `aura.ads.interstitialLastShown`).
+- **Files:** `src/ads/admob.native.ts` (lazy-requires the native module so Expo Go/web never crash), `src/ads/admob.web.ts` (no-ops), `src/ads/index.ts` (`maybeShowInterstitial` gate). Init + preload in `app/_layout.tsx`.
+- **Env slots** (empty; dev uses test IDs): `EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_ID`, `EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL_ID` in frontend/.env.
+- **CAVEAT:** ads need a native dev/release build — they do NOT show in Expo Go or web preview. Before publishing, user must supply real AdMob **App IDs** (app.json plugin) + **interstitial Ad Unit IDs** (.env), and declare "contains ads" in Play Console.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.
