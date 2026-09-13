@@ -30,13 +30,13 @@ export default function TabsLayout() {
           <NativeIcon sf="flag" />
           <Label>Milestones</Label>
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="intimacy">
-          <NativeIcon sf="lock.fill" />
-          <Label>Private</Label>
-        </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
           <NativeIcon sf="rosette" />
           <Label>Progress</Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="intimacy">
+          <NativeIcon sf="lock.fill" />
+          <Label>Private</Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     );
@@ -86,17 +86,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="intimacy"
-        options={{
-          title: "Private",
-          tabBarIcon: ({ color, size }) => <Feather name="lock" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: "Progress",
           tabBarIcon: ({ color, size }) => <Feather name="award" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="intimacy"
+        options={{
+          title: "Private",
+          tabBarIcon: ({ color, size }) => <Feather name="lock" size={size} color={color} />,
         }}
       />
     </Tabs>
