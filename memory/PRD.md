@@ -141,6 +141,13 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Creating Habits (new flow step):** Shows on Mondays (and day 1), gated by `affirmationDay`. Users add up to 5 habits, each toggled Create (build) or Eliminate (break), with a "how many days" target. Stored on the day entry as `habits: {text,type,days}[]` (backend `DayEntry` model + `empty_entry` updated; frontend `Habit` type + flow step/UI/helpers). Verified persistence.
 - **Blessings is now the first page** of the check-in (order: Blessings → Mood → [Mon: Affirmation, Taking Control, Weekly Goals, Creating Habits] → Workout → Daily Inspiration → Currently Working Towards → Yesterday's Actions → Today's Actions → Journal → [Sun: Weekly Reflection] → Affirmation).
 
+## Implemented — Iteration 21 (2026-06)
+- **Sunday "Habit Check-In" (new flow step):** Shows on Sundays. Pulls the habits added on that ISO week's Monday and shows S–S (Sun→Sat) toggle circles per habit; user marks which weekdays they completed each habit → "N/7 days completed". Toggling is optimistic + persisted.
+  - Backend: `GET /api/day` now returns `weekHabits`, `weekHabitsAnchor` (that week's Monday), `weekHabitsDone` ({index: weekday[]}). New `POST /api/habits/toggle-day` (collection `habit_progress`, keyed userId+anchor). New `GET /api/habit-stats` (month completions).
+  - Frontend: `useToggleHabitDay` (optimistic), `useHabitStats`.
+- **Habit momentum (monthly congrats):** Today screen shows a "Habit momentum" card when the user has any habit completions this month, with an escalating congratulatory message.
+- Verified end-to-end (seeded Monday habits → Sunday 09-20 check-in → 3/7 toggled → persisted → Today momentum card).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useCalendar, useDay, useOnThisDay, useGratitudeTrends } from "@/src/api";
+import { useCalendar, useDay, useOnThisDay, useGratitudeTrends, useHabitStats } from "@/src/api";
 import { greeting, prettyDate, todayStr } from "@/src/date-utils";
 import { Icon } from "@/src/components/ui";
 import { PageBackground } from "@/src/components/page-background";
@@ -20,6 +20,12 @@ import { useUser } from "@/src/user-context";
 
 const CELEB_KEY = "aura.lastCelebratedStreak";
 
+function habitMessage(n: number): string {
+  if (n < 5) return `You've completed your habits ${n} time${n === 1 ? "" : "s"} this month. Great start — keep going! 🎉`;
+  if (n < 15) return `${n} habit check-ins this month. You're building real momentum! 💪`;
+  return `${n} habit check-ins this month. You're unstoppable! 🔥`;
+}
+
 const HERO =
   "https://images.unsplash.com/photo-1490735891913-40897cdaafd1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHx3YXJtJTIwc3VucmlzZSUyMGFlc3RoZXRpYyUyMHNreXxlbnwwfHx8fDE3ODg3MTY0NjB8MA&ixlib=rb-4.1.0&q=85";
 
@@ -31,6 +37,7 @@ export default function TodayScreen() {
   const { userId, init } = useUser();
   const today = todayStr();
   const { data: day, isLoading } = useDay(userId, today);
+  const { data: habitStats } = useHabitStats(userId);
   const { data: cal } = useCalendar(userId);
   const { data: otd } = useOnThisDay(userId);
   const { data: gratitude } = useGratitudeTrends(userId);
@@ -159,6 +166,15 @@ export default function TodayScreen() {
           {day && day.weekGoals.length > 0 ? (
             <View style={{ marginTop: 20 }} testID="today-week-goals">
               <WeeklyGoalProgress goals={day.weekGoals} done={day.weekGoalsDone} readOnly />
+            </View>
+          ) : null}
+          {habitStats && habitStats.completions > 0 ? (
+            <View style={styles.habitStatsCard} testID="habit-stats-card">
+              <View style={styles.habitStatsHead}>
+                <Icon name="award" size={16} color={colors.brand} />
+                <Text style={styles.habitStatsTitle}>Habit momentum</Text>
+              </View>
+              <Text style={styles.habitStatsText}>{habitMessage(habitStats.completions)}</Text>
             </View>
           ) : null}
           {topBlessing ? (
@@ -312,4 +328,16 @@ const useStyles = makeStyles((c) => ({
   otdHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   otdLabel: { fontFamily: fonts.semibold, fontSize: 13, color: c.brand },
   otdSnippet: { fontFamily: fonts.display, fontSize: 17, lineHeight: 25, color: c.onSurface },
+  habitStatsCard: {
+    marginTop: 20,
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: 20,
+    padding: 20,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  habitStatsHead: { flexDirection: "row", alignItems: "center", gap: 8 },
+  habitStatsTitle: { fontFamily: fonts.semibold, fontSize: 13, color: c.brand, textTransform: "uppercase", letterSpacing: 0.5 },
+  habitStatsText: { fontFamily: fonts.display, fontSize: 18, lineHeight: 26, color: c.onSurface },
 }));

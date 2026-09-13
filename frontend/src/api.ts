@@ -126,6 +126,9 @@ export type DayResponse = {
   weekGoals: string[];
   weekGoalsAnchor: string;
   weekGoalsDone: number[];
+  weekHabits: Habit[];
+  weekHabitsAnchor: string;
+  weekHabitsDone: Record<string, number[]>;
   affirmationDay: boolean;
   reflectionDay: boolean;
   carriedAffirmation: string;
@@ -283,6 +286,15 @@ export const api = {
     request<{ ok: boolean }>(`/milestones/${id}?userId=${encodeURIComponent(userId)}`, {
       method: "DELETE",
     }),
+  toggleHabitDay: (userId: string, anchor: string, index: number, weekday: number) =>
+    request<{ ok: boolean; done: Record<string, number[]> }>("/habits/toggle-day", {
+      method: "POST",
+      body: JSON.stringify({ userId, anchor, index, weekday }),
+    }),
+  habitStats: (userId: string) =>
+    request<{ month: string; completions: number; weeksTracked: number }>(
+      `/habit-stats?userId=${encodeURIComponent(userId)}`,
+    ),
   // auth
   register: (email: string, password: string, deviceUserId: string, name?: string) =>
     request<AuthResponse>("/auth/register", {
@@ -482,3 +494,40 @@ export function useDeleteMilestone(userId: string | null) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["milestones", userId] }),
   });
 }
+
+export function useToggleHabitDay(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ anchor, index, weekday }: { date: string; anchor: string; index: number; weekday: number }) =>
+      api.toggleHabitDay(userId!, anchor, index, weekday),
+    onMutate: async ({ date, index, weekday }) => {
+      await qc.cancelQueries({ queryKey: ["day", userId, date] });
+      const prev = qc.getQueryData<DayResponse>(["day", userId, date]);
+      if (prev) {
+        const done: Record<string, number[]> = { ...(prev.weekHabitsDone ?? {}) };
+        const set = new Set(done[String(index)] ?? []);
+        if (set.has(weekday)) set.delete(weekday);
+        else set.add(weekday);
+        done[String(index)] = Array.from(set).sort((a, b) => a - b);
+        qc.setQueryData<DayResponse>(["day", userId, date], { ...prev, weekHabitsDone: done });
+      }
+      return { prev, date };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["day", userId, ctx.date], ctx.prev);
+    },
+    onSettled: (_d, _e, vars) => {
+      qc.invalidateQueries({ queryKey: ["day", userId, vars.date] });
+      qc.invalidateQueries({ queryKey: ["habit-stats", userId] });
+    },
+  });
+}
+
+export function useHabitStats(userId: string | null) {
+  return useQuery({
+    queryKey: ["habit-stats", userId],
+    queryFn: () => api.habitStats(userId!),
+    enabled: !!userId,
+  });
+}
+

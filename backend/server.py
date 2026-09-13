@@ -593,13 +593,63 @@ async def get_day(d: str, userId: Optional[str] = Query(None),
         prog = await db.weekly_goal_progress.find_one(
             {"userId": uid, "anchor": week_anchor}, {"_id": 0})
         week_done = [i for i in (prog or {}).get("done", []) if 0 <= i < len(week_goals)]
+    # This week's habits come from the Monday of the same ISO week (habits are
+    # created on Monday and reviewed on Sunday). Track which weekdays (0=Sun..6=Sat)
+    # each habit was completed.
+    monday = (parse_date(d) - timedelta(days=parse_date(d).weekday())).strftime("%Y-%m-%d")
+    mon_entry = await db.entries.find_one({"userId": uid, "date": monday}, {"_id": 0})
+    week_habits = [h for h in (mon_entry or {}).get("habits", []) if (h.get("text") or "").strip()]
+    hprog = await db.habit_progress.find_one({"userId": uid, "anchor": monday}, {"_id": 0})
+    habit_done = (hprog or {}).get("done", {})
     return {"date": d, "dayNumber": day_no, "isSpecial": is_special(day_no),
             "entry": entry, "content": content, "hasContent": entry_has_content(entry),
             "prevGoals": prev_goals, "weekGoals": week_goals,
             "weekGoalsAnchor": week_anchor, "weekGoalsDone": week_done,
+            "weekHabits": week_habits, "weekHabitsAnchor": monday, "weekHabitsDone": habit_done,
             "affirmationDay": affirmation_day,
             "reflectionDay": reflection_day,
             "carriedAffirmation": carried}
+
+
+class HabitDayToggleReq(BaseModel):
+    anchor: str
+    index: int
+    weekday: int
+    userId: Optional[str] = None
+
+
+@api_router.post("/habits/toggle-day")
+async def toggle_habit_day(req: HabitDayToggleReq,
+                           account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, req.userId)
+    doc = await db.habit_progress.find_one({"userId": uid, "anchor": req.anchor}, {"_id": 0})
+    done = (doc or {}).get("done", {})
+    key = str(req.index)
+    days = set(done.get(key, []))
+    if req.weekday in days:
+        days.discard(req.weekday)
+    else:
+        days.add(req.weekday)
+    done[key] = sorted(days)
+    await db.habit_progress.update_one(
+        {"userId": uid, "anchor": req.anchor},
+        {"$set": {"userId": uid, "anchor": req.anchor, "done": done, "updatedAt": now_iso()}},
+        upsert=True)
+    return {"ok": True, "done": done}
+
+
+@api_router.get("/habit-stats")
+async def habit_stats(userId: Optional[str] = Query(None),
+                      account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    month = today_str()[:7]  # YYYY-MM
+    docs = await db.habit_progress.find(
+        {"userId": uid, "anchor": {"$regex": f"^{month}"}}, {"_id": 0}).to_list(50)
+    completions = 0
+    for dch in docs:
+        for _k, days in (dch.get("done") or {}).items():
+            completions += len(days)
+    return {"month": month, "completions": completions, "weeksTracked": len(docs)}
 
 
 @api_router.put("/day/{d}")

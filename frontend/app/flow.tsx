@@ -8,7 +8,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
-import { useDay, useSaveDay, type DayEntry } from "@/src/api";
+import { useDay, useSaveDay, useToggleHabitDay, type DayEntry } from "@/src/api";
 import { prettyDate, todayStr } from "@/src/date-utils";
 import { Chip, Icon, NumberedField, PrimaryButton, TextField } from "@/src/components/ui";
 import { PageBackground } from "@/src/components/page-background";
@@ -19,6 +19,7 @@ import { useUser } from "@/src/user-context";
 
 const WORKOUTS = ["Cardio", "Weights", "Rest Day", "Other"];
 const COUNTS = ["1", "2", "3", "4", "All"];
+const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"]; // Sun..Sat
 
 type StepKey =
   | "mood"
@@ -34,6 +35,7 @@ type StepKey =
   | "actionsTomorrow"
   | "journal"
   | "weekly"
+  | "habitReview"
   | "final";
 
 const STEP_META: Record<StepKey, { page?: number; title: string; subtitle: string }> = {
@@ -50,6 +52,7 @@ const STEP_META: Record<StepKey, { page?: number; title: string; subtitle: strin
   actionsTomorrow: { page: 9, title: "Today's Actions", subtitle: "What will you do today to reach your goals?" },
   journal: { page: 10, title: "Journal", subtitle: "Write freely — no rules, just you." },
   weekly: { page: 11, title: "Weekly Reflection", subtitle: "Look back on the week that was." },
+  habitReview: { title: "Habit Check-In", subtitle: "Which days did you keep up with your habits this week?" },
   final: { title: "Your Affirmation", subtitle: "Carry this with you today." },
 };
 
@@ -64,6 +67,7 @@ export default function FlowScreen() {
 
   const { data, isLoading } = useDay(userId, date);
   const saveMutation = useSaveDay(userId);
+  const toggleHabitDay = useToggleHabitDay(userId);
 
   const [entry, setEntry] = useState<DayEntry | null>(null);
   const [index, setIndex] = useState(0);
@@ -101,8 +105,8 @@ export default function FlowScreen() {
     // "Taking Control", "Weekly Goals" and "Creating Habits" show on Mondays (and day 1).
     if (data?.affirmationDay) s.push("morningRitual", "weeklyGoals", "habits");
     s.push("workout", "quote", "dailyGoals", "actionsYesterday", "actionsTomorrow", "journal");
-    // Weekly reflection ("look back on the week") shows only on Sundays.
-    if (data?.reflectionDay) s.push("weekly");
+    // Weekly reflection and habit check-in show only on Sundays.
+    if (data?.reflectionDay) s.push("habitReview", "weekly");
     s.push("final");
     return s;
   }, [data?.affirmationDay, data?.reflectionDay]);
@@ -514,6 +518,56 @@ export default function FlowScreen() {
             </View>
           )}
 
+          {stepKey === "habitReview" && (
+            <View style={{ gap: 16 }}>
+              {data.weekHabits.length === 0 ? (
+                <View style={styles.refCard}>
+                  <Text style={styles.refItem}>
+                    No habits were set this week. Add some on Monday’s Creating Habits page!
+                  </Text>
+                </View>
+              ) : (
+                data.weekHabits.map((h, i) => {
+                  const done = new Set(data.weekHabitsDone[String(i)] ?? []);
+                  return (
+                    <View key={i} style={styles.habitCard}>
+                      <Text style={styles.reviewHabitText}>
+                        {h.type === "eliminate" ? "Avoid: " : ""}
+                        {h.text}
+                      </Text>
+                      <View style={styles.dayToggleRow}>
+                        {DAY_LABELS.map((lbl, wd) => {
+                          const on = done.has(wd);
+                          return (
+                            <Pressable
+                              key={wd}
+                              onPress={() =>
+                                toggleHabitDay.mutate({
+                                  date,
+                                  anchor: data.weekHabitsAnchor,
+                                  index: i,
+                                  weekday: wd,
+                                })
+                              }
+                              style={styles.dayToggle}
+                              testID={`habit-day-${i}-${wd}`}
+                            >
+                              <View style={[styles.dayToggleCircle, on && styles.dayToggleOn]}>
+                                {on ? <Icon name="check" size={14} color={colors.onBrandPrimary} /> : null}
+                              </View>
+                              <Text style={styles.dayToggleLabel}>{lbl}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      <Text style={styles.reviewCount}>{done.size}/7 days completed</Text>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          )}
+
           {stepKey === "weekly" && (
             <View style={{ gap: 20 }}>
               <View style={{ gap: 8 }}>
@@ -704,6 +758,21 @@ const useStyles = makeStyles((c) => ({
   },
   addHabitText: { fontFamily: fonts.semibold, fontSize: 15, color: c.brand },
   habitHint: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, textAlign: "center" },
+  reviewHabitText: { fontFamily: fonts.semibold, fontSize: 16, color: c.onSurface },
+  dayToggleRow: { flexDirection: "row", justifyContent: "space-between" },
+  dayToggle: { alignItems: "center", gap: 6, flex: 1 },
+  dayToggleCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: c.borderStrong,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayToggleOn: { backgroundColor: c.brandPrimary, borderColor: c.brandPrimary },
+  dayToggleLabel: { fontFamily: fonts.medium, fontSize: 12, color: c.muted },
+  reviewCount: { fontFamily: fonts.medium, fontSize: 13, color: c.brand, textAlign: "right" },
 
   refCard: { backgroundColor: c.brandTertiary, borderRadius: 14, padding: 16, gap: 6 },
   refTitle: { fontFamily: fonts.semibold, fontSize: 13, color: c.onBrandTertiary, textTransform: "uppercase", letterSpacing: 0.5 },
