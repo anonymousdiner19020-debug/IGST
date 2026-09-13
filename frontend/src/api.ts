@@ -237,6 +237,45 @@ export type YearlyWrapResponse = {
   currentStreak: number;
 };
 
+export type IntimacyEntry = {
+  id: string;
+  date: string;
+  partner: string;
+  duration: string;
+  type: string;
+  place: string;
+  position: string;
+  orgasms: number;
+  partnerOrgasms: number;
+  icon: string;
+  notes: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type IntimacyInput = Omit<IntimacyEntry, "id" | "createdAt" | "updatedAt">;
+
+export type IntimacySettings = {
+  partners: string[];
+  types: string[];
+  places: string[];
+  positions: string[];
+};
+
+export type IntimacyStats = {
+  totalActivity: number;
+  totalOrgasms: number;
+  totalPartnerOrgasms: number;
+  partnerCount: number;
+  byPartner: {
+    partner: string;
+    count: number;
+    orgasms: number;
+    partnerOrgasms: number;
+    lastDate: string;
+  }[];
+};
+
 // ---- API calls ----
 export const api = {
   init: (userId: string) =>
@@ -303,6 +342,32 @@ export const api = {
     ),
   habitHistory: (userId: string) =>
     request<{ weeks: HabitWeek[] }>(`/habit-history?userId=${encodeURIComponent(userId)}`),
+  // intimacy tracker
+  intimacyList: (userId: string) =>
+    request<{ entries: IntimacyEntry[] }>(`/intimacy?userId=${encodeURIComponent(userId)}`),
+  intimacyStats: (userId: string) =>
+    request<IntimacyStats>(`/intimacy/stats?userId=${encodeURIComponent(userId)}`),
+  intimacySettings: (userId: string) =>
+    request<IntimacySettings>(`/intimacy/settings?userId=${encodeURIComponent(userId)}`),
+  saveIntimacySettings: (userId: string, settings: IntimacySettings) =>
+    request<{ ok: boolean } & IntimacySettings>("/intimacy/settings", {
+      method: "PUT",
+      body: JSON.stringify({ userId, ...settings }),
+    }),
+  createIntimacy: (userId: string, input: IntimacyInput) =>
+    request<{ ok: boolean; entry: IntimacyEntry }>("/intimacy", {
+      method: "POST",
+      body: JSON.stringify({ userId, ...input }),
+    }),
+  updateIntimacy: (userId: string, id: string, input: IntimacyInput) =>
+    request<{ ok: boolean; entry: IntimacyEntry }>(`/intimacy/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ userId, ...input }),
+    }),
+  deleteIntimacy: (userId: string, id: string) =>
+    request<{ ok: boolean }>(`/intimacy/${id}?userId=${encodeURIComponent(userId)}`, {
+      method: "DELETE",
+    }),
   // auth
   register: (email: string, password: string, deviceUserId: string, name?: string) =>
     request<AuthResponse>("/auth/register", {
@@ -545,6 +610,69 @@ export function useHabitHistory(userId: string | null) {
     queryKey: ["habit-history", userId],
     queryFn: () => api.habitHistory(userId!),
     enabled: !!userId,
+  });
+}
+
+// ---- Intimacy tracker hooks ----
+function invalidateIntimacy(qc: ReturnType<typeof useQueryClient>, userId: string | null) {
+  qc.invalidateQueries({ queryKey: ["intimacy", userId] });
+  qc.invalidateQueries({ queryKey: ["intimacy-stats", userId] });
+}
+
+export function useIntimacy(userId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["intimacy", userId],
+    queryFn: () => api.intimacyList(userId!),
+    enabled: !!userId && enabled,
+  });
+}
+
+export function useIntimacyStats(userId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["intimacy-stats", userId],
+    queryFn: () => api.intimacyStats(userId!),
+    enabled: !!userId && enabled,
+  });
+}
+
+export function useIntimacySettings(userId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["intimacy-settings", userId],
+    queryFn: () => api.intimacySettings(userId!),
+    enabled: !!userId && enabled,
+  });
+}
+
+export function useSaveIntimacySettings(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (settings: IntimacySettings) => api.saveIntimacySettings(userId!, settings),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["intimacy-settings", userId] }),
+  });
+}
+
+export function useCreateIntimacy(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: IntimacyInput) => api.createIntimacy(userId!, input),
+    onSuccess: () => invalidateIntimacy(qc, userId),
+  });
+}
+
+export function useUpdateIntimacy(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: IntimacyInput }) =>
+      api.updateIntimacy(userId!, id, input),
+    onSuccess: () => invalidateIntimacy(qc, userId),
+  });
+}
+
+export function useDeleteIntimacy(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteIntimacy(userId!, id),
+    onSuccess: () => invalidateIntimacy(qc, userId),
   });
 }
 

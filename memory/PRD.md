@@ -154,6 +154,17 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Milestone Reminders:** Milestones screen shows a celebration modal (reanimated + haptic) when an active milestone crosses a marker (7/14/30/60/100/180/365/730). Tracked once per marker via `aura.milestoneMarkers` in storage.
 - Verified end-to-end (seeded 3 weeks of habit history + a 105-day milestone → 100-day celebration, Today reminders + momentum, Profile history).
 
+## Implemented — Iteration 23 (2026-06)
+- **Private (Sex) tracker** — new bottom-tab (lock icon), fully separate from the journal, PIN-protected.
+  - **PIN lock:** user chooses a 4/6/8-digit PIN on first open (set + confirm), stored via SecureStore. PIN is required every time the tab is opened (re-locks on blur via useFocusEffect).
+  - **Entries:** date, icon (12 emoji choices), Partner/Type/Place/Position (dropdowns sourced from user settings), Duration (text), your orgasms & partner's orgasms (steppers), Notes. No field required except date. Full CRUD.
+  - **Calendar view:** month grid with the entry's icon on logged days; tap a day to see/add that day's entries.
+  - **Log view:** reverse-chronological list of all entries with edit/delete.
+  - **Stats view:** totals (activity, partners, your orgasms, partner orgasms) + per-partner breakdown (count, last date, orgasm totals) = history by partner.
+  - **Field options settings:** manage the Partner/Type/Place/Position dropdown lists (add/remove). Sensible defaults seeded for types/places/positions.
+  - Backend: `db.intimacy` + `db.intimacy_settings`; endpoints `GET/PUT /api/intimacy/settings`, `GET /api/intimacy/stats`, `GET/POST /api/intimacy`, `PUT/DELETE /api/intimacy/{id}`. Added both collections to account-delete cleanup.
+  - Verified: backend CRUD + stats via curl; UI PIN setup→unlock→tracker→entry form/dropdowns via screenshots. Test data cleaned.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

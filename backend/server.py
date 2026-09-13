@@ -516,7 +516,8 @@ async def delete_account(req: DeleteAccountReq, user: Dict[str, Any] = Depends(g
         if not req.current_password or not pwd.verify(req.current_password, user["password_hash"]):
             raise HTTPException(401, "Current password is incorrect")
     uid = user["user_id"]
-    for coll in (db.entries, db.daily_content, db.logins, db.profiles, db.uploads):
+    for coll in (db.entries, db.daily_content, db.logins, db.profiles, db.uploads,
+                 db.milestones, db.habit_progress, db.intimacy, db.intimacy_settings):
         await coll.delete_many({"userId": uid})
     await db.user_sessions.delete_many({"user_id": uid})
     await db.users.delete_one({"user_id": uid})
@@ -787,6 +788,162 @@ async def delete_milestone(mid: str, userId: Optional[str] = Query(None),
                            account: Optional[str] = Depends(get_account_id)):
     uid = require_id(account, userId)
     await db.milestones.delete_one({"userId": uid, "id": mid})
+    return {"ok": True}
+
+
+# --------------------------------------------------------------------------
+# Intimacy tracker (private, kept fully separate from the journal)
+# --------------------------------------------------------------------------
+DEFAULT_INTIMACY_SETTINGS = {
+    "partners": [],
+    "types": ["Vaginal", "Oral", "Anal", "Manual", "Toys"],
+    "places": ["Bedroom", "Shower", "Car", "Outdoors", "Hotel"],
+    "positions": ["Missionary", "Doggy", "Cowgirl", "Spooning", "Standing"],
+}
+
+
+class IntimacySettingsReq(BaseModel):
+    partners: List[str] = []
+    types: List[str] = []
+    places: List[str] = []
+    positions: List[str] = []
+    userId: Optional[str] = None
+
+
+class IntimacyEntryReq(BaseModel):
+    date: str
+    partner: str = ""
+    duration: str = ""
+    type: str = ""
+    place: str = ""
+    position: str = ""
+    orgasms: int = 0
+    partnerOrgasms: int = 0
+    icon: str = ""
+    notes: str = ""
+    userId: Optional[str] = None
+
+
+def _clean_options(xs: List[str]) -> List[str]:
+    seen, out = set(), []
+    for s in xs or []:
+        t = (s or "").strip()
+        if t and t.lower() not in seen:
+            seen.add(t.lower())
+            out.append(t)
+    return out
+
+
+def _intimacy_fields(req: IntimacyEntryReq) -> Dict[str, Any]:
+    return {
+        "date": req.date,
+        "partner": (req.partner or "").strip(),
+        "duration": (req.duration or "").strip(),
+        "type": (req.type or "").strip(),
+        "place": (req.place or "").strip(),
+        "position": (req.position or "").strip(),
+        "orgasms": max(0, int(req.orgasms or 0)),
+        "partnerOrgasms": max(0, int(req.partnerOrgasms or 0)),
+        "icon": (req.icon or "").strip(),
+        "notes": (req.notes or "").strip(),
+    }
+
+
+@api_router.get("/intimacy/settings")
+async def get_intimacy_settings(userId: Optional[str] = Query(None),
+                                account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    doc = await db.intimacy_settings.find_one({"userId": uid}, {"_id": 0})
+    if not doc:
+        return dict(DEFAULT_INTIMACY_SETTINGS)
+    return {k: doc.get(k, DEFAULT_INTIMACY_SETTINGS[k]) for k in DEFAULT_INTIMACY_SETTINGS}
+
+
+@api_router.put("/intimacy/settings")
+async def save_intimacy_settings(req: IntimacySettingsReq,
+                                 account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, req.userId)
+    data = {
+        "partners": _clean_options(req.partners),
+        "types": _clean_options(req.types),
+        "places": _clean_options(req.places),
+        "positions": _clean_options(req.positions),
+    }
+    await db.intimacy_settings.update_one(
+        {"userId": uid}, {"$set": {**data, "updatedAt": now_iso()}}, upsert=True)
+    return {"ok": True, **data}
+
+
+@api_router.get("/intimacy/stats")
+async def intimacy_stats(userId: Optional[str] = Query(None),
+                         account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    items = await db.intimacy.find({"userId": uid}, {"_id": 0}).to_list(5000)
+    total = len(items)
+    total_orgasms = sum(int(i.get("orgasms", 0) or 0) for i in items)
+    total_partner_orgasms = sum(int(i.get("partnerOrgasms", 0) or 0) for i in items)
+    by_partner: Dict[str, Any] = {}
+    for i in items:
+        p = (i.get("partner") or "").strip() or "Unspecified"
+        b = by_partner.setdefault(p, {"partner": p, "count": 0, "orgasms": 0,
+                                      "partnerOrgasms": 0, "lastDate": ""})
+        b["count"] += 1
+        b["orgasms"] += int(i.get("orgasms", 0) or 0)
+        b["partnerOrgasms"] += int(i.get("partnerOrgasms", 0) or 0)
+        if i.get("date", "") > b["lastDate"]:
+            b["lastDate"] = i.get("date", "")
+    partners = sorted(by_partner.values(), key=lambda x: (-x["count"], x["partner"]))
+    return {"totalActivity": total, "totalOrgasms": total_orgasms,
+            "totalPartnerOrgasms": total_partner_orgasms,
+            "partnerCount": len(by_partner), "byPartner": partners}
+
+
+@api_router.get("/intimacy")
+async def list_intimacy(userId: Optional[str] = Query(None),
+                        account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    items = await db.intimacy.find({"userId": uid}, {"_id": 0}).to_list(5000)
+    items.sort(key=lambda x: (x.get("date", ""), x.get("createdAt", "")), reverse=True)
+    return {"entries": items}
+
+
+@api_router.post("/intimacy")
+async def create_intimacy(req: IntimacyEntryReq,
+                          account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, req.userId)
+    try:
+        parse_date(req.date)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid date")
+    doc = {"id": uuid.uuid4().hex, "userId": uid, **_intimacy_fields(req),
+           "createdAt": now_iso(), "updatedAt": now_iso()}
+    await db.intimacy.insert_one(doc)
+    doc.pop("_id", None)
+    return {"ok": True, "entry": doc}
+
+
+@api_router.put("/intimacy/{eid}")
+async def update_intimacy(eid: str, req: IntimacyEntryReq,
+                          account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, req.userId)
+    ex = await db.intimacy.find_one({"userId": uid, "id": eid}, {"_id": 0})
+    if not ex:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    try:
+        parse_date(req.date)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid date")
+    fields = _intimacy_fields(req)
+    await db.intimacy.update_one({"userId": uid, "id": eid},
+                                 {"$set": {**fields, "updatedAt": now_iso()}})
+    return {"ok": True, "entry": {**ex, **fields}}
+
+
+@api_router.delete("/intimacy/{eid}")
+async def delete_intimacy(eid: str, userId: Optional[str] = Query(None),
+                          account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    await db.intimacy.delete_one({"userId": uid, "id": eid})
     return {"ok": True}
 
 

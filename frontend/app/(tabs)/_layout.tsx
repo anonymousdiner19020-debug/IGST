@@ -30,6 +30,10 @@ export default function TabsLayout() {
           <NativeIcon sf="flag" />
           <Label>Milestones</Label>
         </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="intimacy">
+          <NativeIcon sf="lock.fill" />
+          <Label>Private</Label>
+        </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
           <NativeIcon sf="rosette" />
           <Label>Progress</Label>
@@ -79,6 +83,13 @@ export default function TabsLayout() {
         options={{
           title: "Milestones",
           tabBarIcon: ({ color, size }) => <Feather name="flag" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="intimacy"
+        options={{
+          title: "Private",
+          tabBarIcon: ({ color, size }) => <Feather name="lock" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
