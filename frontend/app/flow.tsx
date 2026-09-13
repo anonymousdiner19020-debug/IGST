@@ -40,7 +40,7 @@ const STEP_META: Record<StepKey, { page?: number; title: string; subtitle: strin
   mood: { title: "How are you feeling?", subtitle: "Check in with your mood before you begin." },
   morningRitual: { page: 1, title: "Taking Control", subtitle: "Set three intentions for your morning ritual." },
   weeklyGoals: { page: 2, title: "Weekly Goals", subtitle: "What do you want to achieve this week?" },
-  habits: { title: "Creating Habits", subtitle: "Build good habits — up to five for this week." },
+  habits: { title: "Creating Habits", subtitle: "Build good habits or break bad ones — up to five for this week." },
   blessings: { page: 3, title: "Blessings", subtitle: "Three things you are grateful for today." },
   affirmations: { page: 4, title: "Affirmation", subtitle: "Choose one to carry with you — or write your own." },
   workout: { page: 5, title: "Workout", subtitle: "How will you move your body today? Select all that apply." },
@@ -139,7 +139,7 @@ export default function FlowScreen() {
     setEntry((prev) => {
       const p = prev as DayEntry;
       if (p.habits.length >= 5) return p;
-      return { ...p, habits: [...p.habits, { text: "", type: "create", days: "" }] };
+      return { ...p, habits: [...p.habits, { text: "", type: "create" }] };
     });
   const removeHabit = (i: number) =>
     setEntry((prev) => ({
@@ -254,7 +254,22 @@ export default function FlowScreen() {
               {entry.habits.map((h, i) => (
                 <View key={i} style={styles.habitCard}>
                   <View style={styles.habitTop}>
-                    <Text style={styles.habitLabel}>Habit {i + 1}</Text>
+                    <View style={styles.habitTypeRow}>
+                      <Chip
+                        label="Create"
+                        icon="plus-circle"
+                        selected={h.type === "create"}
+                        onPress={() => setHabit(i, { type: "create" })}
+                        testID={`habit-type-create-${i}`}
+                      />
+                      <Chip
+                        label="Eliminate"
+                        icon="x-circle"
+                        selected={h.type === "eliminate"}
+                        onPress={() => setHabit(i, { type: "eliminate" })}
+                        testID={`habit-type-eliminate-${i}`}
+                      />
+                    </View>
                     <Pressable onPress={() => removeHabit(i)} hitSlop={8} testID={`habit-remove-${i}`}>
                       <Icon name="trash-2" size={18} color={colors.muted} />
                     </Pressable>
@@ -263,19 +278,8 @@ export default function FlowScreen() {
                     testID={`habit-text-${i}`}
                     value={h.text}
                     onChangeText={(t) => setHabit(i, { text: t })}
-                    placeholder="Good habit to build..."
+                    placeholder={h.type === "create" ? "Good habit to build..." : "Bad habit to eliminate..."}
                   />
-                  <View style={styles.habitDaysRow}>
-                    <Text style={styles.habitDaysLabel}>For how many days?</Text>
-                    <TextField
-                      testID={`habit-days-${i}`}
-                      value={h.days}
-                      onChangeText={(t) => setHabit(i, { days: t.replace(/[^0-9]/g, "") })}
-                      placeholder="30"
-                      keyboardType="number-pad"
-                      style={styles.habitDaysInput}
-                    />
-                  </View>
                 </View>
               ))}
               {entry.habits.length < 5 ? (
@@ -686,10 +690,7 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.border,
   },
   habitTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  habitLabel: { fontFamily: fonts.semibold, fontSize: 14, color: c.muted, textTransform: "uppercase", letterSpacing: 0.5 },
-  habitDaysRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  habitDaysLabel: { fontFamily: fonts.medium, fontSize: 15, color: c.onSurface, flex: 1 },
-  habitDaysInput: { width: 90, textAlign: "center" },
+  habitTypeRow: { flexDirection: "row", gap: 8 },
   addHabitBtn: {
     flexDirection: "row",
     alignItems: "center",

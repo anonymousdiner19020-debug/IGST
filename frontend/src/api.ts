@@ -104,7 +104,6 @@ export type DayEntry = {
 export type Habit = {
   text: string;
   type: "create" | "eliminate";
-  days: string;
 };
 
 export type Milestone = {
