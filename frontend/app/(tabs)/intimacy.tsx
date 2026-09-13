@@ -6,6 +6,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Linking,
   Modal,
   Pressable,
@@ -59,10 +60,17 @@ function emptyInput(): IntimacyInput {
 export default function IntimacyScreen() {
   const [unlocked, setUnlocked] = useState(false);
 
-  // Re-lock whenever the tab loses focus so a PIN is required every open.
+  // Require the PIN again any time this screen is not active — whether the user
+  // switches tabs or sends the app to the background.
   useFocusEffect(
     useCallback(() => {
-      return () => setUnlocked(false);
+      const sub = AppState.addEventListener("change", (state) => {
+        if (state !== "active") setUnlocked(false);
+      });
+      return () => {
+        sub.remove();
+        setUnlocked(false);
+      };
     }, []),
   );
 
