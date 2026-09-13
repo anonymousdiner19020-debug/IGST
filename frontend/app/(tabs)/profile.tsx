@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useInsights, useMoodTrend, useGratitudeTrends } from "@/src/api";
+import { useInsights, useMoodTrend, useGratitudeTrends, useHabitHistory } from "@/src/api";
 import { shortDate } from "@/src/date-utils";
 import { Icon, PrimaryButton } from "@/src/components/ui";
 import { STREAK_MILESTONES } from "@/src/components/streak-celebration";
@@ -25,6 +25,7 @@ export default function ProgressScreen() {
   const { userId } = useUser();
   const { data } = useInsights(userId);
   const { data: trend } = useMoodTrend(userId, 30);
+  const { data: habitHist } = useHabitHistory(userId);
   const { data: gratitude } = useGratitudeTrends(userId);
 
   const workouts = Object.entries(data?.workoutBreakdown ?? {}).sort((a, b) => b[1] - a[1]);
@@ -128,6 +129,28 @@ export default function ProgressScreen() {
             );
           })()}
         </View>
+
+        {habitHist && habitHist.weeks.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitle}>Habit history</Text>
+            {habitHist.weeks.map((w) => (
+              <View key={w.anchor} style={styles.histCard}>
+                <Text style={styles.histWeek}>Week of {shortDate(w.anchor)}</Text>
+                {w.habits.map((h, i) => (
+                  <View key={i} style={styles.histRow}>
+                    <Text style={styles.histHabit} numberOfLines={1}>
+                      {h.type === "eliminate" ? "Avoid: " : ""}
+                      {h.text}
+                    </Text>
+                    <Text style={[styles.histCount, h.days >= 5 && { color: colors.brand }]}>
+                      {h.days}/7
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </>
+        ) : null}
 
         <Text style={styles.sectionTitle}>Workout breakdown</Text>
         <View style={styles.workoutCard}>
@@ -346,6 +369,20 @@ const useStyles = makeStyles((c) => ({
     borderWidth: 1,
     borderColor: c.border,
   },
+  histCard: {
+    backgroundColor: c.surface,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: c.border,
+    marginBottom: 12,
+  },
+  histWeek: { fontFamily: fonts.semibold, fontSize: 14, color: c.onSurface },
+  histRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  histHabit: { flex: 1, fontFamily: fonts.regular, fontSize: 14, color: c.onSurfaceSecondary },
+  histCount: { fontFamily: fonts.semibold, fontSize: 14, color: c.muted },
+
   emptyText: { fontFamily: fonts.regular, fontSize: 14, color: c.muted, lineHeight: 20 },
   workoutRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   workoutIcon: {

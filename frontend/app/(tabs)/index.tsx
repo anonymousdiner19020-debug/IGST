@@ -177,6 +177,24 @@ export default function TodayScreen() {
               <Text style={styles.habitStatsText}>{habitMessage(habitStats.completions)}</Text>
             </View>
           ) : null}
+          {day && day.weekHabits.length > 0 ? (
+            <View style={styles.habitRemindCard} testID="today-habits">
+              <Text style={styles.habitRemindTitle}>This week's habits</Text>
+              {day.weekHabits.map((h, i) => (
+                <View key={i} style={styles.habitRemindRow}>
+                  <Icon
+                    name={h.type === "eliminate" ? "x-circle" : "check-circle"}
+                    size={16}
+                    color={h.type === "eliminate" ? colors.error : colors.brand}
+                  />
+                  <Text style={styles.habitRemindText} numberOfLines={1}>
+                    {h.type === "eliminate" ? "Avoid: " : ""}
+                    {h.text}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
           {topBlessing ? (
             <Pressable
               testID="gratitude-reminder"
@@ -340,4 +358,22 @@ const useStyles = makeStyles((c) => ({
   habitStatsHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   habitStatsTitle: { fontFamily: fonts.semibold, fontSize: 13, color: c.brand, textTransform: "uppercase", letterSpacing: 0.5 },
   habitStatsText: { fontFamily: fonts.display, fontSize: 18, lineHeight: 26, color: c.onSurface },
+  habitRemindCard: {
+    marginTop: 20,
+    backgroundColor: c.surface,
+    borderRadius: 20,
+    padding: 20,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  habitRemindTitle: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: c.muted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  habitRemindRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  habitRemindText: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: c.onSurface },
 }));

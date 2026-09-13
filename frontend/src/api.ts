@@ -106,6 +106,12 @@ export type Habit = {
   type: "create" | "eliminate";
 };
 
+export type HabitWeek = {
+  anchor: string;
+  total: number;
+  habits: { text: string; type: "create" | "eliminate"; days: number }[];
+};
+
 export type Milestone = {
   id: string;
   title: string;
@@ -295,6 +301,8 @@ export const api = {
     request<{ month: string; completions: number; weeksTracked: number }>(
       `/habit-stats?userId=${encodeURIComponent(userId)}`,
     ),
+  habitHistory: (userId: string) =>
+    request<{ weeks: HabitWeek[] }>(`/habit-history?userId=${encodeURIComponent(userId)}`),
   // auth
   register: (email: string, password: string, deviceUserId: string, name?: string) =>
     request<AuthResponse>("/auth/register", {
@@ -527,6 +535,15 @@ export function useHabitStats(userId: string | null) {
   return useQuery({
     queryKey: ["habit-stats", userId],
     queryFn: () => api.habitStats(userId!),
+    enabled: !!userId,
+  });
+}
+
+
+export function useHabitHistory(userId: string | null) {
+  return useQuery({
+    queryKey: ["habit-history", userId],
+    queryFn: () => api.habitHistory(userId!),
     enabled: !!userId,
   });
 }

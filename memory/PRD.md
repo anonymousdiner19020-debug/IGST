@@ -148,6 +148,12 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Habit momentum (monthly congrats):** Today screen shows a "Habit momentum" card when the user has any habit completions this month, with an escalating congratulatory message.
 - Verified end-to-end (seeded Monday habits → Sunday 09-20 check-in → 3/7 toggled → persisted → Today momentum card).
 
+## Implemented — Iteration 22 (2026-06)
+- **Habit History (Profile):** New `GET /api/habit-history` returns up to 12 recent weeks (from `habit_progress` + that week's Monday entry habits) with per-habit day counts. Profile shows a "Habit history" section — "Week of <date>" with each habit's N/7 (green when ≥5). Hook `useHabitHistory`, type `HabitWeek`.
+- **Habit Reminders (Today):** "This week's habits" card on the Today screen lists this ISO week's habits (from `day.weekHabits`) with create/eliminate icons — read-only reminder.
+- **Milestone Reminders:** Milestones screen shows a celebration modal (reanimated + haptic) when an active milestone crosses a marker (7/14/30/60/100/180/365/730). Tracked once per marker via `aura.milestoneMarkers` in storage.
+- Verified end-to-end (seeded 3 weeks of habit history + a 105-day milestone → 100-day celebration, Today reminders + momentum, Profile history).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

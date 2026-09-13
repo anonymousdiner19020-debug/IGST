@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
-import { useMemo, useState } from "react";
+import * as Haptics from "expo-haptics";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -8,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -19,10 +21,12 @@ import {
 } from "@/src/api";
 import { Icon, PrimaryButton, TextField } from "@/src/components/ui";
 import { prettyDate, todayStr } from "@/src/date-utils";
+import { storage } from "@/src/utils/storage";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
 
 const MARKERS = [7, 14, 30, 60, 100, 180, 365, 730];
+const MS_MARKERS_KEY = "aura.milestoneMarkers";
 
 function daysBetween(from: string, to: string): number {
   return Math.max(0, dayjs(to).startOf("day").diff(dayjs(from).startOf("day"), "day"));
@@ -47,6 +51,35 @@ export default function MilestonesScreen() {
   const milestones = data?.milestones ?? [];
   const active = milestones.filter((m) => !m.completed);
   const done = milestones.filter((m) => m.completed);
+
+  const [celebrate, setCelebrate] = useState<{ title: string; marker: number } | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    let cancelled = false;
+    (async () => {
+      const map = (await storage.getItem<Record<string, number>>(MS_MARKERS_KEY, {})) ?? {};
+      let found: { title: string; marker: number } | null = null;
+      let updated = false;
+      for (const m of data.milestones) {
+        if (m.completed) continue;
+        const daysIn = daysBetween(m.startDate, todayStr());
+        const reached = MARKERS.filter((x) => daysIn >= x);
+        const highest = reached.length ? reached[reached.length - 1] : 0;
+        const celebrated = map[m.id] ?? 0;
+        if (highest > celebrated) {
+          map[m.id] = highest;
+          updated = true;
+          if (!found) found = { title: m.title, marker: highest };
+        }
+      }
+      if (cancelled) return;
+      if (updated) await storage.setItem(MS_MARKERS_KEY, map);
+      if (found) setCelebrate(found);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [data]);
 
   const resetForm = () => {
     setTitle("");
@@ -167,7 +200,49 @@ export default function MilestonesScreen() {
           setPickerOpen(false);
         }}
       />
+
+      {celebrate ? (
+        <MilestoneCelebration
+          title={celebrate.title}
+          marker={celebrate.marker}
+          onClose={() => setCelebrate(null)}
+        />
+      ) : null}
     </View>
+  );
+}
+
+function MilestoneCelebration({
+  title,
+  marker,
+  onClose,
+}: {
+  title: string;
+  marker: number;
+  onClose: () => void;
+}) {
+  const styles = useStyles();
+  useEffect(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  }, []);
+  return (
+    <Modal transparent visible animationType="none" onRequestClose={onClose}>
+      <Animated.View entering={FadeIn.duration(250)} style={styles.celebBackdrop}>
+        <Animated.View entering={ZoomIn.springify().damping(13).mass(0.8)} style={styles.celebCard}>
+          <View style={styles.celebIcon}>
+            <Text style={{ fontSize: 46 }}>🚩</Text>
+          </View>
+          <Text style={styles.celebNum}>{marker}</Text>
+          <Text style={styles.celebDays}>days strong!</Text>
+          <Text style={styles.celebMsg}>
+            You&apos;ve kept &ldquo;{title}&rdquo; going for {marker} days. Incredible consistency — keep it up!
+          </Text>
+          <View style={{ width: "100%", marginTop: 4 }}>
+            <PrimaryButton label="Keep going" icon="arrow-right" onPress={onClose} testID="ms-celeb-close" />
+          </View>
+        </Animated.View>
+      </Animated.View>
+    </Modal>
   );
 }
 
@@ -467,4 +542,42 @@ const useStyles = makeStyles((c) => ({
   dayNum: { fontFamily: fonts.medium, fontSize: 15, color: c.onSurface },
   todayBtn: { alignSelf: "center", paddingVertical: 8, paddingHorizontal: 20 },
   todayText: { fontFamily: fonts.semibold, fontSize: 15, color: c.brand },
+  celebBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(45,43,42,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  celebCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: c.surface,
+    borderRadius: 28,
+    padding: 32,
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  celebIcon: {
+    width: 90,
+    height: 90,
+    borderRadius: 999,
+    backgroundColor: c.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  celebNum: { fontFamily: fonts.displayBold, fontSize: 54, color: c.brand, lineHeight: 60 },
+  celebDays: { fontFamily: fonts.display, fontSize: 22, color: c.onSurface, marginTop: -4 },
+  celebMsg: {
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    color: c.onSurfaceSecondary,
+    textAlign: "center",
+    lineHeight: 22,
+    marginTop: 12,
+    marginBottom: 12,
+  },
 }));

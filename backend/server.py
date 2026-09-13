@@ -652,6 +652,29 @@ async def habit_stats(userId: Optional[str] = Query(None),
     return {"month": month, "completions": completions, "weeksTracked": len(docs)}
 
 
+@api_router.get("/habit-history")
+async def habit_history(userId: Optional[str] = Query(None),
+                        account: Optional[str] = Depends(get_account_id)):
+    uid = require_id(account, userId)
+    docs = await db.habit_progress.find({"userId": uid}, {"_id": 0}).to_list(200)
+    docs.sort(key=lambda x: x.get("anchor", ""), reverse=True)
+    weeks = []
+    for dch in docs[:12]:
+        anchor = dch.get("anchor", "")
+        mon_entry = await db.entries.find_one({"userId": uid, "date": anchor}, {"_id": 0})
+        habits = [h for h in (mon_entry or {}).get("habits", []) if (h.get("text") or "").strip()]
+        done = dch.get("done") or {}
+        items = []
+        total = 0
+        for i, h in enumerate(habits):
+            n = len(done.get(str(i), []))
+            total += n
+            items.append({"text": h.get("text", ""), "type": h.get("type", "create"), "days": n})
+        if items:
+            weeks.append({"anchor": anchor, "habits": items, "total": total})
+    return {"weeks": weeks}
+
+
 @api_router.put("/day/{d}")
 async def save_day(d: str, entry: DayEntry, userId: Optional[str] = Query(None),
                    account: Optional[str] = Depends(get_account_id)):
