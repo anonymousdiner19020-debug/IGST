@@ -182,6 +182,13 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **IMPORTANT scope note:** the managed proxy provisions exactly ONE entitlement + ONE offering, so the user's request for a *separate* independent price for the Private tracker is not supported — instead **Premium unlocks everything including the Private tracker**. Revisit if a truly separate tier is needed.
 - Verified in web preview: offerings load with real prices, trial banner, paywall UI, gating. Real purchase completion needs a device/Expo Go build (Test Store checkout) or a release build.
 
+## Updated — Iteration 26 (2026-06) — subscription polish
+- **Prices** changed via integration proxy `/products`: monthly **$3.99**, yearly **$38.30** (exactly 20% off monthly×12). RevenueCat Test Store caches offerings, so the web preview may keep showing old $9.99/$79.99 for a few minutes; reflects on device / after cache refresh.
+- **Savings badge**: paywall auto-computes % saved (yearly vs monthly×12) and shows a "SAVE X%" badge + highlighted border on the yearly plan (will read 20% with the new prices).
+- **Trial countdown nudge**: one-time dismissible modal on Today when the trial has ≤1 day left or has ended (stored per-state in `aura.trialNudge`), plus the existing days-left banner.
+- **Manage subscription**: new Settings row — opens the store's manage/cancel page via `customerInfo.managementURL` when subscribed, else routes to the paywall; shows trial days left when applicable.
+- **Separate Private-tracker tier — NOT possible** with Emergent-managed RevenueCat (single `pro` entitlement + `default` offering only; all packages grant the same entitlement, and fake/backend grants are forbidden). Premium continues to unlock everything incl. the Private tracker. Told the user.
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

@@ -9,8 +9,11 @@ Memory for interacting with the user's RevenueCat account via the integration pr
 - offering_lookup_key: default
 - bundle_id / package_name: com.emergent.dailygrowthhub.zjacc0
 - Packages (package -> product_id, current price):
-  - $rc_monthly -> prodbed2df6866   ($9.99 / P1M, trial: none)
-  - $rc_annual  -> prode8c03d8f15   ($79.99 / P1Y, trial: none)
+  - $rc_monthly -> prodbed2df6866   ($3.99 / P1M, trial: none)
+  - $rc_annual  -> prode8c03d8f15   ($38.30 / P1Y, trial: none — exactly 20% vs monthly×12=$47.88)
+  - NOTE: prices set via /products on 2026-09-13. The RevenueCat Test Store (web preview / Expo Go
+    browser mode) caches offerings and may keep showing the OLD $9.99/$79.99 for several minutes;
+    the savings badge auto-computes so it will read SAVE 20% once the new prices propagate / on device.
 - Dashboard: https://app.revenuecat.com/projects/proj403b0988
 
 SDK keys live only in frontend/.env (EXPO_PUBLIC_REVENUECAT_TEST_API_KEY / _IOS_API_KEY / _ANDROID_API_KEY). Not stored here.
