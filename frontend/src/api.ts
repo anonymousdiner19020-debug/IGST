@@ -237,12 +237,14 @@ export type YearlyWrapResponse = {
   currentStreak: number;
 };
 
+export type PartnerOption = { name: string; photo: string };
+
 export type IntimacyEntry = {
   id: string;
   date: string;
   partner: string;
   duration: string;
-  type: string;
+  type: string[];
   place: string;
   position: string;
   orgasms: number;
@@ -256,7 +258,7 @@ export type IntimacyEntry = {
 export type IntimacyInput = Omit<IntimacyEntry, "id" | "createdAt" | "updatedAt">;
 
 export type IntimacySettings = {
-  partners: string[];
+  partners: PartnerOption[];
   types: string[];
   places: string[];
   positions: string[];

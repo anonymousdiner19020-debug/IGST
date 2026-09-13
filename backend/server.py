@@ -803,7 +803,7 @@ DEFAULT_INTIMACY_SETTINGS = {
 
 
 class IntimacySettingsReq(BaseModel):
-    partners: List[str] = []
+    partners: List[Any] = []
     types: List[str] = []
     places: List[str] = []
     positions: List[str] = []
@@ -814,7 +814,7 @@ class IntimacyEntryReq(BaseModel):
     date: str
     partner: str = ""
     duration: str = ""
-    type: str = ""
+    type: List[str] = []
     place: str = ""
     position: str = ""
     orgasms: int = 0
@@ -834,12 +834,31 @@ def _clean_options(xs: List[str]) -> List[str]:
     return out
 
 
+def _clean_partners(items: List[Any]) -> List[Dict[str, str]]:
+    """Partners may arrive as plain strings (legacy) or {name, photo} objects."""
+    seen, out = set(), []
+    for it in items or []:
+        if isinstance(it, dict):
+            name = (it.get("name") or "").strip()
+            photo = (it.get("photo") or "").strip()
+        else:
+            name, photo = (str(it) or "").strip(), ""
+        if name and name.lower() not in seen:
+            seen.add(name.lower())
+            out.append({"name": name, "photo": photo})
+    return out
+
+
+def _normalize_partners(items: List[Any]) -> List[Dict[str, str]]:
+    return _clean_partners(items)
+
+
 def _intimacy_fields(req: IntimacyEntryReq) -> Dict[str, Any]:
     return {
         "date": req.date,
         "partner": (req.partner or "").strip(),
         "duration": (req.duration or "").strip(),
-        "type": (req.type or "").strip(),
+        "type": _clean_options(req.type),
         "place": (req.place or "").strip(),
         "position": (req.position or "").strip(),
         "orgasms": max(0, int(req.orgasms or 0)),
@@ -849,6 +868,15 @@ def _intimacy_fields(req: IntimacyEntryReq) -> Dict[str, Any]:
     }
 
 
+def _normalize_entry(e: Dict[str, Any]) -> Dict[str, Any]:
+    t = e.get("type")
+    if isinstance(t, str):
+        e["type"] = [t] if t.strip() else []
+    elif not isinstance(t, list):
+        e["type"] = []
+    return e
+
+
 @api_router.get("/intimacy/settings")
 async def get_intimacy_settings(userId: Optional[str] = Query(None),
                                 account: Optional[str] = Depends(get_account_id)):
@@ -856,7 +884,12 @@ async def get_intimacy_settings(userId: Optional[str] = Query(None),
     doc = await db.intimacy_settings.find_one({"userId": uid}, {"_id": 0})
     if not doc:
         return dict(DEFAULT_INTIMACY_SETTINGS)
-    return {k: doc.get(k, DEFAULT_INTIMACY_SETTINGS[k]) for k in DEFAULT_INTIMACY_SETTINGS}
+    return {
+        "partners": _normalize_partners(doc.get("partners", [])),
+        "types": doc.get("types", DEFAULT_INTIMACY_SETTINGS["types"]),
+        "places": doc.get("places", DEFAULT_INTIMACY_SETTINGS["places"]),
+        "positions": doc.get("positions", DEFAULT_INTIMACY_SETTINGS["positions"]),
+    }
 
 
 @api_router.put("/intimacy/settings")
@@ -864,7 +897,7 @@ async def save_intimacy_settings(req: IntimacySettingsReq,
                                  account: Optional[str] = Depends(get_account_id)):
     uid = require_id(account, req.userId)
     data = {
-        "partners": _clean_options(req.partners),
+        "partners": _clean_partners(req.partners),
         "types": _clean_options(req.types),
         "places": _clean_options(req.places),
         "positions": _clean_options(req.positions),
@@ -904,7 +937,7 @@ async def list_intimacy(userId: Optional[str] = Query(None),
     uid = require_id(account, userId)
     items = await db.intimacy.find({"userId": uid}, {"_id": 0}).to_list(5000)
     items.sort(key=lambda x: (x.get("date", ""), x.get("createdAt", "")), reverse=True)
-    return {"entries": items}
+    return {"entries": [_normalize_entry(e) for e in items]}
 
 
 @api_router.post("/intimacy")

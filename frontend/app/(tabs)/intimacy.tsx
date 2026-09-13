@@ -1,9 +1,12 @@
 import dayjs from "dayjs";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -13,6 +16,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  fileUrl,
+  uploadPhoto,
   useCreateIntimacy,
   useDeleteIntimacy,
   useIntimacy,
@@ -23,6 +28,7 @@ import {
   type IntimacyEntry,
   type IntimacyInput,
   type IntimacySettings,
+  type PartnerOption,
 } from "@/src/api";
 import { Icon, PrimaryButton, TextField } from "@/src/components/ui";
 import { prettyDate, shortDate, todayStr } from "@/src/date-utils";
@@ -40,7 +46,7 @@ function emptyInput(): IntimacyInput {
     date: todayStr(),
     partner: "",
     duration: "",
-    type: "",
+    type: [],
     place: "",
     position: "",
     orgasms: 0,
@@ -271,6 +277,8 @@ function Tracker({ onLock }: { onLock: () => void }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const entries = data?.entries ?? [];
+  const partners = settings?.partners ?? [];
+  const photoFor = (name: string) => partners.find((p) => p.name === name)?.photo ?? "";
 
   const openAdd = () => {
     setEditing(null);
@@ -334,11 +342,11 @@ function Tracker({ onLock }: { onLock: () => void }) {
           showsVerticalScrollIndicator={false}
         >
           {segment === "calendar" ? (
-            <CalendarView entries={entries} onEdit={openEdit} onDelete={(id) => deleteM.mutate(id)} onAdd={openAdd} />
+            <CalendarView entries={entries} userId={userId} photoFor={photoFor} onEdit={openEdit} onDelete={(id) => deleteM.mutate(id)} onAdd={openAdd} />
           ) : segment === "log" ? (
-            <LogView entries={entries} onEdit={openEdit} onDelete={(id) => deleteM.mutate(id)} onAdd={openAdd} />
+            <LogView entries={entries} userId={userId} photoFor={photoFor} onEdit={openEdit} onDelete={(id) => deleteM.mutate(id)} onAdd={openAdd} />
           ) : (
-            <StatsView stats={stats} />
+            <StatsView stats={stats} userId={userId} photoFor={photoFor} />
           )}
         </ScrollView>
       )}
@@ -347,6 +355,7 @@ function Tracker({ onLock }: { onLock: () => void }) {
         <EntryForm
           initial={editing ?? emptyInput()}
           settings={settings}
+          userId={userId}
           saving={createM.isPending || updateM.isPending}
           isEdit={!!editing}
           onManage={() => {
@@ -373,11 +382,15 @@ function Tracker({ onLock }: { onLock: () => void }) {
 // --------------------------------------------------------------------------
 function CalendarView({
   entries,
+  userId,
+  photoFor,
   onEdit,
   onDelete,
   onAdd,
 }: {
   entries: IntimacyEntry[];
+  userId: string | null;
+  photoFor: (name: string) => string;
   onEdit: (e: IntimacyEntry) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
@@ -467,7 +480,9 @@ function CalendarView({
           <Text style={styles.emptyDayText}>No entry for this day. Tap to add one.</Text>
         </Pressable>
       ) : (
-        dayEntries.map((e) => <EntryCard key={e.id} e={e} onEdit={onEdit} onDelete={onDelete} />)
+        dayEntries.map((e) => (
+          <EntryCard key={e.id} e={e} userId={userId} photo={photoFor(e.partner)} onEdit={onEdit} onDelete={onDelete} />
+        ))
       )}
     </View>
   );
@@ -478,11 +493,15 @@ function CalendarView({
 // --------------------------------------------------------------------------
 function LogView({
   entries,
+  userId,
+  photoFor,
   onEdit,
   onDelete,
   onAdd,
 }: {
   entries: IntimacyEntry[];
+  userId: string | null;
+  photoFor: (name: string) => string;
   onEdit: (e: IntimacyEntry) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
@@ -508,7 +527,7 @@ function LogView({
   return (
     <View style={{ gap: 12 }}>
       {entries.map((e) => (
-        <EntryCard key={e.id} e={e} onEdit={onEdit} onDelete={onDelete} showDate />
+        <EntryCard key={e.id} e={e} userId={userId} photo={photoFor(e.partner)} onEdit={onEdit} onDelete={onDelete} showDate />
       ))}
     </View>
   );
@@ -516,11 +535,15 @@ function LogView({
 
 function EntryCard({
   e,
+  userId,
+  photo,
   onEdit,
   onDelete,
   showDate,
 }: {
   e: IntimacyEntry;
+  userId: string | null;
+  photo?: string;
   onEdit: (e: IntimacyEntry) => void;
   onDelete: (id: string) => void;
   showDate?: boolean;
@@ -529,7 +552,7 @@ function EntryCard({
   const { colors } = useTheme();
 
   const chips: string[] = [];
-  if (e.type) chips.push(e.type);
+  for (const t of e.type ?? []) chips.push(t);
   if (e.place) chips.push(e.place);
   if (e.position) chips.push(e.position);
   if (e.duration) chips.push(e.duration);
@@ -537,11 +560,16 @@ function EntryCard({
   return (
     <View style={styles.entryCard}>
       <View style={styles.entryTop}>
-        <Text style={styles.entryIcon}>{e.icon || "❤️"}</Text>
+        {photo && userId ? (
+          <Image source={{ uri: fileUrl(photo, userId) }} style={styles.entryAvatar} contentFit="cover" transition={150} />
+        ) : (
+          <Text style={styles.entryIcon}>{e.icon || "❤️"}</Text>
+        )}
         <View style={{ flex: 1 }}>
           <Text style={styles.entryPartner}>{e.partner || "Unspecified"}</Text>
           {showDate ? <Text style={styles.entryDate}>{shortDate(e.date)}</Text> : null}
         </View>
+        {photo && userId ? <Text style={styles.entryIconSmall}>{e.icon || "❤️"}</Text> : null}
         <Pressable onPress={() => onEdit(e)} hitSlop={8} style={styles.entryAction} testID={`entry-edit-${e.id}`}>
           <Icon name="edit-2" size={17} color={colors.muted} />
         </Pressable>
@@ -576,7 +604,15 @@ function EntryCard({
 // --------------------------------------------------------------------------
 // Stats segment
 // --------------------------------------------------------------------------
-function StatsView({ stats }: { stats?: import("@/src/api").IntimacyStats }) {
+function StatsView({
+  stats,
+  userId,
+  photoFor,
+}: {
+  stats?: import("@/src/api").IntimacyStats;
+  userId: string | null;
+  photoFor: (name: string) => string;
+}) {
   const styles = useStyles();
   const { colors } = useTheme();
 
@@ -602,27 +638,34 @@ function StatsView({ stats }: { stats?: import("@/src/api").IntimacyStats }) {
       </View>
 
       <Text style={styles.sectionLabel}>By partner</Text>
-      {stats.byPartner.map((p) => (
-        <View key={p.partner} style={styles.partnerCard}>
-          <View style={styles.partnerHead}>
-            <View style={styles.partnerAvatar}>
-              <Icon name="user" size={18} color={colors.brand} />
+      {stats.byPartner.map((p) => {
+        const photo = photoFor(p.partner);
+        return (
+          <View key={p.partner} style={styles.partnerCard}>
+            <View style={styles.partnerHead}>
+              {photo && userId ? (
+                <Image source={{ uri: fileUrl(photo, userId) }} style={styles.partnerAvatar} contentFit="cover" transition={150} />
+              ) : (
+                <View style={styles.partnerAvatar}>
+                  <Icon name="user" size={18} color={colors.brand} />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.partnerName}>{p.partner}</Text>
+                <Text style={styles.partnerMeta}>
+                  {p.count} {p.count === 1 ? "time" : "times"}
+                  {p.lastDate ? ` · last ${shortDate(p.lastDate)}` : ""}
+                </Text>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.partnerName}>{p.partner}</Text>
-              <Text style={styles.partnerMeta}>
-                {p.count} {p.count === 1 ? "time" : "times"}
-                {p.lastDate ? ` · last ${shortDate(p.lastDate)}` : ""}
-              </Text>
+            <View style={styles.partnerStats}>
+              <Text style={styles.partnerStat}>You: {p.orgasms}</Text>
+              <Text style={styles.oDot}>·</Text>
+              <Text style={styles.partnerStat}>Partner: {p.partnerOrgasms}</Text>
             </View>
           </View>
-          <View style={styles.partnerStats}>
-            <Text style={styles.partnerStat}>You: {p.orgasms}</Text>
-            <Text style={styles.oDot}>·</Text>
-            <Text style={styles.partnerStat}>Partner: {p.partnerOrgasms}</Text>
-          </View>
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -643,6 +686,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
 function EntryForm({
   initial,
   settings,
+  userId,
   saving,
   isEdit,
   onSave,
@@ -651,6 +695,7 @@ function EntryForm({
 }: {
   initial: IntimacyInput | IntimacyEntry;
   settings?: IntimacySettings;
+  userId: string | null;
   saving: boolean;
   isEdit: boolean;
   onSave: (input: IntimacyInput) => void;
@@ -710,8 +755,8 @@ function EntryForm({
               ))}
             </View>
 
-            <Dropdown label="Partner" value={form.partner} options={settings?.partners ?? []} onChange={(v) => set("partner", v)} onManage={onManage} />
-            <Dropdown label="Type" value={form.type} options={settings?.types ?? []} onChange={(v) => set("type", v)} onManage={onManage} />
+            <PartnerDropdown label="Partner" value={form.partner} partners={settings?.partners ?? []} userId={userId} onChange={(v) => set("partner", v)} onManage={onManage} />
+            <MultiSelect label="Type" values={form.type} options={settings?.types ?? []} onChange={(v) => set("type", v)} onManage={onManage} />
             <Dropdown label="Place" value={form.place} options={settings?.places ?? []} onChange={(v) => set("place", v)} onManage={onManage} />
             <Dropdown label="Position" value={form.position} options={settings?.positions ?? []} onChange={(v) => set("position", v)} onManage={onManage} />
 
@@ -844,6 +889,162 @@ function Dropdown({
   );
 }
 
+function MultiSelect({
+  label,
+  values,
+  options,
+  onChange,
+  onManage,
+}: {
+  label: string;
+  values: string[];
+  options: string[];
+  onChange: (v: string[]) => void;
+  onManage: () => void;
+}) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const [open, setOpen] = useState(false);
+
+  const toggle = (o: string) => {
+    Haptics.selectionAsync().catch(() => {});
+    onChange(values.includes(o) ? values.filter((x) => x !== o) : [...values, o]);
+  };
+
+  return (
+    <>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Pressable style={styles.dateRow} onPress={() => setOpen(true)} testID={`dropdown-${label}`}>
+        <Text style={[styles.dateText, values.length === 0 && { color: colors.muted }]}>
+          {values.length ? values.join(", ") : `Select ${label.toLowerCase()}`}
+        </Text>
+        <Icon name="chevron-down" size={18} color={colors.muted} />
+      </Pressable>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.pickerBackdrop} onPress={() => setOpen(false)}>
+          <Pressable style={styles.optionCard} onPress={() => {}}>
+            <Text style={styles.optionTitle}>{label}</Text>
+            <Text style={styles.optionSub}>Select all that apply</Text>
+            {options.length === 0 ? (
+              <Text style={styles.optionEmpty}>No options yet. Add them in settings.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 300 }}>
+                {options.map((o) => {
+                  const on = values.includes(o);
+                  return (
+                    <Pressable key={o} style={styles.optionRow} onPress={() => toggle(o)} testID={`option-${o}`}>
+                      <Text style={styles.optionText}>{o}</Text>
+                      <View style={[styles.checkBox, on && styles.checkBoxOn]}>
+                        {on ? <Icon name="check" size={14} color={colors.onBrandPrimary} /> : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+            <View style={styles.optionFooter}>
+              {values.length ? (
+                <Pressable onPress={() => onChange([])} testID={`option-clear-${label}`}>
+                  <Text style={styles.optionClear}>Clear</Text>
+                </Pressable>
+              ) : <View />}
+              <View style={{ flexDirection: "row", gap: 18 }}>
+                <Pressable onPress={() => { setOpen(false); onManage(); }} testID={`option-manage-${label}`}>
+                  <Text style={styles.optionManage}>Manage</Text>
+                </Pressable>
+                <Pressable onPress={() => setOpen(false)} testID={`option-done-${label}`}>
+                  <Text style={styles.optionManage}>Done</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
+function PartnerDropdown({
+  label,
+  value,
+  partners,
+  userId,
+  onChange,
+  onManage,
+}: {
+  label: string;
+  value: string;
+  partners: PartnerOption[];
+  userId: string | null;
+  onChange: (v: string) => void;
+  onManage: () => void;
+}) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const [open, setOpen] = useState(false);
+  const selected = partners.find((p) => p.name === value);
+
+  return (
+    <>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Pressable style={styles.dateRow} onPress={() => setOpen(true)} testID={`dropdown-${label}`}>
+        {selected?.photo && userId ? (
+          <Image source={{ uri: fileUrl(selected.photo, userId) }} style={styles.miniAvatar} contentFit="cover" />
+        ) : null}
+        <Text style={[styles.dateText, !value && { color: colors.muted }]}>
+          {value || `Select ${label.toLowerCase()}`}
+        </Text>
+        <Icon name="chevron-down" size={18} color={colors.muted} />
+      </Pressable>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.pickerBackdrop} onPress={() => setOpen(false)}>
+          <Pressable style={styles.optionCard} onPress={() => {}}>
+            <Text style={styles.optionTitle}>{label}</Text>
+            {partners.length === 0 ? (
+              <Text style={styles.optionEmpty}>No partners yet. Add them in settings.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 320 }}>
+                {partners.map((p) => (
+                  <Pressable
+                    key={p.name}
+                    style={styles.optionRow}
+                    onPress={() => { onChange(p.name); setOpen(false); }}
+                    testID={`option-${p.name}`}
+                  >
+                    <View style={styles.partnerRow}>
+                      {p.photo && userId ? (
+                        <Image source={{ uri: fileUrl(p.photo, userId) }} style={styles.miniAvatar} contentFit="cover" />
+                      ) : (
+                        <View style={styles.miniAvatarBlank}>
+                          <Icon name="user" size={15} color={colors.brand} />
+                        </View>
+                      )}
+                      <Text style={styles.optionText}>{p.name}</Text>
+                    </View>
+                    {value === p.name ? <Icon name="check" size={18} color={colors.brand} /> : null}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+            <View style={styles.optionFooter}>
+              {value ? (
+                <Pressable onPress={() => { onChange(""); setOpen(false); }} testID={`option-clear-${label}`}>
+                  <Text style={styles.optionClear}>Clear</Text>
+                </Pressable>
+              ) : <View />}
+              <Pressable onPress={() => { setOpen(false); onManage(); }} testID={`option-manage-${label}`}>
+                <Text style={styles.optionManage}>Manage partners</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 function Stepper({
   label,
   value,
@@ -903,31 +1104,27 @@ function SettingsModal({
   const { userId } = useUser();
   const saveM = useSaveIntimacySettings(userId);
 
-  const [local, setLocal] = useState<IntimacySettings>({
-    partners: settings?.partners ?? [],
-    types: settings?.types ?? [],
-    places: settings?.places ?? [],
-    positions: settings?.positions ?? [],
-  });
+  const [partners, setPartners] = useState<PartnerOption[]>(settings?.partners ?? []);
+  const [types, setTypes] = useState<string[]>(settings?.types ?? []);
+  const [places, setPlaces] = useState<string[]>(settings?.places ?? []);
+  const [positions, setPositions] = useState<string[]>(settings?.positions ?? []);
 
-  const groups: { key: keyof IntimacySettings; label: string }[] = [
-    { key: "partners", label: "Partners" },
-    { key: "types", label: "Types" },
-    { key: "places", label: "Places" },
-    { key: "positions", label: "Positions" },
+  const strGroups: { label: string; values: string[]; set: (v: string[]) => void }[] = [
+    { label: "Types", values: types, set: setTypes },
+    { label: "Places", values: places, set: setPlaces },
+    { label: "Positions", values: positions, set: setPositions },
   ];
 
-  const add = (key: keyof IntimacySettings, val: string) => {
+  const addStr = (values: string[], set: (v: string[]) => void, val: string) => {
     const t = val.trim();
-    if (!t) return;
-    setLocal((l) => (l[key].some((x) => x.toLowerCase() === t.toLowerCase())
-      ? l
-      : { ...l, [key]: [...l[key], t] }));
+    if (!t || values.some((x) => x.toLowerCase() === t.toLowerCase())) return;
+    set([...values, t]);
   };
-  const remove = (key: keyof IntimacySettings, val: string) =>
-    setLocal((l) => ({ ...l, [key]: l[key].filter((x) => x !== val) }));
+  const removeStr = (values: string[], set: (v: string[]) => void, val: string) =>
+    set(values.filter((x) => x !== val));
 
-  const save = () => saveM.mutate(local, { onSuccess: onClose });
+  const save = () =>
+    saveM.mutate({ partners, types, places, positions }, { onSuccess: onClose });
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
@@ -938,13 +1135,14 @@ function SettingsModal({
           <Text style={styles.settingsSub}>These appear as dropdown choices when you log an entry.</Text>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 18, paddingBottom: 8 }}>
-            {groups.map((g) => (
+            <PartnerGroup partners={partners} userId={userId} onChange={setPartners} />
+            {strGroups.map((g) => (
               <OptionGroup
-                key={g.key}
+                key={g.label}
                 label={g.label}
-                values={local[g.key]}
-                onAdd={(v) => add(g.key, v)}
-                onRemove={(v) => remove(g.key, v)}
+                values={g.values}
+                onAdd={(v) => addStr(g.values, g.set, v)}
+                onRemove={(v) => removeStr(g.values, g.set, v)}
               />
             ))}
           </ScrollView>
@@ -958,6 +1156,112 @@ function SettingsModal({
         </View>
       </View>
     </Modal>
+  );
+}
+
+function PartnerGroup({
+  partners,
+  userId,
+  onChange,
+}: {
+  partners: PartnerOption[];
+  userId: string | null;
+  onChange: (p: PartnerOption[]) => void;
+}) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState(false);
+
+  const add = () => {
+    const t = text.trim();
+    if (!t) return;
+    if (!partners.some((p) => p.name.toLowerCase() === t.toLowerCase())) {
+      onChange([...partners, { name: t, photo: "" }]);
+    }
+    setText("");
+  };
+  const remove = (name: string) => onChange(partners.filter((p) => p.name !== name));
+  const setPhoto = (name: string, photo: string) =>
+    onChange(partners.map((p) => (p.name === name ? { ...p, photo } : p)));
+
+  const pickPhoto = async (name: string, fromCamera: boolean) => {
+    setBlocked(false);
+    const getPerm = fromCamera ? ImagePicker.getCameraPermissionsAsync : ImagePicker.getMediaLibraryPermissionsAsync;
+    const reqPerm = fromCamera ? ImagePicker.requestCameraPermissionsAsync : ImagePicker.requestMediaLibraryPermissionsAsync;
+    const perm = await getPerm();
+    let status = perm;
+    if (!perm.granted && perm.canAskAgain) status = await reqPerm();
+    if (!status.granted) {
+      if (!status.canAskAgain) setBlocked(true);
+      return;
+    }
+    const res = fromCamera
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.6 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.6 });
+    if (res.canceled || !res.assets?.[0] || !userId) return;
+    const a = res.assets[0];
+    setBusy(name);
+    try {
+      const { path } = await uploadPhoto(userId, { uri: a.uri, fileName: a.fileName, mimeType: a.mimeType });
+      setPhoto(name, path);
+    } catch {
+      // silent; user can retry
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      <Text style={styles.fieldLabel}>Partners</Text>
+      {partners.length === 0 ? <Text style={styles.optionEmpty}>None yet</Text> : null}
+      {partners.map((p) => (
+        <View key={p.name} style={styles.partnerEditRow}>
+          {busy === p.name ? (
+            <View style={styles.miniAvatarBlank}>
+              <ActivityIndicator size="small" color={colors.brand} />
+            </View>
+          ) : p.photo && userId ? (
+            <Image source={{ uri: fileUrl(p.photo, userId) }} style={styles.miniAvatar} contentFit="cover" transition={150} />
+          ) : (
+            <View style={styles.miniAvatarBlank}>
+              <Icon name="user" size={16} color={colors.brand} />
+            </View>
+          )}
+          <Text style={[styles.optionText, { flex: 1 }]}>{p.name}</Text>
+          <Pressable onPress={() => pickPhoto(p.name, false)} hitSlop={6} style={styles.partnerPhotoBtn} testID={`partner-photo-${p.name}`}>
+            <Icon name="image" size={17} color={colors.onSurface} />
+          </Pressable>
+          <Pressable onPress={() => pickPhoto(p.name, true)} hitSlop={6} style={styles.partnerPhotoBtn} testID={`partner-camera-${p.name}`}>
+            <Icon name="camera" size={17} color={colors.onSurface} />
+          </Pressable>
+          <Pressable onPress={() => remove(p.name)} hitSlop={6} style={styles.partnerPhotoBtn} testID={`partner-remove-${p.name}`}>
+            <Icon name="x" size={17} color={colors.muted} />
+          </Pressable>
+        </View>
+      ))}
+      {blocked ? (
+        <Pressable onPress={() => Linking.openSettings()} testID="partner-open-settings">
+          <Text style={styles.blockedText}>Photo access is off. Tap to open Settings.</Text>
+        </Pressable>
+      ) : null}
+      <View style={styles.addRow}>
+        <TextField
+          value={text}
+          onChangeText={setText}
+          placeholder="Add partner..."
+          style={{ flex: 1 }}
+          testID="add-input-Partners"
+          onSubmitEditing={add}
+        />
+        <Pressable style={styles.addTagBtn} onPress={add} testID="add-btn-Partners">
+          <Icon name="plus" size={20} color={colors.onBrandPrimary} />
+        </Pressable>
+      </View>
+      <Text style={styles.hintText}>Add a partner, then tap the image or camera icon to attach a picture.</Text>
+    </View>
   );
 }
 
@@ -1182,6 +1486,19 @@ const useStyles = makeStyles((c) => ({
   partnerMeta: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, marginTop: 1 },
   partnerStats: { flexDirection: "row", alignItems: "center", gap: 8 },
   partnerStat: { fontFamily: fonts.medium, fontSize: 14, color: c.onSurfaceSecondary },
+  // avatars & multi-select
+  entryAvatar: { width: 44, height: 44, borderRadius: 999, backgroundColor: c.surfaceTertiary },
+  entryIconSmall: { fontSize: 18 },
+  miniAvatar: { width: 30, height: 30, borderRadius: 999, backgroundColor: c.surfaceTertiary },
+  miniAvatarBlank: { width: 30, height: 30, borderRadius: 999, backgroundColor: c.brandTertiary, alignItems: "center", justifyContent: "center" },
+  partnerRow: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  optionSub: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, marginTop: -4, marginBottom: 6 },
+  checkBox: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: c.borderStrong, alignItems: "center", justifyContent: "center" },
+  checkBoxOn: { backgroundColor: c.brandPrimary, borderColor: c.brandPrimary },
+  partnerEditRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  partnerPhotoBtn: { width: 36, height: 36, borderRadius: 999, backgroundColor: c.surfaceSecondary, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" },
+  hintText: { fontFamily: fonts.regular, fontSize: 12, color: c.muted, lineHeight: 17 },
+  blockedText: { fontFamily: fonts.medium, fontSize: 13, color: c.error },
   // sheet
   sheetBackdrop: { flex: 1, backgroundColor: "rgba(45,43,42,0.5)", justifyContent: "flex-end" },
   sheet: { backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24 },

@@ -165,6 +165,11 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
   - Backend: `db.intimacy` + `db.intimacy_settings`; endpoints `GET/PUT /api/intimacy/settings`, `GET /api/intimacy/stats`, `GET/POST /api/intimacy`, `PUT/DELETE /api/intimacy/{id}`. Added both collections to account-delete cleanup.
   - Verified: backend CRUD + stats via curl; UI PIN setup→unlock→tracker→entry form/dropdowns via screenshots. Test data cleaned.
 
+## Updated — Iteration 24 (2026-06)
+- **Private tracker — Type is now multi-select:** an entry's Type accepts multiple values (checkbox list, "select all that apply"). Stored as `type: string[]`; backend normalizes legacy single-string values to arrays on read. Log/Calendar cards render each type as its own chip.
+- **Private tracker — Partners can have a picture:** partners are stored as `{ name, photo }`. In Field options → Partners, add a partner then tap the image or camera icon to attach a photo (Emergent Object Storage upload via existing `uploadPhoto`/`fileUrl`, with proper media/camera permission handling + Open Settings fallback). Partner avatars appear in the partner dropdown, in log/calendar entry cards, and in the Stats "by partner" list.
+- Backend `IntimacyEntryReq.type: List[str]`, `IntimacySettingsReq.partners: List[Any]`; `_clean_partners` dedupes by name and accepts legacy strings. Verified via curl (multi-type save/read, partner objects + legacy string) and UI screenshots (multi-select checkboxes, partner add with photo/camera controls).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.
