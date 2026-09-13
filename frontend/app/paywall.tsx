@@ -46,6 +46,13 @@ export default function PaywallScreen() {
   const packages = offerings?.current?.availablePackages ?? [];
   const unavailable = !rcEnabled || (!isLoading && packages.length === 0);
 
+  const monthlyPkg = packages.find((p) => p.packageType === "MONTHLY");
+  const annualPkg = packages.find((p) => p.packageType === "ANNUAL");
+  const savingsPct =
+    monthlyPkg && annualPkg && monthlyPkg.product.price > 0
+      ? Math.round((1 - annualPkg.product.price / (monthlyPkg.product.price * 12)) * 100)
+      : 0;
+
   const doPurchase = async (pkg: PurchasesPackage) => {
     setError(null);
     try {
@@ -135,21 +142,31 @@ export default function PaywallScreen() {
           </Text>
         ) : isSubscribed ? null : (
           <View style={{ gap: 12 }}>
-            {packages.map((pkg) => (
-              <Pressable
-                key={pkg.identifier}
-                style={styles.planCard}
-                onPress={() => setPending(pkg)}
-                disabled={!identityReady || isPurchasing}
-                testID={`plan-${pkg.packageType}`}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.planName}>{packageLabel(pkg)}</Text>
-                  <Text style={styles.planDesc}>{pkg.product.description || pkg.product.title}</Text>
-                </View>
-                <Text style={styles.planPrice}>{pkg.product.priceString}</Text>
-              </Pressable>
-            ))}
+            {packages.map((pkg) => {
+              const isAnnual = pkg.packageType === "ANNUAL";
+              return (
+                <Pressable
+                  key={pkg.identifier}
+                  style={[styles.planCard, isAnnual && savingsPct > 0 && styles.planCardHighlight]}
+                  onPress={() => setPending(pkg)}
+                  disabled={!identityReady || isPurchasing}
+                  testID={`plan-${pkg.packageType}`}
+                >
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.planNameRow}>
+                      <Text style={styles.planName}>{packageLabel(pkg)}</Text>
+                      {isAnnual && savingsPct > 0 ? (
+                        <View style={styles.saveBadge}>
+                          <Text style={styles.saveBadgeText}>SAVE {savingsPct}%</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.planDesc}>{pkg.product.description || pkg.product.title}</Text>
+                  </View>
+                  <Text style={styles.planPrice}>{pkg.product.priceString}</Text>
+                </Pressable>
+              );
+            })}
             {!identityReady ? (
               <Text style={styles.hint}>Preparing your account…</Text>
             ) : null}
@@ -205,6 +222,10 @@ const useStyles = makeStyles((c) => ({
   perkRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   perkText: { fontFamily: fonts.medium, fontSize: 15, color: c.onSurface, flex: 1 },
   planCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 18, borderRadius: 16, backgroundColor: c.surfaceSecondary, borderWidth: 1, borderColor: c.borderStrong },
+  planCardHighlight: { borderColor: c.brandPrimary, borderWidth: 2 },
+  planNameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  saveBadge: { backgroundColor: c.brandPrimary, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  saveBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: c.onBrandPrimary, letterSpacing: 0.5 },
   planName: { fontFamily: fonts.displayBold, fontSize: 18, color: c.onSurface },
   planDesc: { fontFamily: fonts.regular, fontSize: 13, color: c.muted, marginTop: 2 },
   planPrice: { fontFamily: fonts.displayBold, fontSize: 20, color: c.brand },

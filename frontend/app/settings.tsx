@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth-context";
 import { Icon, PrimaryButton } from "@/src/components/ui";
+import { useAccess, useSubscription } from "@/src/revenuecat";
 import {
   DEFAULT_REMINDER,
   getReminderPrefs,
@@ -26,6 +27,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { managementURL } = useSubscription();
+  const { isSubscribed, inTrial, trialDaysLeft } = useAccess();
 
   const [prefs, setPrefs] = useState<ReminderPrefs>(DEFAULT_REMINDER);
   const [blocked, setBlocked] = useState(false);
@@ -145,6 +148,34 @@ export default function SettingsScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.accountName}>Change background</Text>
               <Text style={styles.accountEmail}>Motivational themes or your own photos</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={colors.muted} />
+          </Pressable>
+        </View>
+
+        {/* Subscription */}
+        <Text style={styles.sectionLabel}>Subscription</Text>
+        <View style={styles.card}>
+          <Pressable
+            testID="manage-subscription-btn"
+            onPress={() => {
+              if (isSubscribed && managementURL) Linking.openURL(managementURL).catch(() => {});
+              else router.push("/paywall");
+            }}
+            style={styles.linkRow}
+          >
+            <Icon name={isSubscribed ? "check-circle" : "star"} size={18} color={colors.onSurface} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.accountName}>
+                {isSubscribed ? "Aura Premium" : "Upgrade to Premium"}
+              </Text>
+              <Text style={styles.accountEmail}>
+                {isSubscribed
+                  ? "Manage or cancel your subscription"
+                  : inTrial
+                    ? `Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
+                    : "Unlock every feature"}
+              </Text>
             </View>
             <Icon name="chevron-right" size={20} color={colors.muted} />
           </Pressable>

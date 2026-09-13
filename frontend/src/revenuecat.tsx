@@ -105,6 +105,7 @@ function useSubscriptionContext() {
     isSubscribed,
     identityReady,
     identityError,
+    managementURL: customerInfoQuery.data?.managementURL ?? null,
     isLoading: customerInfoQuery.isLoading || offeringsQuery.isLoading,
     purchase: purchaseMutation.mutateAsync,
     restore: restoreMutation.mutateAsync,

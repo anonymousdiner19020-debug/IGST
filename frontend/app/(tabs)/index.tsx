@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCalendar, useDay, useOnThisDay, useGratitudeTrends, useHabitStats } from "@/src/api";
@@ -36,7 +36,21 @@ export default function TodayScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { userId, init } = useUser();
-  const { hasAccess, isSubscribed, inTrial, trialDaysLeft } = useAccess();
+  const { hasAccess, isSubscribed, inTrial, trialDaysLeft, resolving } = useAccess();
+
+  const [trialNudge, setTrialNudge] = useState(false);
+  useEffect(() => {
+    if (resolving || isSubscribed) return;
+    if (inTrial && trialDaysLeft > 1) return; // nudge only on the final day / after it ends
+    const state = inTrial ? `last-${trialDaysLeft}` : "ended";
+    (async () => {
+      const seen = await storage.getItem<string>("aura.trialNudge", "");
+      if (seen !== state) {
+        setTrialNudge(true);
+        await storage.setItem("aura.trialNudge", state);
+      }
+    })();
+  }, [resolving, isSubscribed, inTrial, trialDaysLeft]);
   const today = todayStr();
   const { data: day, isLoading } = useDay(userId, today);
   const { data: habitStats } = useHabitStats(userId);
@@ -261,6 +275,39 @@ export default function TodayScreen() {
       {celebrate ? (
         <StreakCelebration streak={celebrate} onClose={() => setCelebrate(null)} />
       ) : null}
+
+      <Modal visible={trialNudge} transparent animationType="fade" onRequestClose={() => setTrialNudge(false)}>
+        <View style={styles.nudgeBackdrop}>
+          <View style={styles.nudgeCard}>
+            <View style={styles.nudgeIcon}>
+              <Icon name={inTrial ? "clock" : "lock"} size={28} color={colors.brand} />
+            </View>
+            <Text style={styles.nudgeTitle}>
+              {inTrial ? "Your free trial ends today" : "Your free trial has ended"}
+            </Text>
+            <Text style={styles.nudgeBody}>
+              {inTrial
+                ? "This is the last day of your free trial. Upgrade to Aura Premium to keep every feature without interruption."
+                : "Upgrade to Aura Premium to keep journaling, insights, backgrounds and the private tracker."}
+            </Text>
+            <View style={{ width: "100%", gap: 10, marginTop: 6 }}>
+              <Pressable
+                style={styles.nudgeBtn}
+                onPress={() => {
+                  setTrialNudge(false);
+                  router.push("/paywall");
+                }}
+                testID="trial-nudge-upgrade"
+              >
+                <Text style={styles.nudgeBtnText}>See Premium</Text>
+              </Pressable>
+              <Pressable onPress={() => setTrialNudge(false)} style={styles.nudgeLater} testID="trial-nudge-later">
+                <Text style={styles.nudgeLaterText}>Maybe later</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -324,6 +371,15 @@ const useStyles = makeStyles((c) => ({
   },
   premiumTitle: { fontFamily: fonts.semibold, fontSize: 15, color: c.onSurface },
   premiumSub: { fontFamily: fonts.regular, fontSize: 13, color: c.onSurfaceSecondary, marginTop: 2 },
+  nudgeBackdrop: { flex: 1, backgroundColor: "rgba(45,43,42,0.5)", alignItems: "center", justifyContent: "center", padding: 28 },
+  nudgeCard: { width: "100%", maxWidth: 360, backgroundColor: c.surface, borderRadius: 28, padding: 28, alignItems: "center", gap: 8 },
+  nudgeIcon: { width: 72, height: 72, borderRadius: 999, backgroundColor: c.brandTertiary, alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  nudgeTitle: { fontFamily: fonts.displayBold, fontSize: 22, color: c.onSurface, textAlign: "center" },
+  nudgeBody: { fontFamily: fonts.regular, fontSize: 15, color: c.onSurfaceSecondary, textAlign: "center", lineHeight: 22, marginTop: 2 },
+  nudgeBtn: { backgroundColor: c.brandPrimary, borderRadius: 16, minHeight: 52, alignItems: "center", justifyContent: "center" },
+  nudgeBtnText: { fontFamily: fonts.semibold, fontSize: 16, color: c.onBrandPrimary },
+  nudgeLater: { alignItems: "center", paddingVertical: 10 },
+  nudgeLaterText: { fontFamily: fonts.semibold, fontSize: 15, color: c.muted },
   beginIcon: {
     width: 52,
     height: 52,
