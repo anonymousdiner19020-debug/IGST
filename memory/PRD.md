@@ -202,6 +202,10 @@ appearing on day 1 and every 7th day. Affirmations and inspirational quotes are 
 - **Env slots** (empty; dev uses test IDs): `EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_ID`, `EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL_ID` in frontend/.env.
 - **CAVEAT:** ads need a native dev/release build — they do NOT show in Expo Go or web preview. Before publishing, user must supply real AdMob **App IDs** (app.json plugin) + **interstitial Ad Unit IDs** (.env), and declare "contains ads" in Play Console.
 
+## Updated — Iteration 29 (2026-06)
+- **Journal-aware reminders**: the daily nudge now skips days you've already journaled. `src/notifications.ts` schedules the next 7 days as one-shot DATE triggers (instead of a repeating DAILY) and omits today when it's already passed or `aura.lastJournaledDate === today`. `markJournaledToday()` is called on check-in completion (`app/flow.tsx`), and `resyncReminder()` runs on app foreground (`app/_layout.tsx` AppState listener). Default time stays 9:00 AM; gentle tone copy.
+- **Private tracker customization (disguise)**: new `src/privacy-context.tsx` (`PrivacyProvider`/`usePrivacy`) persists `{ label, icon }` (`aura.privacy`; default "Private"/lock). The Tracker settings modal (gear) has an **Appearance** section — rename the tab + pick from 8 icons (lock/heart/star/book/moon/shield/activity/calendar). Applied live to the bottom tab label+icon (native SF + JS Feather in `app/(tabs)/_layout.tsx`) and the tracker header. Verified in preview (renamed to "Journal+" with heart, tab + header updated live).
+
 ## Next Tasks
 - Await user feedback; prioritize auth when they're ready to sync data.
 - Optional: apply chosen background to Today/day-detail screens too if user wants app-wide theming.

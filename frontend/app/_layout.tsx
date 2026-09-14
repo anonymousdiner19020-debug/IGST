@@ -3,7 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { LogBox } from "react-native";
+import { AppState, LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -13,6 +13,8 @@ import { AuthProvider } from "@/src/auth-context";
 import { BackgroundProvider } from "@/src/background-context";
 import { queryClient } from "@/src/query-client";
 import { initializeAds, preloadInterstitial } from "@/src/ads";
+import { resyncReminder } from "@/src/notifications";
+import { PrivacyProvider } from "@/src/privacy-context";
 import { initializeRevenueCat, SubscriptionProvider } from "@/src/revenuecat";
 import { UserProvider } from "@/src/user-context";
 
@@ -45,6 +47,14 @@ export default function RootLayout() {
     initializeAds().then(preloadInterstitial).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    resyncReminder();
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") resyncReminder();
+    });
+    return () => sub.remove();
+  }, []);
+
   if (!loaded) return null;
 
   return (
@@ -56,7 +66,8 @@ export default function RootLayout() {
               <AuthProvider>
                 <UserProvider>
                   <SubscriptionProvider>
-                    <BackgroundProvider>
+                    <PrivacyProvider>
+                      <BackgroundProvider>
                       <Stack screenOptions={{ headerShown: false }}>
                         <Stack.Screen name="(tabs)" />
                         <Stack.Screen name="flow" options={{ presentation: "card", animation: "slide_from_bottom" }} />
@@ -71,6 +82,7 @@ export default function RootLayout() {
                         <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
                       </Stack>
                     </BackgroundProvider>
+                    </PrivacyProvider>
                   </SubscriptionProvider>
                 </UserProvider>
               </AuthProvider>

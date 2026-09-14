@@ -15,6 +15,7 @@ import { PageBackground } from "@/src/components/page-background";
 import { PhotoPicker } from "@/src/components/photo-picker";
 import { MOODS } from "@/src/mood";
 import { maybeShowInterstitial } from "@/src/ads";
+import { markJournaledToday } from "@/src/notifications";
 import { useAccess } from "@/src/revenuecat";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -177,6 +178,7 @@ export default function FlowScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (isLast) {
       await save();
+      await markJournaledToday();
       // Trial users see one full-screen ad here (Premium users never do).
       await maybeShowInterstitial(inTrial && !isSubscribed);
       router.back();

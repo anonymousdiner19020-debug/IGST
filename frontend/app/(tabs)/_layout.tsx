@@ -3,13 +3,15 @@ import { NativeTabs, Icon as NativeIcon, Label } from "expo-router/unstable-nati
 import Feather from "@react-native-vector-icons/feather";
 import { Platform } from "react-native";
 
-import { useTheme } from "@/src/theme";
-import { fonts } from "@/src/theme";
+import { fonts, useTheme } from "@/src/theme";
+import { PRIVACY_ICONS, usePrivacy } from "@/src/privacy-context";
 
 const useNative = Platform.OS === "ios" && parseInt(String(Platform.Version), 10) >= 26;
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const privacy = usePrivacy();
+  const privacyIcon = PRIVACY_ICONS[privacy.icon] ?? PRIVACY_ICONS.lock;
 
   if (useNative) {
     return (
@@ -35,8 +37,8 @@ export default function TabsLayout() {
           <Label>Progress</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="intimacy">
-          <NativeIcon sf="lock.fill" />
-          <Label>Private</Label>
+          <NativeIcon sf={privacyIcon.sf} />
+          <Label>{privacy.label}</Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     );
@@ -95,8 +97,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="intimacy"
         options={{
-          title: "Private",
-          tabBarIcon: ({ color, size }) => <Feather name="lock" size={size} color={color} />,
+          title: privacy.label,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name={privacyIcon.feather as any} size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

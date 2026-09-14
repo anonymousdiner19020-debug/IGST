@@ -33,6 +33,7 @@ import {
 } from "@/src/api";
 import { Icon, PrimaryButton, TextField } from "@/src/components/ui";
 import { prettyDate, shortDate, todayStr } from "@/src/date-utils";
+import { PRIVACY_ICONS, type PrivacyIconKey, usePrivacy } from "@/src/privacy-context";
 import { useAccess } from "@/src/revenuecat";
 import { fonts, makeStyles, useTheme } from "@/src/theme";
 import { useUser } from "@/src/user-context";
@@ -295,6 +296,7 @@ function Tracker({ onLock }: { onLock: () => void }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { userId } = useUser();
+  const privacy = usePrivacy();
 
   const { data, isLoading } = useIntimacy(userId);
   const { data: stats } = useIntimacyStats(userId);
@@ -333,7 +335,7 @@ function Tracker({ onLock }: { onLock: () => void }) {
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
         <View>
-          <Text style={styles.headerTitle}>Private</Text>
+          <Text style={styles.headerTitle}>{privacy.label}</Text>
           <Text style={styles.headerSub}>Your intimacy log</Text>
         </View>
         <View style={styles.headerActions}>
@@ -1135,6 +1137,8 @@ function SettingsModal({
   const insets = useSafeAreaInsets();
   const { userId } = useUser();
   const saveM = useSaveIntimacySettings(userId);
+  const privacy = usePrivacy();
+  const [label, setLabel] = useState(privacy.label);
 
   const [partners, setPartners] = useState<PartnerOption[]>(settings?.partners ?? []);
   const [types, setTypes] = useState<string[]>(settings?.types ?? []);
@@ -1163,10 +1167,40 @@ function SettingsModal({
       <View style={styles.sheetBackdrop}>
         <View style={[styles.sheet, { maxHeight: "92%", paddingBottom: insets.bottom + 16 }]}>
           <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>Field options</Text>
-          <Text style={styles.settingsSub}>These appear as dropdown choices when you log an entry.</Text>
+          <Text style={styles.sheetTitle}>Tracker settings</Text>
+          <Text style={styles.settingsSub}>Personalize this space and your dropdown choices.</Text>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 18, paddingBottom: 8 }}>
+            {/* Appearance / disguise */}
+            <View style={{ gap: 8 }}>
+              <Text style={styles.fieldLabel}>Tab name</Text>
+              <TextField
+                value={label}
+                onChangeText={(t) => {
+                  setLabel(t);
+                  privacy.setPrefs({ label: t.trim() || "Private" });
+                }}
+                placeholder="Private"
+                testID="privacy-label-input"
+              />
+              <Text style={styles.fieldLabel}>Tab icon</Text>
+              <View style={styles.iconGrid}>
+                {(Object.keys(PRIVACY_ICONS) as PrivacyIconKey[]).map((k) => (
+                  <Pressable
+                    key={k}
+                    onPress={() => privacy.setPrefs({ icon: k })}
+                    style={[styles.iconChoice, privacy.icon === k && styles.iconChoiceActive]}
+                    testID={`privacy-icon-${k}`}
+                  >
+                    <Icon name={PRIVACY_ICONS[k].feather} size={22} color={colors.onSurface} />
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.hintText}>
+                Rename the tab and pick an icon to keep this space discreet.
+              </Text>
+            </View>
+
             <PartnerGroup partners={partners} userId={userId} onChange={setPartners} />
             {strGroups.map((g) => (
               <OptionGroup
