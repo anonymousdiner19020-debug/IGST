@@ -187,7 +187,7 @@ export default function SettingsScreen() {
           <View style={styles.reminderRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.accountName}>Gentle daily nudge</Text>
-              <Text style={styles.accountEmail}>Remind me to check in each day</Text>
+              <Text style={styles.accountEmail}>Remind me to log in and journal each day</Text>
             </View>
             <Switch
               testID="reminder-switch"

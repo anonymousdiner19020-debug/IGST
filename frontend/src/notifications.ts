@@ -41,8 +41,8 @@ async function applySchedules(p: ReminderPrefs) {
   if (p.enabled) {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Time for your check-in 🌱",
-        body: "A few mindful minutes for yourself — keep your streak alive.",
+        title: "A gentle nudge 🌱",
+        body: "Take a mindful moment to log in and journal today.",
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: p.hour, minute: p.minute },
     });
